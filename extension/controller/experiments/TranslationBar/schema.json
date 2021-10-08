@@ -1,0 +1,25 @@
+[
+    {
+      "namespace": "experiments.translationbar",
+      "functions": [
+        {
+          "name": "show",
+          "type": "function",
+          "description": "Displays the translation bar.",
+          "async": true,
+          "parameters": [
+            {
+                "name": "tabid",
+                "type": "integer",
+                "description": "tabid to host the translation bar"
+            },
+            {
+                "name": "detectedLanguage",
+                "type": "string",
+                "description": "pages langauge"
+            }
+          ]
+        }
+      ]
+    }
+  ]
