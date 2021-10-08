@@ -1,0 +1,20 @@
+[
+  {
+    "namespace": "experiments.languageDetector",
+    "functions": [
+      {
+        "name": "detect",
+        "type": "function",
+        "description": "Detect language of a string.",
+        "async": true,
+        "parameters": [
+          {
+            "name": "snipper",
+            "type": "string",
+            "description": "String to detect language."
+          }
+        ]
+      }
+    ]
+  }
+]

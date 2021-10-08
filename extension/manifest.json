@@ -1,0 +1,59 @@
+{
+    "manifest_version": 2,
+    "name": "Firefox Translations",
+    "version": "0.5",
+    "applications": {
+        "gecko": {
+            "id": "firefox-translations-new@mozilla.org",
+            "strict_min_version": "79.0"
+        }
+    },
+    "permissions": [
+        "<all_urls>",
+        "tabs",
+        "webNavigation",
+        "storage"
+    ],
+    "background": {
+      "scripts": [
+        "controller/LanguageDetection.js",
+        "controller/backgroundScript.js"
+      ]
+    },
+    "content_scripts": [
+        {
+          "matches": ["<all_urls>"],
+          "js": [
+            "controller/LanguageDetection.js",
+            "view/js/OutboundTranslation.js",
+            "mediator.js"
+          ],
+          "css": ["view/static/ot.css"],
+          "run_at": "document_idle"
+        }
+    ],
+    "web_accessible_resources": [
+      "ot.html",
+      "controller/translationWorker.js"
+    ],
+    "incognito": "spanning",
+    "experiment_apis": {
+        "experiment_languageDetector": {
+          "schema": "controller/experiments/LanguageDetector/schema.json",
+          "parent": {
+            "scopes": ["addon_parent"],
+            "paths": [["experiments", "languageDetector"]],
+            "script": "controller/experiments/LanguageDetector/api.js"
+          }
+        },
+        "experiments_translationbar": {
+          "schema": "controller/experiments/TranslationBar/schema.json",
+          "parent": {
+            "scopes": ["addon_parent"],
+            "paths": [["experiments", "translationbar"]],
+            "script": "controller/experiments/TranslationBar/api.js"
+          }
+        }
+    },
+    "description": "Firefox Translations translates any webpage utilizing client based machine learning algorithms and models."
+  }
