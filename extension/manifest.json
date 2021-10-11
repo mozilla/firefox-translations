@@ -25,6 +25,9 @@
           "matches": ["<all_urls>"],
           "js": [
             "controller/LanguageDetection.js",
+            "controller/translation/Translation.js",
+            "controller/translation/TranslationMessage.js",
+            "controller/translation/translationWorker.js",
             "view/js/OutboundTranslation.js",
             "mediator.js"
           ],
@@ -34,7 +37,7 @@
     ],
     "web_accessible_resources": [
       "ot.html",
-      "controller/translationWorker.js"
+      "controller/translation/translationWorker.js"
     ],
     "incognito": "spanning",
     "experiment_apis": {

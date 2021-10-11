@@ -9,7 +9,7 @@ class Mediator {
 
     constructor() {
         this.messagesSenderLookupTable = new Map();
-        this.messageCounter = 0;
+        this.translationsCounter = 0;
         this.translationWorker = null;
         this.languageDetection = new LanguageDetection();
         this.outboundTranslation = new OutboundTranslation(this);
@@ -56,11 +56,8 @@ class Mediator {
             // render the outboundtranslation view
             this.outboundTranslation.start();
 
-            // start the translation webworker
-             if (window.Worker) {
-                 this.translationWorker = new Worker(browser.runtime.getURL("controller/translationWorker.js"));
-                 this.translationWorker.addEventListener("message", this.translationWorkerMessageListener);
-             }
+            // crete the translation object
+            this.translation = new Translation();
         }
     }
 
@@ -75,32 +72,24 @@ class Mediator {
                  * translation request received. dispatch the content to the
                  * translation worker
                  */
-                this.translationWorkerMessageSender("translate", sender, message);
-
+                const translationMessage = new TranslationMessage();
+                this.translationsCounter += 1;
+                translationMessage.messageID = this.translationsCounter;
+                translationMessage.sourceParagraph = message.payload;
+                this.messagesSenderLookupTable.set(translationMessage.messageID, sender);
+                this.translation.translate(translationMessage);
+                break;
+            case "translationComplete":
+                /* 
+                 * received the translation complete signal 
+                 * from the translation object. so we lookup the sender
+                 * in order to route the response back.
+                 */
+                const _sender = this.messagesSenderLookupTable.get(translationMessage.messageID);
+                _sender.mediatorNotification(translationMessage);
                 break;
             default:
         }
-    }
-
-    translationWorkerMessageSender(command, sender, message) {
-        this.messageCounter += 1;
-        this.messagesSenderLookupTable.set(this.messageCounter, sender);
-        this.translationWorker.postMessage([
-            command,
-            this.messageCounter,
-            message
-        ]);
-    }
-
-    /*
-     * handles all communicaiton received from the translation webworker
-     */
-    translationWorkerMessageListener(message) {
-        const command = message.data[0];
-        const messageId = message.data[1];
-        const payLoad = message.data[2];
-        // we then retrieve the sender from the lookup table using the
-        console.log("translationWorkerMessageListener", message);
     }
 
     /*
@@ -120,7 +109,6 @@ class Mediator {
                 // ignore
         }
     }
-
 }
 
 new Mediator();

@@ -82,9 +82,12 @@ class OutboundTranslation {
     }
   }
 
-  notifyMediator(command, payload){
-    const message = { command: "translate", payload};
-    this.mediator.contentScriptsMessageListener(this, message);
+  notifyMediator(command, payload) {
+    this.mediator.contentScriptsMessageListener(this, {command, payload});
+  }
+
+  mediatorNotification(translationMessage) {
+    this.updateselectedTextArea(translationMessage.translatedParagraph);
   }
 
   updateselectedTextArea(content) {
