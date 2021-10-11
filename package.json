@@ -10,8 +10,9 @@
     "format": "prettier 'extension/*.{js,css}' --tab-width=2 --arrow-parens=always --trailing-comma=es5 --no-bracket-spacing --write",
     "lint": "npm-run-all lint:*",
     "lint:extension": "web-ext lint -s extension",
-    "once": "web-ext run -s extension --verbose  --keep-profile-changes --firefox-binary '/Applications/Firefox Nightly.app/Contents/MacOS/firefox-bin' --no-config-discovery --firefox-profile=fxtranslations",
+    "once": "web-ext run -s extension --verbose  --keep-profile-changes --firefox nightly  --no-config-discovery --firefox-profile=fxtranslations",
     "package": "npm run build && mv web-ext-artifacts/*.zip addon.xpi",
-    "postinstall": "bin/postinstall.sh"
+    "postinstall": "bin/postinstall.sh",
+    "setup-webext": " npm install -g web-ext"
   }
 }

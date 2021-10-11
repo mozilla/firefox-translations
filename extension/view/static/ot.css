@@ -26,7 +26,8 @@
     grid: "from swap to" 1fr "status status status" auto / 1fr auto 1fr;
     grid-gap: 1rem;
     overflow: hidden;
-    min-height: 400px;
+    min-height: 25%;
+    max-height: 5%;
     max-width: 1024px;
     margin: 1em auto;
 }
