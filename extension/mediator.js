@@ -3,7 +3,9 @@
  * lifecyle, interactions and the rendering of the UI elements
  */
 
-/* global LanguageDetection, OutboundTranslation, browser */
+/* global LanguageDetection, OutboundTranslation, TranslationMessage,
+ * Translation , browser
+ */
 
 class Mediator {
 
@@ -57,7 +59,7 @@ class Mediator {
             this.outboundTranslation.start();
 
             // crete the translation object
-            this.translation = new Translation();
+            this.translation = new Translation(this);
         }
     }
 
@@ -66,27 +68,35 @@ class Mediator {
      * (views and controllers)
      */
     contentScriptsMessageListener(sender, message) {
+        let translationMessage = null;
+
         switch (message.command) {
             case "translate":
+
                 /*
                  * translation request received. dispatch the content to the
                  * translation worker
                  */
-                const translationMessage = new TranslationMessage();
+                translationMessage = new TranslationMessage();
                 this.translationsCounter += 1;
                 translationMessage.messageID = this.translationsCounter;
-                translationMessage.sourceParagraph = message.payload;
+                translationMessage.sourceParagraph = message.payload.text;
+                translationMessage.sourceLanguage = "es"; //this.languageDetection.pageLanguage.language;
+                translationMessage.targetLanguage = "en"; //this.languageDetection.navigatorLanguage.substring(0,2);
                 this.messagesSenderLookupTable.set(translationMessage.messageID, sender);
                 this.translation.translate(translationMessage);
                 break;
             case "translationComplete":
-                /* 
-                 * received the translation complete signal 
+
+                /*
+                 * received the translation complete signal
                  * from the translation object. so we lookup the sender
-                 * in order to route the response back.
+                 * in order to route the response back. in this this, it can be
+                 * OutbountTranslation, InPageTranslation etc....
                  */
-                const _sender = this.messagesSenderLookupTable.get(translationMessage.messageID);
-                _sender.mediatorNotification(translationMessage);
+                translationMessage = message.payload[1];
+                this.messagesSenderLookupTable.get(translationMessage.messageID)
+                    .mediatorNotification(translationMessage);
                 break;
             default:
         }
