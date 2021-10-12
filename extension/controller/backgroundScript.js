@@ -24,7 +24,7 @@ const messageListener = async function(message, sender) {
             languageDetection.pageLanguage = await
                 browser.experiments.languageDetector.detect(languageDetection.wordsToDetect);
             browser.tabs.sendMessage(sender.tab.id, { command: "responseDetectPageLanguage",
-                    languageDetection })
+                languageDetection })
             break;
         case "monitorTabLoad":
 
@@ -35,6 +35,7 @@ const messageListener = async function(message, sender) {
             const listenerCompleteLoad = details => {
                 if (details.tabId === sender.tab.id && details.frameId === 0) {
                     browser.webNavigation.onCompleted.removeListener(listenerCompleteLoad);
+                    console.log("webNavigation.onCompleted => notifying browser to display the infobar")
                     browser.tabs.sendMessage(
                         sender.tab.id,
                         { command: "responseMonitorTabLoad", tabID: sender.tab.id }

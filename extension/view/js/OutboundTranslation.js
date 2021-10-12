@@ -78,15 +78,23 @@ class OutboundTranslation {
        * send the content back to mediator in order to have the translation
        * requested by it
        */
-      this.notifyMediator("translate", text.split("\n"));
+      const payload = {
+        text: text.split("\n")
+      };
+      this.notifyMediator("translate", payload);
     }
   }
 
   notifyMediator(command, payload) {
-    this.mediator.contentScriptsMessageListener(this, {command, payload});
+    this.mediator.contentScriptsMessageListener(this, { command, payload });
   }
 
   mediatorNotification(translationMessage) {
+
+    /*
+     * notification received from the mediator with our request. let's update
+     * the original targeted textarea
+     */
     this.updateselectedTextArea(translationMessage.translatedParagraph);
   }
 
