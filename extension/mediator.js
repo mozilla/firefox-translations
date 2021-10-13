@@ -69,7 +69,6 @@ class Mediator {
      */
     contentScriptsMessageListener(sender, message) {
         let translationMessage = null;
-
         switch (message.command) {
             case "translate":
 
@@ -81,8 +80,14 @@ class Mediator {
                 this.translationsCounter += 1;
                 translationMessage.messageID = this.translationsCounter;
                 translationMessage.sourceParagraph = message.payload.text;
-                translationMessage.sourceLanguage = "es"; //this.languageDetection.pageLanguage.language;
-                translationMessage.targetLanguage = "en"; //this.languageDetection.navigatorLanguage.substring(0,2);
+                if (message.payload.type === "outbound") {
+                    translationMessage.sourceLanguage = this.languageDetection.navigatorLanguage.substring(0,2);
+                    translationMessage.targetLanguage = this.languageDetection.pageLanguage.language;
+                } else {
+                    translationMessage.sourceLanguage = this.languageDetection.pageLanguage.language;
+                    translationMessage.targetLanguage = this.languageDetection.navigatorLanguage.substring(0,2);
+                }
+
                 this.messagesSenderLookupTable.set(translationMessage.messageID, sender);
                 this.translation.translate(translationMessage);
                 break;
@@ -94,9 +99,8 @@ class Mediator {
                  * in order to route the response back. in this this, it can be
                  * OutbountTranslation, InPageTranslation etc....
                  */
-                translationMessage = message.payload[1];
-                this.messagesSenderLookupTable.get(translationMessage.messageID)
-                    .mediatorNotification(translationMessage);
+                this.messagesSenderLookupTable.get(message.payload[1].messageID)
+                    .mediatorNotification(message);
                 break;
             default:
         }

@@ -17,12 +17,12 @@ class TranslationHelper {
             this.CACHE_NAME = "fxtranslations";
             this.postMessage = postMessage;
             this.engineIsLoaded = false;
+            this.modelsLoaded = false;
             this.wasmModuleStartTimestamp = null;
-            this.translationService = null;
             this.WasmEngineModule = null;
         }
 
-        async loadTranslationEngine() {
+        async loadTranslationEngine(sourceLanguage, targetLanguage) {
 
             const itemURL = `${engineRegistryRootURL}${engineRegistry.bergamotTranslatorWasm.fileName}`;
             // first we load the wasm engine
@@ -44,7 +44,7 @@ class TranslationHelper {
                      * initialized, we then load the language models
                      */
                     console.log(`Wasm Runtime initialized Successfully (preRun -> onRuntimeInitialized) in ${(Date.now() - this.wasmModuleStartTimestamp) / 1000} secs`);
-                    this.loadLanguageModel();
+                    this.loadLanguageModel(sourceLanguage, targetLanguage);
                 }.bind(this),
                 wasmBinary: wasmArrayBuffer,
             };
@@ -55,44 +55,75 @@ class TranslationHelper {
             this.engineIsLoaded = true;
         }
 
-        translate(message) {
-            this.sourceLanguage = message.sourceLanguage;
-            this.targetLanguage = message.targetLanguage;
-            this.sourceParagraph = message.sourceParagraph;
+        consumeTranslationQueue() {
+            if (!this.modelsLoaded) {
+                // if the models are not loaded yet, just skip and wait for it
+                return;
+            }
+            const translationMessage = this.translationQueue.dequeue();
+            const translation = this.translate(
+                translationMessage.sourceLanguage,
+                translationMessage.targetLanguage,
+                translationMessage.sourceParagraph
+            );
+            // now that we have a translation, let's report to the mediator
+            translationMessage.translatedParagraph = translation;
+             postMessage([
+                 "translationComplete",
+                 translationMessage
+             ]);
+        }
 
-            /*
-             * if we don't have a fully working engine yet, we need to
-             * initiate one
-             */
+        requestTranslation(message) {
+
+            if (!this.translationQueue){
+                this.translationQueue = new Queue();
+            }
+            this.translationQueue.enqueue(message);
+
             if (!this.engineIsLoaded) {
-                this.loadTranslationEngine();
+
+                /*
+                 * if we don't have a fully working engine yet, we need to
+                 * initiate one
+                 */
+                this.loadTranslationEngine(
+                    message.sourceLanguage,
+                    message.targetLanguage
+                );
+            } else {
+                // if we have an engine, we just consume the translation queue
+                this.consumeTranslationQueue()
             }
         }
 
-        async loadLanguageModel() {
+        async loadLanguageModel(sourceLanguage, targetLanguage) {
             let start = Date.now();
             try {
               await this.constructTranslationService();
-              await this.constructTranslationModel(this.sourceLanguage, this.targetLanguage);
-              console.log(`Model '${this.sourceLanguage}${this.targetLanguage}' successfully constructed. Time taken: ${(Date.now() - start) / 1000} secs`);
+              await this.constructTranslationModel(sourceLanguage, targetLanguage);
+              console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(Date.now() - start) / 1000} secs`);
             } catch (error) {
-              console.log(`Model '${this.sourceLanguage}${this.targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
+              console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
             }
-            console.log(`loadLanguageModel command done, Posting message back to main script`);
+            console.log("loadLanguageModel command done, let's start consuming the queue");
+            this.modelsLoaded = true;
+            // now that we have the engine loaded, we consume the translation queue
+            this.consumeTranslationQueue()
         }
 
-        // Instantiate the Translation Service
-        async constructTranslationService() {
+        // instantiate the Translation Service
+        constructTranslationService() {
             if (!this.translationService) {
                 let translationServiceConfig = {};
                 console.log(`Creating Translation Service with config: ${translationServiceConfig}`);
                 this.translationService = new this.WasmEngineModule.BlockingService(translationServiceConfig);
-                console.log(`Translation Service created successfully`);
+                console.log("Translation Service created successfully");
             }
         }
 
         async constructTranslationModel(from, to) {
-            //delete all previously constructed translation models and clear the map
+            // delete all previously constructed translation models and clear the map
             this.translationModels.forEach((value, key) => {
                 console.log(`Destructing model '${key}'`);
                 value.delete();
@@ -115,7 +146,6 @@ class TranslationHelper {
             }
         }
 
-
         // eslint-disable-next-line max-lines-per-function
         async constructTranslationModelInvolvingEnglish(from, to) {
             const languagePair = `${from}${to}`;
@@ -126,31 +156,32 @@ class TranslationHelper {
              * TODO: gemm-precision: int8shiftAlphaAll (for the models that support this)
              * DONOT CHANGE THE SPACES BETWEEN EACH ENTRY OF CONFIG
              */
-            const modelConfig = `beam-size: 1
-          normalize: 1.0
-          word-penalty: 0
-          max-length-break: 128
-          mini-batch-words: 1024
-          workspace: 128
-          max-length-factor: 2.0
-          skip-cost: true
-          cpu-threads: 0
-          quiet: true
-          quiet-translation: true
-          gemm-precision: int8shiftAll
-          `;
+            const modelConfig = `
+            beam-size: 1
+            normalize: 1.0
+            word-penalty: 0
+            max-length-break: 128
+            mini-batch-words: 1024
+            workspace: 128
+            max-length-factor: 2.0
+            skip-cost: true
+            cpu-threads: 0
+            quiet: true
+            quiet-translation: true
+            gemm-precision: int8shiftAll
+            `;
 
-            const modelFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair]["model"].name}`;
-            const modelSize = modelRegistry[languagePair]["model"].size;
-            const modelChecksum = modelRegistry[languagePair]["model"].expectedSha256Hash;
+            const modelFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].model.name}`;
+            const modelSize = modelRegistry[languagePair].model.size;
+            const modelChecksum = modelRegistry[languagePair].model.expectedSha256Hash;
 
-            const shortlistFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair]["lex"].name}`;
-            const shortlistSize = modelRegistry[languagePair]["lex"].size;
-            const shortlistChecksum = modelRegistry[languagePair]["lex"].expectedSha256Hash;
+            const shortlistFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].lex.name}`;
+            const shortlistSize = modelRegistry[languagePair].lex.size;
+            const shortlistChecksum = modelRegistry[languagePair].lex.expectedSha256Hash;
 
-            const vocabFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair]["vocab"].name}`;
-            const vocabFileSize = modelRegistry[languagePair]["vocab"].size;
-            const vocabFileChecksum = modelRegistry[languagePair]["vocab"].expectedSha256Hash;
+            const vocabFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].vocab.name}`;
+            const vocabFileSize = modelRegistry[languagePair].vocab.size;
+            const vocabFileChecksum = modelRegistry[languagePair].vocab.expectedSha256Hash;
 
             // download the files as buffers from the given urls
             let start = Date.now();
@@ -161,11 +192,9 @@ class TranslationHelper {
             const modelBuffer = downloadedBuffers[0];
             const shortListBuffer = downloadedBuffers[1];
 
-            console.log("vocabAsArrayBuffer antes");
             const downloadedVocabBuffers = [];
             const vocabAsArrayBuffer = await this.getItemFromCacheOrWeb(vocabFile, vocabFileSize, vocabFileChecksum);
             downloadedVocabBuffers.push(vocabAsArrayBuffer);
-            console.log("vocabAsArrayBuffer depois");
 
             console.log(`Total Download time for all files of '${languagePair}': ${(Date.now() - start) / 1000} secs`);
 
@@ -188,11 +217,8 @@ class TranslationHelper {
             console.log(`Aligned shortlist memory size: ${alignedShortlistMemory.size()}`);
             console.log(`Translation Model config: ${modelConfig}`);
             let translationModel;
-            try {
-                translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabsMemoryList);
-            } catch (exception) {
-                console.log("exception here", exception);
-            }
+
+            translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabsMemoryList);
             if (translationModel) {
                 this.translationModels.set(languagePair, translationModel);
             }
@@ -281,30 +307,106 @@ class TranslationHelper {
             console.log("Aligned memory initialized");
             return alignedMemory;
         }
+
+        translate (from, to, paragraphs) {
+
+            /*
+             * if none of the languages is English then perform translation with
+             * english as a pivot language.
+             */
+            if (from !== "en" && to !== "en") {
+                console.log(`Translating '${from}${to}' via pivoting: '${from}en' -> 'en${to}'`);
+                let translatedParagraphsInEnglish = this.translateInvolvingEnglish(from, "en", paragraphs);
+                return this.translateInvolvingEnglish("en", to, translatedParagraphsInEnglish);
+            }
+            return this.translateInvolvingEnglish(from, to, paragraphs);
+        }
+
+        translateInvolvingEnglish (from, to, paragraphs) {
+            const languagePair = `${from}${to}`;
+            if (!this.translationModels.has(languagePair)) {
+                throw Error(`Please load translation model '${languagePair}' before translating`);
+            }
+            const translationModel = this.translationModels.get(languagePair);
+
+            // instantiate the arguments of translate() API i.e. ResponseOptions and input (vector<string>)
+            const responseOptions = new this.WasmEngineModule.ResponseOptions();
+            let input = new this.WasmEngineModule.VectorString();
+
+            // initialize the input
+            paragraphs.forEach(paragraph => {
+                // prevent empty paragraph - it breaks the translation
+                if (paragraph.trim() === "") {
+                    return;
+                }
+                console.log(paragraph);
+                input.push_back(paragraph)
+            })
+
+            // translate the input, which is a vector<String>; the result is a vector<Response>
+            let result = this.translationService.translate(translationModel, input, responseOptions);
+
+            const translatedParagraphs = [];
+            const translatedSentencesOfParagraphs = [];
+            const sourceSentencesOfParagraphs = [];
+            for (let i = 0; i < result.size(); i++) {
+                translatedParagraphs.push(result.get(i).getTranslatedText());
+                translatedSentencesOfParagraphs.push(this.getAllTranslatedSentencesOfParagraph(result.get(i)));
+                sourceSentencesOfParagraphs.push(this.getAllSourceSentencesOfParagraph(result.get(i)));
+            }
+
+            responseOptions.delete();
+            input.delete();
+            return translatedParagraphs;
+        }
+
+        // this function extracts all the translated sentences from the Response and returns them.
+        getAllTranslatedSentencesOfParagraph (response) {
+            const sentences = [];
+            const text = response.getTranslatedText();
+            for (let sentenceIndex = 0; sentenceIndex < response.size(); sentenceIndex++) {
+                const utf8SentenceByteRange = response.getTranslatedSentence(sentenceIndex);
+                sentences.push(this._getSentenceFromByteRange(text, utf8SentenceByteRange));
+            }
+            return sentences;
+        }
+
+        // this function extracts all the source sentences from the Response and returns them.
+        getAllSourceSentencesOfParagraph (response) {
+            const sentences = [];
+            const text = response.getOriginalText();
+            for (let sentenceIndex = 0; sentenceIndex < response.size(); sentenceIndex++) {
+                const utf8SentenceByteRange = response.getSourceSentence(sentenceIndex);
+                sentences.push(this._getSentenceFromByteRange(text, utf8SentenceByteRange));
+            }
+            return sentences;
+        }
+
+        /*
+         * this function returns a substring of text (a string). The substring is represented by
+         * byteRange (begin and end endices) within the utf-8 encoded version of the text.
+         */
+        _getSentenceFromByteRange (text, byteRange) {
+            const encoder = new TextEncoder(); // string to utf-8 converter
+            const decoder = new TextDecoder(); // utf-8 to string converter
+            const utf8BytesView = encoder.encode(text);
+            const utf8SentenceBytes = utf8BytesView.subarray(byteRange.begin, byteRange.end);
+            return decoder.decode(utf8SentenceBytes);
+        }
 }
 
 const translationHelper = new TranslationHelper(postMessage);
-
 onmessage = function(message) {
 
     switch (message.data[0]) {
         case "configEngine":
+            importScripts("Queue.js");
             importScripts(message.data[1].engineLocalPath);
             importScripts(message.data[1].engineRemoteRegistry);
             importScripts(message.data[1].modelRegistry);
             break;
         case "translate":
-
-            translationHelper.translate(message.data[1]);
-
-            /*
-             *message.data[1].translatedParagraph = translationHelper.translatedParagraph;
-             *postMessage([
-             *    "translated",
-             *    message.data[1]
-             *]);
-             */
-
+            translationHelper.requestTranslation(message.data[1]);
             break;
         default:
             // ignore

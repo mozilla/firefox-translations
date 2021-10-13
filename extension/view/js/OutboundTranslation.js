@@ -71,7 +71,7 @@ class OutboundTranslation {
   }
 
   sendTextToTranslation() {
-    const text = `${this.otTextArea.value} `;
+    const text = `${this.otTextArea.value}  `;
     if (text.trim().length) {
 
       /*
@@ -79,8 +79,10 @@ class OutboundTranslation {
        * requested by it
        */
       const payload = {
-        text: text.split("\n")
+        text: text.split("\n"),
+        type: "outbound"
       };
+      console.log("sendTextToTranslation", payload);
       this.notifyMediator("translate", payload);
     }
   }
@@ -95,7 +97,7 @@ class OutboundTranslation {
      * notification received from the mediator with our request. let's update
      * the original targeted textarea
      */
-    this.updateselectedTextArea(translationMessage.translatedParagraph);
+    this.updateselectedTextArea(translationMessage.payload[1].translatedParagraph.join("\n\n"));
   }
 
   updateselectedTextArea(content) {
