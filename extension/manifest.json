@@ -25,6 +25,7 @@
           "matches": ["<all_urls>"],
           "js": [
             "controller/LanguageDetection.js",
+            "controller/translation/Queue.js",
             "controller/translation/Translation.js",
             "controller/translation/TranslationMessage.js",
             "controller/translation/translationWorker.js",
@@ -37,6 +38,7 @@
     ],
     "web_accessible_resources": [
       "ot.html",
+      "controller/translation/Queue.js",
       "controller/translation/translationWorker.js"
     ],
     "incognito": "spanning",

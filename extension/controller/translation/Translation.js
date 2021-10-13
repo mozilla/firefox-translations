@@ -31,12 +31,15 @@ class Translation {
      * handles all communicaiton received from the translation webworker
      */
     translationWorkerMessageListener(translationMessage) {
-        // submit the translated message back to the mediator
-        const message = {
-            command: "translationComplete",
-            payload: translationMessage.data
-        };
-        this.mediator.contentScriptsMessageListener(this, message);
+        switch (translationMessage.data[0]) {
+            case "translationComplete":
+                this.mediator.contentScriptsMessageListener(this, {
+                    command: "translationComplete",
+                    payload: translationMessage.data
+                });
+                break;
+            default:
+        }
     }
 
     /*
