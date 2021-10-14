@@ -120,7 +120,8 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     }
     this.setAttribute("state", stateName);
 
-    if (val === this.translation.TranslationInfoBarStates.STATE_TRANSLATED) {
+
+    if (val === this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATED) {
       this._handleButtonHiding();
     }
 
@@ -131,143 +132,35 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     return this._getAnonElt("translationStates").selectedIndex;
   }
 
-  init(translationBrowserChromeUiNotificationManager) {
-    this.translation = translationBrowserChromeUiNotificationManager;
-
+  init(translationNotificationManager) {
+    this.translationNotificationManager = translationNotificationManager;
     this.localizedLanguagesByCode = {};
 
-    const sortByLocalizedName = function(list) {
-      const names = Services.intl.getLanguageDisplayNames(undefined, list);
-      return list
+    const sortByLocalizedName = function(setOfLanguages) {
+      const arrayOfLanguages = [...setOfLanguages];
+      const names = Services.intl.getLanguageDisplayNames(undefined, arrayOfLanguages);
+      return arrayOfLanguages
         .map((code, i) => [code, names[i]])
         .sort((a, b) => a[1].localeCompare(b[1]));
-    };
-
-    // Fill the lists of supported source languages.
+    }
+    // fill the lists of supported source languages.
     const detectedLanguage = this._getAnonElt("detectedLanguage");
-    const sourceLanguages = sortByLocalizedName(
-      this.translation.uiState.supportedSourceLanguages,
-    );
-    for (const [code, name] of sourceLanguages) {
+    const languagesSupported = sortByLocalizedName(this.translationNotificationManager.languageSet);
+
+    for (const [code, name] of languagesSupported) {
       detectedLanguage.appendItem(name, code);
       this.localizedLanguagesByCode[code] = name;
     }
-    detectedLanguage.value = this.translation.uiState.detectedLanguageResults.language;
-
-    // translatedFrom is only set if we have already translated this page.
-    const fromLanguage = this._getAnonElt("fromLanguage");
-    if (translationBrowserChromeUiNotificationManager.uiState.translatedFrom) {
-      for (const [code, name] of sourceLanguages) {
-        detectedLanguage.appendItem(name, code);
-      }
-      fromLanguage.setAttribute(
-        "value",
-        this.localizedLanguagesByCode[
-          translationBrowserChromeUiNotificationManager.uiState.translatedFrom
-        ],
-      );
-    }
+    detectedLanguage.value = translationNotificationManager.detectedLanguage;
 
     // Fill the list of supported target languages.
     const toLanguage = this._getAnonElt("toLanguage");
-    const targetLanguages = sortByLocalizedName(
-      this.translation.uiState.supportedTargetLanguages,
-    );
+    const targetLanguages = sortByLocalizedName(this.translationNotificationManager.languageSet);
     for (const [code, name] of targetLanguages) {
       this.localizedLanguagesByCode[code] = name;
     }
 
-    if (translationBrowserChromeUiNotificationManager.uiState.translatedTo) {
-      toLanguage.setAttribute(
-        "value",
-        this.localizedLanguagesByCode[
-          translationBrowserChromeUiNotificationManager.uiState.translatedTo
-        ],
-      );
-    }
-
-    if (translationBrowserChromeUiNotificationManager.uiState.infobarState) {
-      this.state =
-        translationBrowserChromeUiNotificationManager.uiState.infobarState;
-    }
-
-    /*
-    // The welcome popup/notification is currently disabled
-    const kWelcomePref = "browser.translation.ui.welcomeMessageShown";
-    if (
-      Services.prefs.prefHasUserValue(kWelcomePref) ||
-      this.translation.browser !== gBrowser.selectedBrowser
-    ) {
-      return;
-    }
-
-    this.addEventListener(
-      "transitionend",
-      function() {
-        // These strings are hardcoded because they need to reach beta
-        // without riding the trains.
-        const localizedStrings = {
-          en: [
-            "Hey look! It's something new!",
-            "Now the Web is even more accessible with our new in-page translation feature. Click the translate button to try it!",
-            "Learn more.",
-            "Thanks",
-          ],
-          "es-AR": [
-            "\xA1Mir\xE1! \xA1Hay algo nuevo!",
-            "Ahora la web es a\xFAn m\xE1s accesible con nuestra nueva funcionalidad de traducci\xF3n integrada. \xA1Hac\xE9 clic en el bot\xF3n traducir para probarla!",
-            "Conoc\xE9 m\xE1s.",
-            "Gracias",
-          ],
-          "es-ES": [
-            "\xA1Mira! \xA1Hay algo nuevo!",
-            "Con la nueva funcionalidad de traducci\xF3n integrada, ahora la Web es a\xFAn m\xE1s accesible. \xA1Pulsa el bot\xF3n Traducir y pru\xE9bala!",
-            "M\xE1s informaci\xF3n.",
-            "Gracias",
-          ],
-          pl: [
-            "Sp\xF3jrz tutaj! To co\u015B nowego!",
-            "Sie\u0107 sta\u0142a si\u0119 w\u0142a\u015Bnie jeszcze bardziej dost\u0119pna dzi\u0119ki opcji bezpo\u015Bredniego t\u0142umaczenia stron. Kliknij przycisk t\u0142umaczenia, aby spr\xF3bowa\u0107!",
-            "Dowiedz si\u0119 wi\u0119cej",
-            "Dzi\u0119kuj\u0119",
-          ],
-          tr: [
-            "Bak\u0131n, burada yeni bir \u015Fey var!",
-            "Yeni sayfa i\xE7i \xE7eviri \xF6zelli\u011Fimiz sayesinde Web art\u0131k \xE7ok daha anla\u015F\u0131l\u0131r olacak. Denemek i\xE7in \xC7evir d\xFC\u011Fmesine t\u0131klay\u0131n!",
-            "Daha fazla bilgi al\u0131n.",
-            "Te\u015Fekk\xFCrler",
-          ],
-          vi: [
-            "Nh\xECn n\xE0y! \u0110\u1ED3 m\u1EDBi!",
-            "Gi\u1EDD \u0111\xE2y ch\xFAng ta c\xF3 th\u1EC3 ti\u1EBFp c\u1EADn web d\u1EC5 d\xE0ng h\u01A1n n\u1EEFa v\u1EDBi t\xEDnh n\u0103ng d\u1ECBch ngay trong trang.  Hay nh\u1EA5n n\xFAt d\u1ECBch \u0111\u1EC3 th\u1EED!",
-            "T\xECm hi\u1EC3u th\xEAm.",
-            "C\u1EA3m \u01A1n",
-          ],
-        };
-
-        let locale = Services.locale.appLocaleAsBCP47;
-        if (!(locale in localizedStrings)) {
-          locale = "en";
-        }
-        const strings = localizedStrings[locale];
-
-        this._getAnonElt("welcomeHeadline").setAttribute("value", strings[0]);
-        this._getAnonElt("welcomeBody").textContent = strings[1];
-        this._getAnonElt("learnMore").setAttribute("value", strings[2]);
-        this._getAnonElt("thanksButton").setAttribute("label", strings[3]);
-
-        // TODO: Figure out why this shows a strangely rendered popup at the corner of the window instead next to the URL bar
-        const panel = this._getAnonElt("welcomePanel");
-        panel.openPopup(
-          this._getAnonElt("messageImage"),
-          "bottomcenter topleft",
-        );
-
-        Services.prefs.setBoolPref(kWelcomePref, true);
-      },
-      { once: true },
-    );
-     */
+    this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_OFFER;
   }
 
   _getAnonElt(anonId) {
@@ -293,6 +186,11 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   translate() {
     const from = this._getSourceLang();
     const to = this._getTargetLang();
+    this.translationNotificationManager.requestTranslation(from, to);
+    this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATING;
+
+    /*
+
 
     // Initiate translation
     this.translation.translate(from, to);
@@ -310,7 +208,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         "value",
         this.localizedLanguagesByCode[to],
       );
-    }
+    } */
   }
 
   /**
@@ -329,7 +227,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
    * by clicking the Not now button
    */
   notNow() {
-    this.translation.notNow(this._getSourceLang(), this._getTargetLang());
     this.closeCommand();
   }
 
@@ -364,7 +261,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   _getTargetLang() {
-    return this.translation.uiState.defaultTargetLanguage;
+    return this.translationNotificationManager.navigatorLanguage;
   }
 
   optionsShowing() {

@@ -38,6 +38,12 @@ class Translation {
                     payload: translationMessage.data
                 });
                 break;
+            case "updateProgress":
+                this.mediator.contentScriptsMessageListener(this, {
+                    command: "updateProgress",
+                    payload: translationMessage.data
+                });
+                break;
             default:
         }
     }
@@ -53,5 +59,28 @@ class Translation {
                 translationMessage
             ]);
         }
+    }
+
+    // eslint-disable-next-line max-params
+    constructTranslationMessage(sourceParagraph, translationType, sourceLanguage, targetLanguage, tabID) {
+
+        /*
+         * translation request received. dispatch the content to the
+         * translation worker
+         */
+        const translationMessage = new TranslationMessage();
+        this.translationsCounter += 1;
+        translationMessage.messageID = this.translationsCounter;
+        translationMessage.sourceParagraph = sourceParagraph;
+        if (translationType === "outbound") {
+            translationMessage.sourceLanguage = sourceLanguage;
+            translationMessage.targetLanguage = targetLanguage;
+        } else if (translationType === "inpage"){
+            translationMessage.sourceLanguage = targetLanguage;
+            translationMessage.targetLanguage = sourceLanguage;
+        }
+        translationMessage.tabID = tabID;
+
+        return translationMessage;
     }
 }

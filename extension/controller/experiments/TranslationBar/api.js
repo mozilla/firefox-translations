@@ -5,11 +5,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+/* global ExtensionAPI, ExtensionCommon, Services */
 
- /* global ExtensionAPI, ExtensionCommon */
 
  this.experiments_translationbar = class extends ExtensionAPI {
     getAPI(context) {
+
+      let translationNotificationManager;
       const { ExtensionUtils } = ChromeUtils.import(
         "resource://gre/modules/ExtensionUtils.jsm",
         {},
@@ -21,10 +23,27 @@
         {},
       );
 
+      const { EventManager, EventEmitter } = ExtensionCommon;
+      const apiEventEmitter = new EventEmitter();
+
+      // map responsible holding the TranslationNotificationManager per tabid
+      const translatonNotificationManagers = new Map();
+
+      Services.scriptloader.loadSubScript(
+        `${context.extension.getURL("/view/js/TranslationNotificationManager.js",)}?cachebuster=${Date.now()}`
+      ,);
+      Services.scriptloader.loadSubScript(
+        `${context.extension.getURL("/model/modelRegistry.js",)}?cachebuster=${Date.now()}`
+      ,);
+
+      // variable responsible for holding a reference to the backgroundscript
+      // event listener
+      let bgScriptListenerCallback = null;
+
       return {
         experiments: {
           translationbar: {
-            show: function show(tabid, detectedLanguage) {
+            show: function show(tabid, detectedLanguage, navigatorLanguage) {
               try {
                 const { tabManager } = context.extension;
                 const tab = tabManager.get(tabid);
@@ -40,11 +59,9 @@
                   `translation-notification-${chromeWin.now}`,
                   () => {
                     Services.scriptloader.loadSubScript(
-                      context.extension.getURL(
-                        "view/js/translation-notification-fxtranslations.js",
-                      ) +
-                        "?cachebuster=" +
-                        chromeWin.now,
+                      `${context.extension.getURL("view/js/translation-notification-fxtranslations.js",)
+                        }?cachebuster=${
+                        chromeWin.now}`,
                       chromeWin,
                     );
 
@@ -56,14 +73,41 @@
                     priority: notificationBox.PRIORITY_INFO_HIGH,
                     notificationIs: `translation-notification-${chromeWin.now}`,
                 });
-                notif.init(this);
-
+                translationNotificationManager = new TranslationNotificationManager(
+                  this,
+                  modelRegistry,
+                  detectedLanguage,
+                  navigatorLanguage,
+                  tabid,
+                  bgScriptListenerCallback,
+                  notif
+                );
+                notif.init(translationNotificationManager);
+                translatonNotificationManagers.set(tabid, translationNotificationManager);
               } catch (error) {
                 // surface otherwise silent or obscurely reported errors
                 console.error(error.message, error.stack);
                 throw new ExtensionError(error.message);
               }
              },
+            updateProgress: function updateProgress(tabid, progressMessage) {
+              console.log({ data: "updateProgress na api", tabid, progressMessage });
+              const translatonNotificationManager = translatonNotificationManagers.get(tabid);
+              translatonNotificationManager.notificationBox.updateTranslationProgress(true, progressMessage);
+             },
+             onTranslationRequest: new ExtensionCommon.EventManager({
+              context,
+              name: "experiments.translationbar.onTranslationRequest",
+              register: fire => {
+                const callback = value => {
+                  fire.async(value);
+                };
+                bgScriptListenerCallback = callback;
+                return () => {
+                  bgScriptListenerCallback = null;
+                };
+              },
+            }).api(),
           },
         },
       };

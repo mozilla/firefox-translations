@@ -7,7 +7,7 @@
 class LanguageDetection {
 
     constructor() {
-        this.navigatorLanguage = navigator.language;
+        this.navigatorLanguage = navigator.language.substring(0,2);
         this.pageLanguage = null;
         this.wordsToDetect = null;
     }

@@ -17,8 +17,38 @@
                 "name": "detectedLanguage",
                 "type": "string",
                 "description": "pages langauge"
+            },
+            {
+              "name": "navigatorLanguage",
+              "type": "string",
+              "description": "navigator langauge"
+          }
+          ]
+        },
+        {
+          "name": "updateProgress",
+          "type": "function",
+          "description": "Updates progress in translation bar.",
+          "async": true,
+          "parameters": [
+            {
+                "name": "tabid",
+                "type": "integer",
+                "description": "tabid to host the translation bar"
+            },
+            {
+                "name": "progressMessage",
+                "type": "string",
+                "description": "progress message"
             }
           ]
+        }
+      ],
+      "events": [
+        {
+          "name": "onTranslationRequest",
+          "type": "function",
+          "description": "Translation requested by the user"
         }
       ]
     }
