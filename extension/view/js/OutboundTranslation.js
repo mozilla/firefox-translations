@@ -82,7 +82,6 @@ class OutboundTranslation {
         text: text.split("\n"),
         type: "outbound"
       };
-      console.log("sendTextToTranslation", payload);
       this.notifyMediator("translate", payload);
     }
   }

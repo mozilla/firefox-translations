@@ -9,8 +9,6 @@
  * this script does not have access to the page content, since it runs in the
  * extension's background process.
  */
-
-
 const messageListener = async function(message, sender) {
 
     switch (message.command) {
@@ -44,16 +42,32 @@ const messageListener = async function(message, sender) {
             };
             browser.webNavigation.onCompleted.addListener(listenerCompleteLoad);
             break;
-        case "displyTranslationBar":
+        case "displayTranslationBar":
 
-            const promise_ld = browser.experiments.translationbar.show(
+            await browser.experiments.translationbar.show(
                 sender.tab.id,
-                message.languageDetection
+                message.languageDetection.pageLanguage.language,
+                message.languageDetection.navigatorLanguage
             );
-            promise_ld
-            .then(result => { console.log("success no browser.experiments.translationbar", result)})
-            .catch(error => { console.log("error no browser.experiments.translationbar", error)});
+            // let's make sure there's only one listener attached to the api
 
+            break;
+        case "translationRequested":
+
+            // requested for translation received. let's inform the mediator
+            browser.tabs.sendMessage(
+                message.tabid,
+                { command: "translationRequested",
+                  tabID: message.tabid,
+                  from: message.from,
+                  to: message.to }
+            );
+            break;
+        case "updateProgress":
+            browser.experiments.translationbar.updateProgress(
+                message.tabId,
+                message.progressMessage[1]
+            );
             break;
         default:
           // ignore
@@ -61,3 +75,4 @@ const messageListener = async function(message, sender) {
 }
 
 browser.runtime.onMessage.addListener(messageListener);
+browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);

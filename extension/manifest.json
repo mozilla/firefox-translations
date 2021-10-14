@@ -17,6 +17,7 @@
     "background": {
       "scripts": [
         "controller/LanguageDetection.js",
+        "view/js/TranslationNotificationManager.js",
         "controller/backgroundScript.js"
       ]
     },

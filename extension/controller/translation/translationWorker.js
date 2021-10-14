@@ -61,21 +61,27 @@ class TranslationHelper {
                 return;
             }
             const translationMessage = this.translationQueue.dequeue();
-            const translation = this.translate(
-                translationMessage.sourceLanguage,
-                translationMessage.targetLanguage,
-                translationMessage.sourceParagraph
-            );
-            // now that we have a translation, let's report to the mediator
-            translationMessage.translatedParagraph = translation;
-             postMessage([
-                 "translationComplete",
-                 translationMessage
-             ]);
+
+            // if there's a paragraph, then we translate
+            if (translationMessage.sourceParagraph) {
+                const translation = this.translate(
+                    translationMessage.sourceLanguage,
+                    translationMessage.targetLanguage,
+                    translationMessage.sourceParagraph
+                );
+
+                // now that we have a translation, let's report to the mediator
+                translationMessage.translatedParagraph = translation;
+                 postMessage([
+                     "translationComplete",
+                     translationMessage
+                 ]);
+            }
         }
 
         requestTranslation(message) {
 
+            // let's create the queue of message translations
             if (!this.translationQueue){
                 this.translationQueue = new Queue();
             }
@@ -250,13 +256,16 @@ class TranslationHelper {
                     let receivedLength = 0;
                     let chunks = [];
                     while (true) {
-                        console.log(`Antes do reader.read ${receivedLength} of ${contentLength} ${itemURL}`);
                         const { done, value } = await reader.read();
                         if (done) {
                             break;
                         }
                         chunks.push(value);
                         receivedLength += value.length;
+                        postMessage([
+                            "updateProgress",
+                            `Downloaded ${receivedLength} of ${contentLength}`
+                        ]);
                         console.log(`Received ${receivedLength} of ${contentLength} ${itemURL} ${done}`);
                         if (receivedLength === contentLength) {
                             console.log(`Received ${receivedLength} of ${contentLength} ${itemURL} breaking`);
@@ -339,7 +348,6 @@ class TranslationHelper {
                 if (paragraph.trim() === "") {
                     return;
                 }
-                console.log(paragraph);
                 input.push_back(paragraph)
             })
 
