@@ -31,6 +31,7 @@
             "controller/translation/TranslationMessage.js",
             "controller/translation/translationWorker.js",
             "view/js/OutboundTranslation.js",
+            "view/js/InPageTranslation.js",
             "mediator.js"
           ],
           "css": ["view/static/ot.css"],

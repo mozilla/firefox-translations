@@ -28,7 +28,7 @@ const messageListener = async function(message, sender) {
 
             /*
              * wait until the page within the tab is loaded, and then return
-             * with the tabid to the caller
+             * with the tabId to the caller
              */
             const listenerCompleteLoad = details => {
                 if (details.tabId === sender.tab.id && details.frameId === 0) {
@@ -36,7 +36,7 @@ const messageListener = async function(message, sender) {
                     console.log("webNavigation.onCompleted => notifying browser to display the infobar")
                     browser.tabs.sendMessage(
                         sender.tab.id,
-                        { command: "responseMonitorTabLoad", tabID: sender.tab.id }
+                        { command: "responseMonitorTabLoad", tabId: sender.tab.id }
                     )
                 }
             };
@@ -56,9 +56,9 @@ const messageListener = async function(message, sender) {
 
             // requested for translation received. let's inform the mediator
             browser.tabs.sendMessage(
-                message.tabid,
+                message.tabId,
                 { command: "translationRequested",
-                  tabID: message.tabid,
+                  tabId: message.tabId,
                   from: message.from,
                   to: message.to }
             );

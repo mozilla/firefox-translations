@@ -5,6 +5,7 @@ class Queue {
 
     enqueue(e) {
         this.elements.push(e);
+        console.log("enqueued", e, this.length());
     }
 
     // remove an element from the front of the queue

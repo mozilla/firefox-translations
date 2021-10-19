@@ -43,10 +43,10 @@
       return {
         experiments: {
           translationbar: {
-            show: function show(tabid, detectedLanguage, navigatorLanguage) {
+            show: function show(tabId, detectedLanguage, navigatorLanguage) {
               try {
                 const { tabManager } = context.extension;
-                const tab = tabManager.get(tabid);
+                const tab = tabManager.get(tabId);
                 const chromeWin = tab.browser.ownerGlobal;
 
                 /*
@@ -78,21 +78,21 @@
                   modelRegistry,
                   detectedLanguage,
                   navigatorLanguage,
-                  tabid,
+                  tabId,
                   bgScriptListenerCallback,
                   notif
                 );
                 notif.init(translationNotificationManager);
-                translatonNotificationManagers.set(tabid, translationNotificationManager);
+                translatonNotificationManagers.set(tabId, translationNotificationManager);
               } catch (error) {
                 // surface otherwise silent or obscurely reported errors
                 console.error(error.message, error.stack);
                 throw new ExtensionError(error.message);
               }
              },
-            updateProgress: function updateProgress(tabid, progressMessage) {
-              console.log({ data: "updateProgress na api", tabid, progressMessage });
-              const translatonNotificationManager = translatonNotificationManagers.get(tabid);
+            updateProgress: function updateProgress(tabId, progressMessage) {
+              console.log({ data: "updateProgress na api", tabId, progressMessage });
+              const translatonNotificationManager = translatonNotificationManagers.get(tabId);
               translatonNotificationManager.notificationBox.updateTranslationProgress(true, progressMessage);
              },
              onTranslationRequest: new ExtensionCommon.EventManager({

@@ -5,6 +5,7 @@ class TranslationMessage {
         this.sourceParagraph = null;
         this.sourceLanguage = null;
         this.targetLanguage = null;
-        this.tabID = null;
+        this.tabId = null;
+        this.type = null;
     }
 }

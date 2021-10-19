@@ -9,7 +9,7 @@
           "async": true,
           "parameters": [
             {
-                "name": "tabid",
+                "name": "tabId",
                 "type": "integer",
                 "description": "tabid to host the translation bar"
             },
@@ -32,9 +32,9 @@
           "async": true,
           "parameters": [
             {
-                "name": "tabid",
+                "name": "tabId",
                 "type": "integer",
-                "description": "tabid to host the translation bar"
+                "description": "tabId to host the translation bar"
             },
             {
                 "name": "progressMessage",

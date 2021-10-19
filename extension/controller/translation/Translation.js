@@ -6,6 +6,7 @@
 
 class Translation {
     constructor (mediator){
+        this.translationsMessagesCounter = 0;
         this.mediator = mediator;
         const engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
         const engineRemoteRegistry = browser.runtime.getURL("model/engineRegistry.js");
@@ -62,25 +63,33 @@ class Translation {
     }
 
     // eslint-disable-next-line max-params
-    constructTranslationMessage(sourceParagraph, translationType, sourceLanguage, targetLanguage, tabID) {
+    constructTranslationMessage(
+        sourceParagraph,
+        type,
+        tabId,
+        navigatorLanguage,
+        pageLanguage,
+        attrId
+    ) {
 
         /*
          * translation request received. dispatch the content to the
          * translation worker
          */
         const translationMessage = new TranslationMessage();
-        this.translationsCounter += 1;
-        translationMessage.messageID = this.translationsCounter;
+        this.translationsMessagesCounter += 1;
+        translationMessage.messageID = this.translationsMessagesCounter;
         translationMessage.sourceParagraph = sourceParagraph;
-        if (translationType === "outbound") {
-            translationMessage.sourceLanguage = sourceLanguage;
-            translationMessage.targetLanguage = targetLanguage;
-        } else if (translationType === "inpage"){
-            translationMessage.sourceLanguage = targetLanguage;
-            translationMessage.targetLanguage = sourceLanguage;
+        if (type === "outbound") {
+            translationMessage.sourceLanguage = navigatorLanguage;
+            translationMessage.targetLanguage = pageLanguage;
+        } else if (type === "inpage" || type === "load"){
+            translationMessage.sourceLanguage = pageLanguage;
+            translationMessage.targetLanguage = navigatorLanguage;
         }
-        translationMessage.tabID = tabID;
-
+        translationMessage.tabId = tabId;
+        translationMessage.type = type;
+        translationMessage.attrId = attrId;
         return translationMessage;
     }
 }
