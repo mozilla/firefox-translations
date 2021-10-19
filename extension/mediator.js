@@ -3,8 +3,8 @@
  * lifecyle, interactions and the rendering of the UI elements
  */
 
-/* global LanguageDetection, OutboundTranslation, TranslationMessage,
- * Translation , browser
+/* global LanguageDetection, OutboundTranslation, Translation , browser,
+ * InPageTranslation
  */
 
 class Mediator {
@@ -15,14 +15,15 @@ class Mediator {
         this.translationWorker = null;
         this.languageDetection = new LanguageDetection();
         this.outboundTranslation = new OutboundTranslation(this);
+        this.inPageTranslation = new InPageTranslation(this);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         browser.runtime.sendMessage({ command: "monitorTabLoad" });
     }
 
     // main entrypoint to handle the extension's load
-    start(tabID) {
+    start(tabId) {
 
-        this.tabID = tabID;
+        this.tabId = tabId;
 
         // request the language detection class to extract a page's snippet
         this.languageDetection.extractPageContent();
@@ -55,10 +56,6 @@ class Mediator {
                 languageDetection: this.languageDetection
             });
 
-            // TODO: render the outboundtranslation view only after the user
-            // accepts it
-            // this.outboundTranslation.start();
-
             // create the translation object
             this.translation = new Translation(this);
         }
@@ -76,8 +73,10 @@ class Mediator {
                 const translationMessage = this.translation.constructTranslationMessage(
                     message.payload.text,
                     message.payload.type,
-                    message.payload.sourceLanguage,
-                    message.payload.targetLanguage
+                    message.tabId,
+                    this.languageDetection.navigatorLanguage,
+                    this.languageDetection.pageLanguage.language,
+                    message.payload.attrId
                 );
                 this.messagesSenderLookupTable.set(translationMessage.messageID, sender);
                 this.translation.translate(translationMessage);
@@ -102,7 +101,7 @@ class Mediator {
                 browser.runtime.sendMessage({
                     command: "updateProgress",
                     progressMessage: message.payload,
-                    tabId: this.tabID
+                    tabId: this.tabId
                 });
                 break;
             default:
@@ -116,36 +115,27 @@ class Mediator {
     bgScriptsMessageListener(message) {
         switch (message.command) {
             case "responseMonitorTabLoad":
-                this.start(message.tabID);
+                this.start(message.tabId);
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
                 this.determineIfTranslationisRequired();
                 break;
             case "translationRequested":
-
-                /*
-                 * translation request received from the infobar. let's start
-                 * the engines
-                 */
-
-                // TODO: start reading the page even before the models load
+                // here we handle when the user's translation request in the infobar
                 // eslint-disable-next-line no-case-declarations
-                const translationMessage = this.translation.constructTranslationMessage(
-                    null,
-                    "inpage",
-                    message.from,
-                    message.to,
-                    message.tabid
-                );
-                this.translation.translate(translationMessage);
-                console.log("translationRequested no mediator", translationMessage);
+
+                // let's start the translation widgets
+                if (!this.inPageTranslation.started){
+                    this.inPageTranslation.start();
+                    this.outboundTranslation.start(); // this should be moved to the optin action in the infobar
+                }
+
+                break;
             default:
                 // ignore
         }
     }
-
-
 }
 
 new Mediator();

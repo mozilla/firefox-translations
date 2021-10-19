@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+/* eslint-disable max-lines-per-function */
 
 /*
  * this class should only be instantiated the web worker
@@ -16,10 +18,18 @@ class TranslationHelper {
             this.translationModels = new Map();
             this.CACHE_NAME = "fxtranslations";
             this.postMessage = postMessage;
-            this.engineIsLoaded = false;
-            this.modelsLoaded = false;
             this.wasmModuleStartTimestamp = null;
             this.WasmEngineModule = null;
+            this.engineState = this.ENGINE_STATE.LOAD_PENDING;
+        }
+
+
+        get ENGINE_STATE () {
+            return {
+                LOAD_PENDING: 0,
+                LOADING: 1,
+                LOADED: 2
+              };
         }
 
         async loadTranslationEngine(sourceLanguage, targetLanguage) {
@@ -50,60 +60,83 @@ class TranslationHelper {
             };
             const { addOnPreMain, Module } = loadEmscriptenGlueCode(initialModule);
             this.WasmEngineModule = Module;
-
-            // we finally set the flag to indicate the engine is loaded
-            this.engineIsLoaded = true;
         }
 
         consumeTranslationQueue() {
-            if (!this.modelsLoaded) {
-                // if the models are not loaded yet, just skip and wait for it
-                return;
-            }
-            const translationMessage = this.translationQueue.dequeue();
 
-            // if there's a paragraph, then we translate
-            if (translationMessage.sourceParagraph) {
-                const translation = this.translate(
-                    translationMessage.sourceLanguage,
-                    translationMessage.targetLanguage,
-                    translationMessage.sourceParagraph
-                );
+            while (this.translationQueue.length() > 0) {
+                console.log('comeco promise worker translationQueue > 0');
+                const translationMessage = this.translationQueue.dequeue();
+                Promise.resolve().then(function () {
+                    console.log('na promise', translationMessage);
+                    // if there's a paragraph, then we translate
+                    if (translationMessage.sourceParagraph) {
+                        const translation = this.translate(
+                            translationMessage.sourceLanguage,
+                            translationMessage.targetLanguage,
+                            translationMessage.sourceParagraph
+                        );
 
-                // now that we have a translation, let's report to the mediator
-                translationMessage.translatedParagraph = translation;
-                 postMessage([
-                     "translationComplete",
-                     translationMessage
-                 ]);
+                        // now that we have a translation, let's report to the mediator
+                        translationMessage.translatedParagraph = translation;
+                        postMessage([
+                            "translationComplete",
+                            translationMessage
+                        ]);
+                    }
+                    console.log('fim promise worker');
+                  }.bind(this));
             }
         }
 
         requestTranslation(message) {
 
-            // let's create the queue of message translations
-            if (!this.translationQueue){
-                this.translationQueue = new Queue();
-            }
-            this.translationQueue.enqueue(message);
+            /*
+             * there are three possible states to the engine:
+             * INIT, LOADING, LOADED
+             * the engine is put on LOAD_PENDING mode when the worker is constructed, on
+             * LOADING when the first request is made and the engine is still on
+             * LOAD_PENDING, and on LOADED when the langauge model is loaded
+             */
 
-            if (!this.engineIsLoaded) {
+            switch (this.engineState) {
+                // if the engine hasn't loaded yeat.
+                case this.ENGINE_STATE.LOAD_PENDING:
+                    this.translationQueue = new Queue();
+                    // let's change the state to loading
+                    this.engineState = this.ENGINE_STATE.LOADING;
+                    // and load the module
+                    this.loadTranslationEngine(
+                        message.sourceLanguage,
+                        message.targetLanguage
+                    );
+                    this.translationQueue.enqueue(message);
+                    break;
+                case this.ENGINE_STATE.LOADING:
 
-                /*
-                 * if we don't have a fully working engine yet, we need to
-                 * initiate one
-                 */
-                this.loadTranslationEngine(
-                    message.sourceLanguage,
-                    message.targetLanguage
-                );
-            } else {
-                // if we have an engine, we just consume the translation queue
-                this.consumeTranslationQueue()
+                    /*
+                     * if we get a translation request while the engine is
+                     * being loaded, we just wait for it, so we break
+                     */
+                    this.translationQueue.enqueue(message);
+                    break;
+
+                case this.ENGINE_STATE.LOADED:
+
+                    this.translationQueue.enqueue(message);
+                    // engine and model are loaded, so let's consume
+                    this.consumeTranslationQueue()
+                    break;
+                default:
             }
         }
 
         async loadLanguageModel(sourceLanguage, targetLanguage) {
+
+            /*
+             * let's load the modes and communicate to the caller (translation)
+             * that we finished loading
+             */
             let start = Date.now();
             try {
               await this.constructTranslationService();
@@ -112,10 +145,13 @@ class TranslationHelper {
             } catch (error) {
               console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
             }
-            console.log("loadLanguageModel command done, let's start consuming the queue");
-            this.modelsLoaded = true;
-            // now that we have the engine loaded, we consume the translation queue
-            this.consumeTranslationQueue()
+            this.engineState = this.ENGINE_STATE.LOADED;
+            postMessage([
+                "updateProgress",
+                "Translation engine started."
+            ]);
+            this.consumeTranslationQueue();
+            console.log("loadLanguageModel function complete");
         }
 
         // instantiate the Translation Service
@@ -306,7 +342,7 @@ class TranslationHelper {
         }
 
         // this function constructs and initializes the AlignedMemory from the array buffer and alignment size
-        async prepareAlignedMemoryFromBuffer (buffer, alignmentSize) {
+        prepareAlignedMemoryFromBuffer (buffer, alignmentSize) {
             var byteArray = new Int8Array(buffer);
             console.log(`Constructing Aligned memory. Size: ${byteArray.byteLength} bytes, Alignment: ${alignmentSize}`);
             var alignedMemory = new this.WasmEngineModule.AlignedMemory(byteArray.byteLength, alignmentSize);

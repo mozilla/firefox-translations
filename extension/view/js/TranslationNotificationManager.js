@@ -5,14 +5,14 @@
 
 class TranslationNotificationManager {
 
-    constructor(api, modelRegistry, detectedLanguage, navigatorLanguage, tabid, bgScriptListenerCallback, notificationBox) {
+    constructor(api, modelRegistry, detectedLanguage, navigatorLanguage, tabId, bgScriptListenerCallback, notificationBox) {
         this.api = api;
         this.detectedLanguage = detectedLanguage;
         this.navigatorLanguage = navigatorLanguage;
         this.languageSet = new Set();
         this.modelRegistry = modelRegistry;
         this.bgScriptListenerCallback = bgScriptListenerCallback;
-        this.tabid = tabid;
+        this.tabId = tabId;
         this.notificationBox = notificationBox;
         this.loadLanguages();
     }
@@ -25,7 +25,7 @@ class TranslationNotificationManager {
             STATE_ERROR: 3,
             STATE_UNAVAILABLE: 4,
           };
-      }
+    }
 
     loadLanguages() {
         for (const languagePair of Object.keys(this.modelRegistry)){
@@ -42,8 +42,8 @@ class TranslationNotificationManager {
          * request received. let's forward to the background script in order
          * to have the mediator notified
          */
-        console.log("requestTranslation", from, to, this.tabid);
-        const message = { command: "translationRequested", from, to, tabid: this.tabid };
+        console.log("requestTranslation", from, to, this.tabId);
+        const message = { command: "translationRequested", from, to, tabId: this.tabId };
         this.bgScriptListenerCallback(message);
     }
 }
