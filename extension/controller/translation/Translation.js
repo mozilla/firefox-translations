@@ -45,6 +45,12 @@ class Translation {
                     payload: translationMessage.data
                 });
                 break;
+            case "displayOutboundTranslation":
+                this.mediator.contentScriptsMessageListener(this, {
+                    command: "displayOutboundTranslation",
+                    payload: null
+                });
+                break;
             default:
         }
     }
@@ -80,16 +86,38 @@ class Translation {
         this.translationsMessagesCounter += 1;
         translationMessage.messageID = this.translationsMessagesCounter;
         translationMessage.sourceParagraph = sourceParagraph;
-        if (type === "outbound") {
-            translationMessage.sourceLanguage = navigatorLanguage;
-            translationMessage.targetLanguage = pageLanguage;
-        } else if (type === "inpage" || type === "load"){
-            translationMessage.sourceLanguage = pageLanguage;
-            translationMessage.targetLanguage = navigatorLanguage;
+        switch (type) {
+            case "outbound":
+                translationMessage.sourceLanguage = navigatorLanguage;
+                translationMessage.targetLanguage = pageLanguage;
+                break;
+            case "inpage":
+                translationMessage.sourceLanguage = pageLanguage;
+                translationMessage.targetLanguage = navigatorLanguage;
+                break;
+            case "load":
+                translationMessage.sourceLanguage = pageLanguage;
+                translationMessage.targetLanguage = navigatorLanguage;
+                break;
+            case "backTranslation":
+                translationMessage.sourceLanguage = pageLanguage;
+                translationMessage.targetLanguage = navigatorLanguage;
+                break;
+            default:
+                break;
         }
         translationMessage.tabId = tabId;
         translationMessage.type = type;
         translationMessage.attrId = attrId;
         return translationMessage;
+    }
+
+    loadOutboundTranslation(translationMessage) {
+        if (this.translationWorker) {
+            this.translationWorker.postMessage([
+                "loadOutboundTranslation",
+                translationMessage
+            ]);
+        }
     }
 }

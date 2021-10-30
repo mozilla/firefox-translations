@@ -13,6 +13,8 @@ class InPageTranslation {
         this.tagsSet = new Set();
         this.tagsSet.add("div");
         this.tagsSet.add("p");
+        this.tagsSet.add("span");
+
     }
 
     start() {
@@ -33,7 +35,7 @@ class InPageTranslation {
         let currentNode;
         // eslint-disable-next-line no-cond-assign
         while (currentNode = nodeIterator.nextNode()) {
-            console.log("mark and send to translation", currentNode.innerText);
+            console.log("mark and send to translation", currentNode.innerHTML);
             this.sendToTranslation(currentNode);
         }
     }
@@ -100,12 +102,12 @@ class InPageTranslation {
         this.updateElement(translationMessage);
       }
 
-      updateElement(translationMessage) {
+    updateElement(translationMessage) {
         const attrId = translationMessage.payload[1].attrId;
         const translatedText = translationMessage.payload[1].translatedParagraph.join("\n\n")
         // we should have only one match
         const match = document.querySelectorAll(`[fxtrnsId="${attrId}"]`);
         match[0].innerText = translatedText;
         console.log("result no inpage:",translationMessage);
-      }
+    }
 }

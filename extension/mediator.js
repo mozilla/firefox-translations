@@ -11,8 +11,8 @@ class Mediator {
 
     constructor() {
         this.messagesSenderLookupTable = new Map();
+        this.translation = null;
         this.translationsCounter = 0;
-        this.translationWorker = null;
         this.languageDetection = new LanguageDetection();
         this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
@@ -65,6 +65,7 @@ class Mediator {
      * handles all requests received from the content scripts
      * (views and controllers)
      */
+    // eslint-disable-next-line max-lines-per-function
     contentScriptsMessageListener(sender, message) {
         switch (message.command) {
             case "translate":
@@ -104,6 +105,11 @@ class Mediator {
                     tabId: this.tabId
                 });
                 break;
+            case "displayOutboundTranslation":
+
+                /* display the outboundstranslation widget */
+                this.outboundTranslation.start();
+                break;
             default:
         }
     }
@@ -125,12 +131,20 @@ class Mediator {
                 // here we handle when the user's translation request in the infobar
                 // eslint-disable-next-line no-case-declarations
 
-                // let's start the translation widgets
+                // let's start the in-page translation widget
                 if (!this.inPageTranslation.started){
                     this.inPageTranslation.start();
-                    this.outboundTranslation.start(); // this should be moved to the optin action in the infobar
                 }
 
+                break;
+            case "outboundTranslationRequested":
+
+                /*
+                 * so, now that we received the request from the infobar to
+                 * start outbound translation, let's request the
+                 *  worker to download the models
+                 */
+                this.translation.loadOutboundTranslation(message);
                 break;
             default:
                 // ignore
