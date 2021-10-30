@@ -9,6 +9,7 @@ class OutboundTranslation {
     this.selectedTextArea = null;
     this.otDiv = null;
     this.otTextArea = null;
+    this.backTranslationsTextArea = null;
   }
 
   // eslint-disable-next-line max-lines-per-function
@@ -59,7 +60,7 @@ class OutboundTranslation {
 
     this.selectedTextArea = document.activeElement;
     this.otTextArea = document.getElementById("OTapp")
-      .querySelector("textarea");
+      .querySelectorAll("textarea")[0];
 
     // set focus on the OT textarea
     this.otTextArea.focus();
@@ -68,6 +69,10 @@ class OutboundTranslation {
     this.otTextArea.addEventListener("blur", () => {
       document.body.removeChild(this.otDiv);
     });
+
+    // get a reference to the backtranslations textarea
+    this.backTranslationsTextArea = document.getElementById("OTapp")
+    .querySelectorAll("textarea")[1];
   }
 
   sendTextToTranslation() {
@@ -86,17 +91,47 @@ class OutboundTranslation {
     }
   }
 
+  sendBackTranslationRequest(text) {
+    if (text.trim().length) {
+
+      /*
+       * send the content back to mediator in order to have the translation
+       * requested by it
+       */
+      const payload = {
+        text: text.split("\n"),
+        type: "backTranslation"
+      };
+      this.notifyMediator("translate", payload);
+    }
+  }
+
   notifyMediator(command, payload) {
     this.mediator.contentScriptsMessageListener(this, { command, payload });
   }
 
   mediatorNotification(translationMessage) {
 
-    /*
-     * notification received from the mediator with our request. let's update
-     * the original targeted textarea
-     */
-    this.updateselectedTextArea(translationMessage.payload[1].translatedParagraph.join("\n\n"));
+    if (translationMessage.payload[1].type === "outbound") {
+
+     /*
+      * notification received from the mediator with our request. let's update
+      * the original targeted textarea
+      */
+      this.updateselectedTextArea(translationMessage.payload[1].translatedParagraph.join("\n\n"));
+      this.sendBackTranslationRequest(translationMessage.payload[1].translatedParagraph.join("\n\n"));
+    } else {
+
+      /*
+       * and then request the translation to the mediator with the new text if
+       * this is an outbound translation request
+       */
+      this.updateBackTranslationTextArea(translationMessage.payload[1].translatedParagraph.join("\n\n"));
+    }
+  }
+
+  updateBackTranslationTextArea(content) {
+    this.backTranslationsTextArea.value = content;
   }
 
   updateselectedTextArea(content) {

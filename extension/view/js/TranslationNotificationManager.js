@@ -36,7 +36,7 @@ class TranslationNotificationManager {
         }
     }
 
-    requestTranslation(from, to){
+    requestInPageTranslation(from, to){
 
         /*
          * request received. let's forward to the background script in order
@@ -46,4 +46,16 @@ class TranslationNotificationManager {
         const message = { command: "translationRequested", from, to, tabId: this.tabId };
         this.bgScriptListenerCallback(message);
     }
+
+    requestOutboundTranslation(from, to){
+
+        /*
+         * request received. let's forward to the background script in order
+         * to have the mediator notified
+         */
+        console.log("requestOutboundTranslation", from, to, this.tabId);
+        const message = { command: "outBoundtranslationRequested", from, to, tabId: this.tabId };
+        this.bgScriptListenerCallback(message);
+    }
+
 }

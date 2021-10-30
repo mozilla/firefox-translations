@@ -35,7 +35,12 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             <button class="notification-button" label="&translation.notNow.button;" anonid="notNow" oncommand="this.closest('notification').notNow();"/>
           </hbox>
           <vbox class="translating-box" pack="center">
-            <hbox><label value="&translation.translatingContent.label;"/><label anonid="progress-label" value=""/></hbox>
+            <hbox>
+              <label value="&translation.translatingContent.label;"/>
+              <label anonid="progress-label" value=""/>
+              <label anonid="outboundtranslations-label" value="Enable translations of forms?"/>
+              <button class="notification-button" label="Yes" anonid="outboundTranslation" oncommand="this.closest('notification').outboundTranslationAccept()"/>
+            </hbox>
           </vbox>
           <hbox class="translated-box" align="center">
             <label value="&translation.translatedFrom.label;" style="margin-inline-end: 4px;"/>
@@ -92,15 +97,19 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 
   async updateTranslationProgress(
     shouldShowTranslationProgress,
-    localizedTranslationProgressText,
+    localizedTranslationProgressText
   ) {
-    const progressLabelValue = shouldShowTranslationProgress
+    if (localizedTranslationProgressText !== "outboundTranslationLoaded") {
+      const progressLabelValue = shouldShowTranslationProgress
       ? localizedTranslationProgressText
       : "";
-    this._getAnonElt("progress-label").setAttribute(
-      "value",
-      progressLabelValue,
-    );
+      this._getAnonElt("progress-label").setAttribute(
+        "value",
+        progressLabelValue,
+      );
+    } else {
+
+    }
   }
 
   set state(val) {
@@ -153,7 +162,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     }
     detectedLanguage.value = translationNotificationManager.detectedLanguage;
 
-    // Fill the list of supported target languages.
+    // fill the list of supported target languages.
     const toLanguage = this._getAnonElt("toLanguage");
     const targetLanguages = sortByLocalizedName(this.translationNotificationManager.languageSet);
     for (const [code, name] of targetLanguages) {
@@ -186,12 +195,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   translate() {
     const from = this._getSourceLang();
     const to = this._getTargetLang();
-    this.translationNotificationManager.requestTranslation(from, to);
+    this.translationNotificationManager.requestInPageTranslation(from, to);
     this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATING;
 
     /*
-
-
     // Initiate translation
     this.translation.translate(from, to);
 
@@ -228,6 +235,22 @@ window.MozTranslationNotification = class extends MozElements.Notification {
    */
   notNow() {
     this.closeCommand();
+  }
+
+  outboundTranslationAccept() {
+    const from = this._getSourceLang();
+    const to = this._getTargetLang();
+    console.log({data: `here ${from} - ${to}`});
+    this.translationNotificationManager.requestOutboundTranslation(from, to);
+    this._getAnonElt("outboundTranslation").setAttribute(
+      "hidden",
+      true,
+    );
+    this._getAnonElt("outboundtranslations-label").setAttribute(
+      "hidden",
+      true,
+    );
+    this.updateTranslationProgress(true, "Loading form translation");
   }
 
   _handleButtonHiding() {

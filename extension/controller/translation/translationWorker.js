@@ -33,7 +33,10 @@ class TranslationHelper {
         }
 
         async loadTranslationEngine(sourceLanguage, targetLanguage) {
-
+            postMessage([
+                "updateProgress",
+                "Loading Translation Engine"
+            ]);
             const itemURL = `${engineRegistryRootURL}${engineRegistry.bergamotTranslatorWasm.fileName}`;
             // first we load the wasm engine
             const wasmArrayBuffer = await this.getItemFromCacheOrWeb(
@@ -65,10 +68,8 @@ class TranslationHelper {
         consumeTranslationQueue() {
 
             while (this.translationQueue.length() > 0) {
-                console.log('comeco promise worker translationQueue > 0');
                 const translationMessage = this.translationQueue.dequeue();
                 Promise.resolve().then(function () {
-                    console.log('na promise', translationMessage);
                     // if there's a paragraph, then we translate
                     if (translationMessage.sourceParagraph) {
                         const translation = this.translate(
@@ -84,7 +85,6 @@ class TranslationHelper {
                             translationMessage
                         ]);
                     }
-                    console.log('fim promise worker');
                   }.bind(this));
             }
         }
@@ -100,7 +100,7 @@ class TranslationHelper {
              */
 
             switch (this.engineState) {
-                // if the engine hasn't loaded yeat.
+                // if the engine hasn't loaded yet.
                 case this.ENGINE_STATE.LOAD_PENDING:
                     this.translationQueue = new Queue();
                     // let's change the state to loading
@@ -131,10 +131,33 @@ class TranslationHelper {
             }
         }
 
+        async loadOutboundTranslation(message) {
+
+            /*
+             * load the outbound translation model
+             */
+            let start = Date.now();
+            try {
+                await this.constructTranslationModel(message.from, message.to);
+                console.log(`Outbound Model '${message.from}${message.to}' successfully constructed. Time taken: ${(Date.now() - start) / 1000} secs`);
+                // model was lodaded properly, let's communicate the mediator and tje UI
+                postMessage([
+                    "updateProgress",
+                    "Form translations loaded."
+                ]);
+                postMessage([
+                    "displayOutboundTranslation",
+                    null
+                ]);
+            } catch (error) {
+              console.log(`Outbound Model '${message.from}${message.to}' construction failed: '${error.message} - ${error.stack}'`);
+            }
+        }
+
         async loadLanguageModel(sourceLanguage, targetLanguage) {
 
             /*
-             * let's load the modes and communicate to the caller (translation)
+             * let's load the models and communicate to the caller (translation)
              * that we finished loading
              */
             let start = Date.now();
@@ -164,13 +187,16 @@ class TranslationHelper {
             }
         }
 
-        async constructTranslationModel(from, to) {
+        deleteModels() {
             // delete all previously constructed translation models and clear the map
             this.translationModels.forEach((value, key) => {
                 console.log(`Destructing model '${key}'`);
                 value.delete();
             });
             this.translationModels.clear();
+        }
+
+        async constructTranslationModel(from, to) {
 
             /*
              * if none of the languages is English then construct multiple models with
@@ -451,6 +477,9 @@ onmessage = function(message) {
             break;
         case "translate":
             translationHelper.requestTranslation(message.data[1]);
+            break;
+        case "loadOutboundTranslation":
+            translationHelper.loadOutboundTranslation(message.data[1]);
             break;
         default:
             // ignore

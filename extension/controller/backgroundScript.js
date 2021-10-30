@@ -69,6 +69,21 @@ const messageListener = async function(message, sender) {
                 message.progressMessage[1]
             );
             break;
+        case "outBoundtranslationRequested":
+
+            /*
+             * requested for outbound translation received.
+             * since we know the direction of translation,
+             * let's switch it and inform the mediator
+             */
+            browser.tabs.sendMessage(
+                message.tabId,
+                { command: "outboundTranslationRequested",
+                  tabId: message.tabId,
+                  from: message.to, // we switch the requests directions here
+                  to: message.from }
+            );
+            break;
         default:
           // ignore
     }
