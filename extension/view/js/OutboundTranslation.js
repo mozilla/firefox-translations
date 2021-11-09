@@ -10,6 +10,8 @@ class OutboundTranslation {
     this.otDiv = null;
     this.otTextArea = null;
     this.backTranslationsTextArea = null;
+    this.translationTimeout = null;
+    this.TYPING_TIMEOUT = 500; // constant defining how long to wait before translating after the user stopped typing
   }
 
   // eslint-disable-next-line max-lines-per-function
@@ -50,9 +52,16 @@ class OutboundTranslation {
        * textarea in order to capture what's input and push it to the
        * translatinon queue
        */
-      this.otDiv.querySelector("textarea").addEventListener("keyup", () => {
-        this.sendTextToTranslation();
+      this.otDiv.querySelector("textarea").addEventListener("keydown", () => {
+        if (this.translationTimeout) {
+          clearTimeout(this.translationTimeout);
+        }
+        this.translationTimeout = setTimeout(
+          this.sendTextToTranslation.bind(this),
+          this.TYPING_TIMEOUT
+        );
       });
+
   }
 
   attachOtToTextAreaListener() {
@@ -76,6 +85,7 @@ class OutboundTranslation {
   }
 
   sendTextToTranslation() {
+
     const text = `${this.otTextArea.value}  `;
     if (text.trim().length) {
 
@@ -88,6 +98,7 @@ class OutboundTranslation {
         type: "outbound"
       };
       this.notifyMediator("translate", payload);
+
     }
   }
 

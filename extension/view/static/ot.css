@@ -47,3 +47,9 @@
     grid-area: to;
 }
 
+.fxtranslations-footer {
+    grid-area: status;
+    text-align: center;
+    align-self: center;
+    background-color: red;
+}
