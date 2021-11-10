@@ -434,7 +434,7 @@ class TranslationHelper {
         getAllTranslatedSentencesOfParagraph (response) {
             const sentences = [];
             const text = response.getTranslatedText();
-            for (let sentenceIndex = 0; sentenceIndex < response.size(); sentenceIndex++) {
+            for (let sentenceIndex = 0; sentenceIndex < response.size(); sentenceIndex+=1) {
                 const utf8SentenceByteRange = response.getTranslatedSentence(sentenceIndex);
                 sentences.push(this._getSentenceFromByteRange(text, utf8SentenceByteRange));
             }
@@ -445,7 +445,7 @@ class TranslationHelper {
         getAllSourceSentencesOfParagraph (response) {
             const sentences = [];
             const text = response.getOriginalText();
-            for (let sentenceIndex = 0; sentenceIndex < response.size(); sentenceIndex++) {
+            for (let sentenceIndex = 0; sentenceIndex < response.size(); sentenceIndex+=1) {
                 const utf8SentenceByteRange = response.getSourceSentence(sentenceIndex);
                 sentences.push(this._getSentenceFromByteRange(text, utf8SentenceByteRange));
             }
