@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 class TranslationMessage {
     constructor() {
         this.messageID = null;

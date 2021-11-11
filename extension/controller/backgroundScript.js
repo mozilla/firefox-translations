@@ -1,6 +1,4 @@
-/* eslint-disable max-lines-per-function */
-/* eslint-disable no-case-declarations */
-/* global LanguageDetection */
+/* global LanguageDetection, browser */
 
 /*
  * we need the background script in order to have full access to the
@@ -9,8 +7,11 @@
  * this script does not have access to the page content, since it runs in the
  * extension's background process.
  */
+// eslint-disable-next-line max-lines-per-function
 const messageListener = async function(message, sender) {
 
+    let languageDetection = null;
+    let listenerCompleteLoad = null;
     switch (message.command) {
         case "detectPageLanguage":
 
@@ -18,7 +19,7 @@ const messageListener = async function(message, sender) {
              * call the cld experiment to detect the language of the snippet
              * extracted from the page
              */
-            const languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
+            languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
             languageDetection.pageLanguage = await
                 browser.experiments.languageDetector.detect(languageDetection.wordsToDetect);
             browser.tabs.sendMessage(sender.tab.id, { command: "responseDetectPageLanguage",
@@ -30,7 +31,7 @@ const messageListener = async function(message, sender) {
              * wait until the page within the tab is loaded, and then return
              * with the tabId to the caller
              */
-            const listenerCompleteLoad = details => {
+            listenerCompleteLoad = details => {
                 if (details.tabId === sender.tab.id && details.frameId === 0) {
                     browser.webNavigation.onCompleted.removeListener(listenerCompleteLoad);
                     console.log("webNavigation.onCompleted => notifying browser to display the infobar")

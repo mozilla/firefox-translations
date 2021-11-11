@@ -5,9 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-/* global ExtensionAPI, ExtensionCommon, Services */
+/* global ExtensionAPI, ExtensionCommon, ChromeUtils, modelRegistry, TranslationNotificationManager  */
 
-
+ // eslint-disable-next-line no-invalid-this
  this.experiments_translationbar = class extends ExtensionAPI {
     getAPI(context) {
 
@@ -23,17 +23,12 @@
         {},
       );
 
-      const { EventManager, EventEmitter } = ExtensionCommon;
-      const apiEventEmitter = new EventEmitter();
-
       // map responsible holding the TranslationNotificationManager per tabid
       const translatonNotificationManagers = new Map();
 
-      Services.scriptloader.loadSubScript(
-        `${context.extension.getURL("/view/js/TranslationNotificationManager.js",)}?cachebuster=${Date.now()}`
+      Services.scriptloader.loadSubScript(`${context.extension.getURL("/view/js/TranslationNotificationManager.js",)}?cachebuster=${Date.now()}`
       ,);
-      Services.scriptloader.loadSubScript(
-        `${context.extension.getURL("/model/modelRegistry.js",)}?cachebuster=${Date.now()}`
+      Services.scriptloader.loadSubScript(`${context.extension.getURL("/model/modelRegistry.js",)}?cachebuster=${Date.now()}`
       ,);
 
       /*
