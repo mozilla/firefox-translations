@@ -33,6 +33,7 @@ class InPageTranslation {
         this.tagsSet.add("body");
         this.tagsSet.add("li");
         this.tagsSet.add("ul");
+        this.tagsSet.add("td");
     }
 
     start() {
