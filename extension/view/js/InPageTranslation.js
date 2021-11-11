@@ -1,4 +1,5 @@
 
+// eslint-disable-next-line no-unused-vars
 class InPageTranslation {
 
     constructor(mediator) {
@@ -64,7 +65,7 @@ class InPageTranslation {
         let currentNode;
         // eslint-disable-next-line no-cond-assign
         while (currentNode = nodeIterator.nextNode()) {
-            //console.log('main loop', currentNode, 'nodehidden:', this.isElementHidden(currentNode.parentNode), 'nodeinViewPort:', this.isElementInViewport(currentNode.parentNode), 'nodeType:', currentNode.nodeType, 'tagName:', currentNode.tagName, 'content:', currentNode.innerHTML, 'wholeText:', currentNode.wholeText.trim());
+            // console.log('main loop', currentNode, 'nodehidden:', this.isElementHidden(currentNode.parentNode), 'nodeinViewPort:', this.isElementInViewport(currentNode.parentNode), 'nodeType:', currentNode.nodeType, 'tagName:', currentNode.tagName, 'content:', currentNode.innerHTML, 'wholeText:', currentNode.wholeText.trim());
             this.queueTranslation(currentNode);
         }
 
@@ -93,7 +94,9 @@ class InPageTranslation {
             }
             return NodeFilter.FILTER_REJECT;
         }
-        return this.tagsSet.has(node.nodeName.toLowerCase()) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        return this.tagsSet.has(node.nodeName.toLowerCase())
+                ? NodeFilter.FILTER_ACCEPT
+                : NodeFilter.FILTER_REJECT;
     }
 
     queueTranslation(node) {
@@ -160,7 +163,7 @@ class InPageTranslation {
         // options for the observer (which mutations to observe)
         const config = { attributes: true, childList: true, subtree: true };
         // callback function to execute when mutations are observed
-        const callback = function(mutationsList, observer) {
+        const callback = function(mutationsList) {
             for (const mutation of mutationsList) {
                 if (mutation.type === "childList") {
                     console.log(mutation);
@@ -195,7 +198,10 @@ class InPageTranslation {
     }
 
     enqueueElement(translationMessage) {
-        const [hashMapName, idCounter] = translationMessage.payload[1].attrId;
+        const [
+               hashMapName,
+               idCounter
+              ] = translationMessage.payload[1].attrId;
         const translatedText = translationMessage.payload[1].translatedParagraph.join("\n\n")
         let targetNode = null;
         switch (hashMapName) {

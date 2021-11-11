@@ -3,10 +3,7 @@
  * lifecyle, interactions and the rendering of the UI elements
  */
 
-/*
- * global LanguageDetection, OutboundTranslation, Translation , browser
- * InPageTranslation
- */
+/* global LanguageDetection, OutboundTranslation, Translation , browser, InPageTranslation, browser */
 
 class Mediator {
 
@@ -18,8 +15,11 @@ class Mediator {
         this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
-        browser.runtime.sendMessage({ command: "monitorTabLoad" });
         this.translationBarDisplayed = false;
+    }
+
+    init() {
+        browser.runtime.sendMessage({ command: "monitorTabLoad" });
     }
 
     // main entrypoint to handle the extension's load
@@ -160,4 +160,5 @@ class Mediator {
     }
 }
 
-new Mediator();
+const mediator = new Mediator();
+mediator.init();

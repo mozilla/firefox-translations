@@ -8,7 +8,7 @@ module.exports = {
         "ecmaVersion": 2018,
         "sourceType": "module"
     },
-    "ignorePatterns": ["extension/controller/translation/bergamot-translator-worker.js"],
+    "ignorePatterns": ["extension/controller/translation/bergamot-translator-worker.js", ".eslintrc.js"],
     "rules": {
         "accessor-pairs": "error",
         "array-bracket-newline": "error",
@@ -198,7 +198,7 @@ module.exports = {
         "no-sync": "error",
         "no-tabs": "error",
         "no-template-curly-in-string": "error",
-        "no-ternary": "error",
+        "no-ternary": "off",
         "no-throw-literal": "error",
         "no-trailing-spaces": "error",
         "no-undef-init": "error",
