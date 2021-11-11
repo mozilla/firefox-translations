@@ -2,9 +2,9 @@ name: Artifact Build
 
 on:
   push:
-    branches: [ ghaction_upload ]
+    branches: [ main ]
   pull_request:
-    branches: [ ghaction_upload ]
+    branches: [ main ]
 
 jobs:
   build:
