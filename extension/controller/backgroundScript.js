@@ -44,12 +44,14 @@ const messageListener = async function(message, sender) {
             break;
         case "displayTranslationBar":
 
+            /*
+             * request the experiments API do display the infobar
+             */
             await browser.experiments.translationbar.show(
                 sender.tab.id,
                 message.languageDetection.pageLanguage.language,
                 message.languageDetection.navigatorLanguage
             );
-            // let's make sure there's only one listener attached to the api
 
             break;
         case "translationRequested":
