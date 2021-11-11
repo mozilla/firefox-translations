@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 
 const engineRegistryRootURL = "https://storage.googleapis.com/bergamot-models-sandbox/wasm/4/";
 

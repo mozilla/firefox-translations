@@ -6,10 +6,11 @@
  */
 
 
- /* global ExtensionAPI, ExtensionCommon */
+ /* global ExtensionAPI, ChromeUtils */
 
+// eslint-disable-next-line no-invalid-this
 this.experiment_languageDetector = class extends ExtensionAPI {
-  getAPI(context) {
+  getAPI() {
     const { LanguageDetector } = ChromeUtils.import(
       "resource:///modules/translation/LanguageDetector.jsm",
       {},

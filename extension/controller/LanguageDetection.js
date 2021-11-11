@@ -4,6 +4,7 @@
  * translation bar should be displayed
  */
 
+// eslint-disable-next-line no-unused-vars
 class LanguageDetection {
 
     constructor() {

@@ -1,5 +1,7 @@
 /* eslint-disable max-lines */
-/* eslint-disable max-lines-per-function */
+
+/* global engineRegistryRootURL, engineRegistry, loadEmscriptenGlueCode, Queue */
+/* global modelRegistryRootURL, modelRegistry,importScripts */
 
 /*
  * this class should only be instantiated the web worker
@@ -61,6 +63,7 @@ class TranslationHelper {
                 }.bind(this),
                 wasmBinary: wasmArrayBuffer,
             };
+            // eslint-disable-next-line no-unused-vars
             const { addOnPreMain, Module } = loadEmscriptenGlueCode(initialModule);
             this.WasmEngineModule = Module;
         }
@@ -275,10 +278,11 @@ class TranslationHelper {
             let alignedShortlistMemory = constructedAlignedMemories[1];
             let alignedVocabsMemoryList = new this.WasmEngineModule.AlignedMemoryList();
             for (let item of downloadedVocabBuffers) {
+              // eslint-disable-next-line no-await-in-loop
               let alignedMemory = await this.prepareAlignedMemoryFromBuffer(item, 64);
               alignedVocabsMemoryList.push_back(alignedMemory);
             }
-            for (let vocabs=0; vocabs < alignedVocabsMemoryList.size(); vocabs++) {
+            for (let vocabs=0; vocabs < alignedVocabsMemoryList.size(); vocabs+=1) {
               console.log(`Aligned vocab memory${vocabs+1} size: ${alignedVocabsMemoryList.get(vocabs).size()}`);
             }
             console.log(`Aligned model memory size: ${alignedModelMemory.size()}`);
@@ -317,18 +321,18 @@ class TranslationHelper {
                     const contentLength = fileSize;
                     let receivedLength = 0;
                     let chunks = [];
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) {
-                            break;
-                        }
+                    let doneReading = false;
+                    let value = null;
+                    while (!doneReading) {
+                        // eslint-disable-next-line no-await-in-loop
+                        ({ doneReading, value } = await reader.read());
                         chunks.push(value);
                         receivedLength += value.length;
                         postMessage([
                             "updateProgress",
                             `Downloaded ${receivedLength} of ${contentLength}`
                         ]);
-                        console.log(`Received ${receivedLength} of ${contentLength} ${itemURL} ${done}`);
+                        console.log(`Received ${receivedLength} of ${contentLength} ${itemURL} ${doneReading}`);
                         if (receivedLength === contentLength) {
                             console.log(`Received ${receivedLength} of ${contentLength} ${itemURL} breaking`);
                             break;
@@ -416,7 +420,7 @@ class TranslationHelper {
             const translatedParagraphs = [];
             const translatedSentencesOfParagraphs = [];
             const sourceSentencesOfParagraphs = [];
-            for (let i = 0; i < result.size(); i++) {
+            for (let i = 0; i < result.size(); i+=1) {
                 translatedParagraphs.push(result.get(i).getTranslatedText());
                 translatedSentencesOfParagraphs.push(this.getAllTranslatedSentencesOfParagraph(result.get(i)));
                 sourceSentencesOfParagraphs.push(this.getAllSourceSentencesOfParagraph(result.get(i)));
