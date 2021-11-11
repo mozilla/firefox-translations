@@ -340,9 +340,7 @@ class TranslationHelper {
                         chunksAll.set(chunk, position);
                         position += chunk.length;
                     }
-                    console.log("stop here", itemURL);
                     cache_match = await cache.match(itemURL);
-                    console.log("pass here", itemURL);
                 } else {
                     console.log("TODO: ERROR DOWNLOADING ENGINE. REPORT TO UI");
                     return null;
@@ -386,7 +384,6 @@ class TranslationHelper {
              * english as a pivot language.
              */
             if (from !== "en" && to !== "en") {
-                console.log(`Translating '${from}${to}' via pivoting: '${from}en' -> 'en${to}'`);
                 let translatedParagraphsInEnglish = this.translateInvolvingEnglish(from, "en", paragraphs);
                 return this.translateInvolvingEnglish("en", to, translatedParagraphsInEnglish);
             }

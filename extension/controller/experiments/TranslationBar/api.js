@@ -91,7 +91,6 @@
               }
              },
             updateProgress: function updateProgress(tabId, progressMessage) {
-              console.log({ data: "updateProgress na api", tabId, progressMessage });
               const translatonNotificationManager = translatonNotificationManagers.get(tabId);
               translatonNotificationManager.notificationBox.updateTranslationProgress(true, progressMessage);
              },
