@@ -18,6 +18,7 @@ class Mediator {
         this.inPageTranslation = new InPageTranslation(this);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         browser.runtime.sendMessage({ command: "monitorTabLoad" });
+        this.translationBarDisplayed = false;
     }
 
     // main entrypoint to handle the extension's load
@@ -50,12 +51,18 @@ class Mediator {
          */
         if (!this.languageDetection.navigatorLanguage.includes(this.languageDetection.pageLanguage.language)) {
 
+            /*
+             *  todo: we need to keep track if the translationbar was already displayed
+             * or not, since during tests we found the browser may send the
+             * onLoad event twice.
+             */
+            if (this.translationBarDisplayed) return;
             // request the backgroundscript to display the translationbar
             browser.runtime.sendMessage({
                 command: "displayTranslationBar",
                 languageDetection: this.languageDetection
             });
-
+            this.translationBarDisplayed = true;
             // create the translation object
             this.translation = new Translation(this);
         }
