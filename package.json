@@ -1,8 +1,8 @@
 {
   "name": "firefox-translations",
   "dependencies": {
-    "eslint": "^7.32.0",
-    "web-ext": "^6.4.0"
+    "eslint": "^8.2.0",
+    "web-ext": "^6.5.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -13,7 +13,6 @@
     "lint:extension": "web-ext lint -s extension",
     "once": "web-ext run -s extension --verbose  --keep-profile-changes --firefox nightly  --no-config-discovery --firefox-profile=fxtranslations",
     "package": "npm run build && mv web-ext-artifacts/*.zip addon.xpi",
-    "postinstall": "bin/postinstall.sh",
     "setup-webext": " npm install -g web-ext"
   }
 }
