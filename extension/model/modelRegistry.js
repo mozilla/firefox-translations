@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable max-lines */
 
 const modelRegistryRootURL = "https://storage.googleapis.com/bergamot-models-sandbox/0.2.10";

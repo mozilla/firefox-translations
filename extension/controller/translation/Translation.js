@@ -3,7 +3,9 @@
  * interacting with the web worker, handle the language models, and communicate with the
  * mediator
  */
+/* global browser, TranslationMessage */
 
+// eslint-disable-next-line no-unused-vars
 class Translation {
     constructor (mediator){
         this.translationsMessagesCounter = 0;

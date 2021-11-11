@@ -3,18 +3,47 @@
  * and all UI modifications and routing with the mediator
  */
 
+// eslint-disable-next-line no-unused-vars
 class TranslationNotificationManager {
 
-    constructor(api, modelRegistry, detectedLanguage, navigatorLanguage, tabId, bgScriptListenerCallback, notificationBox) {
+    constructor(api, modelRegistry, detectedLanguage) {
         this.api = api;
-        this.detectedLanguage = detectedLanguage;
-        this.navigatorLanguage = navigatorLanguage;
-        this.languageSet = new Set();
         this.modelRegistry = modelRegistry;
-        this.bgScriptListenerCallback = bgScriptListenerCallback;
-        this.tabId = tabId;
-        this.notificationBox = notificationBox;
+        this.detectedLanguage = detectedLanguage;
+        this.languageSet = new Set();
         this.loadLanguages();
+    }
+
+    set navigatorLanguage(val) {
+        this._navigatorLanguage = val;
+    }
+
+    get navigatorLanguage() {
+        return this._navigatorLanguage;
+    }
+
+    set tabId(val) {
+        this._tabId = val;
+    }
+
+    get tabId() {
+        return this._tabId;
+    }
+
+    set bgScriptListenerCallback(val) {
+        this._bgScriptListenerCallback = val;
+    }
+
+    get bgScriptListenerCallback() {
+        return this._bgScriptListenerCallback;
+    }
+
+    set notificationBox(val) {
+        this._notificationBox = val;
+    }
+
+    get notificationBox() {
+        return this._notificationBox;
     }
 
     get TranslationInfoBarStates() {

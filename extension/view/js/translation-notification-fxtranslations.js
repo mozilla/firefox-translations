@@ -1,11 +1,12 @@
+/* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
-/* This Source Code Form is subject to the terms of the Mozilla Public
+/*
+ * this Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 
-/* global MozElements */
-
-"use strict";
+/* global MozElements, Translation, Services */
 
 window.MozTranslationNotification = class extends MozElements.Notification {
   static get markup() {
@@ -95,7 +96,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     }
   }
 
-  async updateTranslationProgress(
+  updateTranslationProgress(
     shouldShowTranslationProgress,
     localizedTranslationProgressText
   ) {
@@ -107,8 +108,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         "value",
         progressLabelValue,
       );
-    } else {
-
     }
   }
 
@@ -122,7 +121,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 
     let stateName;
     for (const name of ["OFFER", "TRANSLATING", "TRANSLATED", "ERROR"]) {
-      if (Translation["STATE_" + name] === val) {
+      if (Translation[`STATE_${name}`] === val) {
         stateName = name.toLowerCase();
         break;
       }
@@ -147,6 +146,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 
     const sortByLocalizedName = function(setOfLanguages) {
       const arrayOfLanguages = [...setOfLanguages];
+      // eslint-disable-next-line no-undefined
       const names = Services.intl.getLanguageDisplayNames(undefined, arrayOfLanguages);
       return arrayOfLanguages
         .map((code, i) => [code, names[i]])
@@ -163,7 +163,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     detectedLanguage.value = translationNotificationManager.detectedLanguage;
 
     // fill the list of supported target languages.
-    const toLanguage = this._getAnonElt("toLanguage");
     const targetLanguages = sortByLocalizedName(this.translationNotificationManager.languageSet);
     for (const [code, name] of targetLanguages) {
       this.localizedLanguagesByCode[code] = name;
@@ -173,7 +172,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   _getAnonElt(anonId) {
-    return this.querySelector("[anonid=" + anonId + "]");
+    return this.querySelector(`[anonid=${anonId}]`);
   }
 
   fromLanguageChanged() {
@@ -199,27 +198,28 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATING;
 
     /*
-    // Initiate translation
-    this.translation.translate(from, to);
-
-    // Store the values used in the translation in the from and to inputs
-    if (
-      this.translation.uiState.infobarState ===
-      this.translation.TranslationInfoBarStates.STATE_OFFER
-    ) {
-      this._getAnonElt("fromLanguage").setAttribute(
-        "value",
-        this.localizedLanguagesByCode[from],
-      );
-      this._getAnonElt("toLanguage").setAttribute(
-        "value",
-        this.localizedLanguagesByCode[to],
-      );
-    } */
+     * initiate translation
+     * this.translation.translate(from, to);
+     *
+     * // Store the values used in the translation in the from and to inputs
+     * if (
+     * this.translation.uiState.infobarState ===
+     * this.translation.TranslationInfoBarStates.STATE_OFFER
+     * ) {
+     * this._getAnonElt("fromLanguage").setAttribute(
+     *  "value",
+     *  this.localizedLanguagesByCode[from],
+     * );
+     * this._getAnonElt("toLanguage").setAttribute(
+     *  "value",
+     *  this.localizedLanguagesByCode[to],
+     * );
+     * }
+     */
   }
 
-  /**
-   * To be called when the infobar should be closed per user's wish (e.g.
+  /*
+   * to be called when the infobar should be closed per user's wish (e.g.
    * by clicking the notification's close button, the not now button or choosing never to translate)
    */
   closeCommand() {
@@ -229,8 +229,8 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this.translation.infobarClosed(from, to);
   }
 
-  /**
-   * To be called when the infobar should be closed per user's wish
+  /*
+   * to be called when the infobar should be closed per user's wish
    * by clicking the Not now button
    */
   notNow() {
@@ -240,7 +240,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   outboundTranslationAccept() {
     const from = this._getSourceLang();
     const to = this._getTargetLang();
-    console.log({data: `here ${from} - ${to}`});
+    // console.log({ data: `here ${from} - ${to}` });
     this.translationNotificationManager.requestOutboundTranslation(from, to);
     this._getAnonElt("outboundTranslation").setAttribute(
       "hidden",
@@ -290,34 +290,32 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   optionsShowing() {
     const lang = this._getSourceLang();
 
-    // Get the source language name.
-    const langName = Services.intl.getLanguageDisplayNames(undefined, [
-      lang,
-    ])[0];
+    // get the source language name.
+    // eslint-disable-next-line no-undefined
+    const langName = Services.intl.getLanguageDisplayNames(undefined, [lang,])[0];
 
-    // Set the label and accesskey on the menuitem.
-    const bundle = Services.strings.createBundle(
-      "chrome://browser/locale/translation.properties",
-    );
+    // set the label and accesskey on the menuitem.
+    const bundle = Services.strings.createBundle("chrome://browser/locale/translation.properties",);
     let item = this._getAnonElt("neverForLanguage");
     const kStrId = "translation.options.neverForLanguage";
     item.setAttribute(
       "label",
-      bundle.formatStringFromName(kStrId + ".label", [langName]),
+      bundle.formatStringFromName(`${kStrId}.label`, [langName]),
     );
     item.setAttribute(
       "accesskey",
-      bundle.GetStringFromName(kStrId + ".accesskey"),
+      // eslint-disable-next-line new-cap
+      bundle.GetStringFromName(`${kStrId}.accesskey`),
     );
 
-    // We may need to disable the menuitems if they have already been used.
-    // Check if translation is already disabled for this language:
-    const neverForLangs = Services.prefs.getCharPref(
-      "browser.translation.neverForLanguages",
-    );
+    /*
+     * we may need to disable the menuitems if they have already been used.
+     * Check if translation is already disabled for this language:
+     */
+    const neverForLangs = Services.prefs.getCharPref("browser.translation.neverForLanguages",);
     item.disabled = neverForLangs.split(",").includes(lang);
 
-    // Check if translation is disabled for the domain:
+    // check if translation is disabled for the domain:
     const principal = this.translation.browser.contentPrincipal;
     const perms = Services.perms;
     item = this._getAnonElt("neverForSite");

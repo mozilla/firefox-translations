@@ -192,6 +192,7 @@ class InPageTranslation {
 
     updateElements() {
         const updateElement = (translatedText, node) => {
+            // console.log("translate from", node.textContent, " to ", translatedText);
             node.textContent = translatedText;
         }
         this.updateMap.forEach(updateElement);

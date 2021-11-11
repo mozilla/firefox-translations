@@ -73,12 +73,13 @@
                 translationNotificationManager = new TranslationNotificationManager(
                   this,
                   modelRegistry,
-                  detectedLanguage,
-                  navigatorLanguage,
-                  tabId,
-                  bgScriptListenerCallback,
-                  notif
+                  detectedLanguage
                 );
+                translationNotificationManager.navigatorLanguage = navigatorLanguage;
+                translationNotificationManager.tabId = tabId;
+                translationNotificationManager.bgScriptListenerCallback = bgScriptListenerCallback;
+                translationNotificationManager.notif = notif;
+
                 notif.init(translationNotificationManager);
                 translatonNotificationManagers.set(tabId, translationNotificationManager);
               } catch (error) {
