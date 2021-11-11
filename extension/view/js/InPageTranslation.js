@@ -35,22 +35,31 @@ class InPageTranslation {
     }
 
     start() {
+
+        /*
+         * start the dom parser, the DOM mutation observer and request the
+         * title to be translated
+         */
         this.started = true;
-        this.startTreeWalker();
+        const pageTitle = document.getElementsByTagName("title")[0];
+        if (pageTitle) {
+            this.queueTranslation(pageTitle);
+        }
+        this.startTreeWalker(document.body);
         this.startMutationObserver();
     }
 
-    startTreeWalker() {
+    startTreeWalker(root) {
         const acceptNode = node => {
             return this.validateNode(node);
         }
+
         const nodeIterator = document.createNodeIterator(
-            document.body,
+            root,
             // eslint-disable-next-line no-bitwise
             NodeFilter.SHOW_TEXT,
             acceptNode
         );
-
 
         let currentNode;
         // eslint-disable-next-line no-cond-assign
@@ -58,6 +67,7 @@ class InPageTranslation {
             //console.log('main loop', currentNode, 'nodehidden:', this.isElementHidden(currentNode.parentNode), 'nodeinViewPort:', this.isElementInViewport(currentNode.parentNode), 'nodeType:', currentNode.nodeType, 'tagName:', currentNode.tagName, 'content:', currentNode.innerHTML, 'wholeText:', currentNode.wholeText.trim());
             this.queueTranslation(currentNode);
         }
+
         this.dispatchTranslations();
     }
 

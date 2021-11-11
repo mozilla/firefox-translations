@@ -36,8 +36,10 @@
         `${context.extension.getURL("/model/modelRegistry.js",)}?cachebuster=${Date.now()}`
       ,);
 
-      // variable responsible for holding a reference to the backgroundscript
-      // event listener
+      /*
+       * variable responsible for holding a reference to the backgroundscript
+       * event listener
+       */
       let bgScriptListenerCallback = null;
 
       return {
