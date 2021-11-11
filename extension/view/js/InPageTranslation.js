@@ -2,11 +2,16 @@
 class InPageTranslation {
 
     constructor(mediator) {
-        this.idsCounter = 0;
+        this.translationsCounter = 0;
         this.mediator = mediator;
         this.started = false;
         this.loadTagsSet()
-        this.nodeMap = new Map();
+        this.viewportNodeMap = new Map();
+        this.hiddenNodeMap = new Map();
+        this.nonviewportNodeMap = new Map();
+        this.updateMap = new Map();
+        this.updateTimeout = null;
+        this.UI_UPDATE_INTERVAL = 500;
     }
 
     loadTagsSet() {
@@ -24,6 +29,9 @@ class InPageTranslation {
         this.tagsSet.add("h1");
         this.tagsSet.add("h4");
         this.tagsSet.add("label");
+        this.tagsSet.add("body");
+        this.tagsSet.add("li");
+        this.tagsSet.add("ul");
     }
 
     start() {
@@ -47,18 +55,10 @@ class InPageTranslation {
         let currentNode;
         // eslint-disable-next-line no-cond-assign
         while (currentNode = nodeIterator.nextNode()) {
-            console.log("main loop", currentNode, this.isElementVisible(currentNode.parentNode), this.isElementInViewport(currentNode.parentNode), currentNode.nodeType, currentNode.tagName, currentNode.innerHTML, currentNode.wholeText);
-            // let's prioritize the visible elements and the ones in the viewport
-            if (this.isElementVisible(currentNode.parentNode) && this.isElementInViewport(currentNode.parentNode)) {
-                this.sendToTranslation(currentNode);
-            } else {
-
-                /*
-                 * add these elements to a queue to be processed after we have
-                 * the visible ones completed
-                 */
-            }
+            //console.log('main loop', currentNode, 'nodehidden:', this.isElementHidden(currentNode.parentNode), 'nodeinViewPort:', this.isElementInViewport(currentNode.parentNode), 'nodeType:', currentNode.nodeType, 'tagName:', currentNode.tagName, 'content:', currentNode.innerHTML, 'wholeText:', currentNode.wholeText.trim());
+            this.queueTranslation(currentNode);
         }
+        this.dispatchTranslations();
     }
 
     isElementInViewport(element) {
@@ -71,17 +71,14 @@ class InPageTranslation {
         );
     }
 
-    isElementVisible(element) {
-        return element.offsetParent;
+    isElementHidden(element) {
+        return element.style.display === "none" || element.style.visibility === "hidden" || element.offsetParent === null;
     }
 
     validateNode(node) {
         if (node.nodeType === 3) {
             if (this.tagsSet.has(node.parentNode.nodeName.toLowerCase()) &&
-                node.textContent
-                    .replaceAll("\n","")
-                    .replaceAll("\t","")
-                    .trim().length > 0) {
+                node.textContent.trim().length > 0) {
                 return NodeFilter.FILTER_ACCEPT;
             }
             return NodeFilter.FILTER_REJECT;
@@ -89,34 +86,62 @@ class InPageTranslation {
         return this.tagsSet.has(node.nodeName.toLowerCase()) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
     }
 
-    sendToTranslation(newNode) {
+    queueTranslation(node) {
 
         /*
          * let's store the node to keep its reference
          * and send it to the translation worker
          */
-        this.idsCounter += 1;
-        this.nodeMap.set(this.idsCounter, newNode);
-        const text = newNode.textContent;
+        this.translationsCounter += 1;
+
+        // let's categorize the elements on their respective hashmaps
+        if (this.isElementHidden(node.parentNode)) {
+            // if the element is entirely hidden
+            this.hiddenNodeMap.set(this.translationsCounter, node);
+        } else if (this.isElementInViewport(node.parentNode)) {
+            // if the element is present in the viewport
+            this.viewportNodeMap.set(this.translationsCounter, node);
+        } else {
+            // if the element is visible but not present in the viewport
+            this.nonviewportNodeMap.set(this.translationsCounter, node);
+        }
+    }
+
+    dispatchTranslations() {
+        // we then submit for translation the elements in order of priority
+        this.processingNodeMap = "viewportNodeMap";
+        this.viewportNodeMap.forEach(this.submitTranslation, this);
+        this.processingNodeMap = "nonviewportNodeMap";
+        this.nonviewportNodeMap.forEach(this.submitTranslation, this);
+        this.processingNodeMap = "hiddenNodeMap";
+        this.hiddenNodeMap.forEach(this.submitTranslation, this);
+    }
+
+
+    submitTranslation(node, key) {
+        const text = node.textContent;
         if (text.trim().length) {
 
           /*
            * send the content back to mediator in order to have the translation
            * requested by it
            */
+
           const payload = {
             text: text.split("\n"),
             type: "inpage",
-            attrId: this.idsCounter
+            attrId: [
+                     this.processingNodeMap,
+                     key
+                    ],
           };
           this.notifyMediator("translate", payload);
         }
-        console.log("inpage sendToTranslation sent", newNode.textContent);
     }
 
     notifyMediator(command, payload) {
         this.mediator.contentScriptsMessageListener(this, { command, payload });
-      }
+    }
 
     startMutationObserver() {
         // select the node that will be observed for mutations
@@ -144,18 +169,42 @@ class InPageTranslation {
     mediatorNotification(translationMessage) {
 
         /*
-         * notification received from the mediator with our request. let's update
-         * the original targeted textarea
+         * notification received from the mediator with our request.
+         * the only possible notification can be a translation response,
+         * so let's schedule the update of the original node with its new content
          */
-        this.updateElement(translationMessage);
-      }
+        this.enqueueElement(translationMessage);
+    }
 
-    updateElement(translationMessage) {
-        const idCounter = translationMessage.payload[1].attrId;
+    updateElements() {
+        const updateElement = (translatedText, node) => {
+            node.textContent = translatedText;
+        }
+        this.updateMap.forEach(updateElement);
+        this.updateTimeout = null;
+    }
+
+    enqueueElement(translationMessage) {
+        const [hashMapName, idCounter] = translationMessage.payload[1].attrId;
         const translatedText = translationMessage.payload[1].translatedParagraph.join("\n\n")
-        // we should have only one match
-        const targetNode = this.nodeMap.get(idCounter);
-        targetNode.textContent = translatedText;
-        console.log(translatedText);
+        let targetNode = null;
+        switch (hashMapName) {
+            case "hiddenNodeMap":
+                targetNode = this.hiddenNodeMap.get(idCounter);
+                break;
+            case "viewportNodeMap":
+                targetNode = this.viewportNodeMap.get(idCounter);
+                break;
+            case "nonviewportNodeMap":
+                targetNode = this.nonviewportNodeMap.get(idCounter);
+                break;
+            default:
+                break;
+        }
+        this.updateMap.set(targetNode, translatedText);
+        // we finally schedule the UI update
+        if (!this.updateTimeout) {
+            this.updateTimeout = setTimeout(this.updateElements.bind(this),this.UI_UPDATE_INTERVAL);
+        }
     }
 }
