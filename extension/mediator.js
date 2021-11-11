@@ -3,7 +3,8 @@
  * lifecyle, interactions and the rendering of the UI elements
  */
 
-/* global LanguageDetection, OutboundTranslation, Translation , browser,
+/*
+ * global LanguageDetection, OutboundTranslation, Translation , browser
  * InPageTranslation
  */
 
