@@ -1,12 +1,8 @@
 name: Artifact Build
-
 on: [push, pull_request]
-
-jobs:git s
+jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js
