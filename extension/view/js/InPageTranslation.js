@@ -13,6 +13,7 @@ class InPageTranslation {
         this.updateMap = new Map();
         this.updateTimeout = null;
         this.UI_UPDATE_INTERVAL = 500;
+        this.messagesSent = new Set();
     }
 
     loadTagsSet() {
@@ -66,7 +67,7 @@ class InPageTranslation {
         let currentNode;
         // eslint-disable-next-line no-cond-assign
         while (currentNode = nodeIterator.nextNode()) {
-            // console.log('main loop', currentNode, 'nodehidden:', this.isElementHidden(currentNode.parentNode), 'nodeinViewPort:', this.isElementInViewport(currentNode.parentNode), 'nodeType:', currentNode.nodeType, 'tagName:', currentNode.tagName, 'content:', currentNode.innerHTML, 'wholeText:', currentNode.wholeText.trim());
+            //console.log('startTreeWalker - root:', root, 'currentnode', currentNode, 'nodehidden:', this.isElementHidden(currentNode.parentNode), 'nodeinViewPort:', this.isElementInViewport(currentNode.parentNode), 'nodeType:', currentNode.nodeType, 'tagName:', currentNode.tagName, 'content:', currentNode.innerHTML, 'wholeText:', currentNode.wholeText.trim());
             this.queueTranslation(currentNode);
         }
 
@@ -133,6 +134,10 @@ class InPageTranslation {
 
 
     submitTranslation(node, key) {
+        if (this.messagesSent.has(key)) {
+            // if we already sent this message, we just skip it
+            return;
+        }
         const text = node.textContent;
         if (text.trim().length) {
 
@@ -150,6 +155,7 @@ class InPageTranslation {
                     ],
           };
           this.notifyMediator("translate", payload);
+          this.messagesSent.add(key);
         }
     }
 
@@ -167,8 +173,8 @@ class InPageTranslation {
         const callback = function(mutationsList) {
             for (const mutation of mutationsList) {
                 if (mutation.type === "childList") {
-                    console.log(mutation);
-                    mutation.addedNodes.forEach(node => this.sendToTranslation(node));
+                    //console.log(mutation);
+                    mutation.addedNodes.forEach(node => this.startTreeWalker(node));
                 }
             }
         }.bind(this);
@@ -192,10 +198,11 @@ class InPageTranslation {
 
     updateElements() {
         const updateElement = (translatedText, node) => {
-            // console.log("translate from", node.textContent, " to ", translatedText);
+            //console.log("translate from", node.textContent, " to ", translatedText);
             node.textContent = translatedText;
         }
         this.updateMap.forEach(updateElement);
+        this.updateMap.clear();
         this.updateTimeout = null;
     }
 
@@ -209,16 +216,20 @@ class InPageTranslation {
         switch (hashMapName) {
             case "hiddenNodeMap":
                 targetNode = this.hiddenNodeMap.get(idCounter);
+                this.hiddenNodeMap.delete(idCounter);
                 break;
             case "viewportNodeMap":
                 targetNode = this.viewportNodeMap.get(idCounter);
+                this.viewportNodeMap.delete(idCounter);
                 break;
             case "nonviewportNodeMap":
                 targetNode = this.nonviewportNodeMap.get(idCounter);
+                this.nonviewportNodeMap.delete(idCounter);
                 break;
             default:
                 break;
         }
+        this.messagesSent.delete(idCounter);
         this.updateMap.set(targetNode, translatedText);
         // we finally schedule the UI update
         if (!this.updateTimeout) {
