@@ -89,7 +89,7 @@ class Mediator {
                 );
                 this.messagesSenderLookupTable.set(translationMessage.messageID, sender);
                 this.translation.translate(translationMessage);
-                //console.log("new translation message sent:", translationMessage, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
+                // console.log("new translation message sent:", translationMessage, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
                 break;
             case "translationComplete":
 
@@ -102,7 +102,7 @@ class Mediator {
                 this.messagesSenderLookupTable.get(message.payload[1].messageID)
                     .mediatorNotification(message);
                 this.messagesSenderLookupTable.delete(message.payload[1].messageID);
-                //console.log("translation complete rcvd:", message, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
+                // console.log("translation complete rcvd:", message, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
                 break;
             case "updateProgress":
 
