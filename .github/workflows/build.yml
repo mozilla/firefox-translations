@@ -1,12 +1,8 @@
 name: Artifact Build
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: [push, pull_request]
 
-jobs:
+jobs:git s
   build:
 
     runs-on: ubuntu-latest
