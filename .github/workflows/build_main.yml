@@ -1,5 +1,5 @@
 name: Build Main
-push:
+on push:
   branches:
     - main
 jobs:
@@ -21,4 +21,3 @@ jobs:
         with:
           name: Extension-XPI
           path: web-ext-artifacts/firefox_translations-*.zip
-
