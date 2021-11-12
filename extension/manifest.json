@@ -1,10 +1,10 @@
 {
     "manifest_version": 2,
     "name": "Firefox Translations",
-    "version": "0.5",
+    "version": "0.9",
     "applications": {
         "gecko": {
-            "id": "firefox-translations-new@mozilla.org",
+            "id": "firefox-translations@mozilla.org",
             "strict_min_version": "79.0"
         }
     },
