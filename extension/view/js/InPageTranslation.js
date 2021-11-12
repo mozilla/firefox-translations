@@ -67,7 +67,7 @@ class InPageTranslation {
         let currentNode;
         // eslint-disable-next-line no-cond-assign
         while (currentNode = nodeIterator.nextNode()) {
-            //console.log('startTreeWalker - root:', root, 'currentnode', currentNode, 'nodehidden:', this.isElementHidden(currentNode.parentNode), 'nodeinViewPort:', this.isElementInViewport(currentNode.parentNode), 'nodeType:', currentNode.nodeType, 'tagName:', currentNode.tagName, 'content:', currentNode.innerHTML, 'wholeText:', currentNode.wholeText.trim());
+            // console.log('startTreeWalker - root:', root, 'currentnode', currentNode, 'nodehidden:', this.isElementHidden(currentNode.parentNode), 'nodeinViewPort:', this.isElementInViewport(currentNode.parentNode), 'nodeType:', currentNode.nodeType, 'tagName:', currentNode.tagName, 'content:', currentNode.innerHTML, 'wholeText:', currentNode.wholeText.trim());
             this.queueTranslation(currentNode);
         }
 
@@ -173,7 +173,7 @@ class InPageTranslation {
         const callback = function(mutationsList) {
             for (const mutation of mutationsList) {
                 if (mutation.type === "childList") {
-                    //console.log(mutation);
+                    // console.log(mutation);
                     mutation.addedNodes.forEach(node => this.startTreeWalker(node));
                 }
             }
@@ -198,7 +198,7 @@ class InPageTranslation {
 
     updateElements() {
         const updateElement = (translatedText, node) => {
-            //console.log("translate from", node.textContent, " to ", translatedText);
+            // console.log("translate from", node.textContent, " to ", translatedText);
             node.textContent = translatedText;
         }
         this.updateMap.forEach(updateElement);
