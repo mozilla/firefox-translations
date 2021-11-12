@@ -1,18 +1,17 @@
 {
   "name": "firefox-translations",
-  "dependencies": {
-    "eslint": "^8.2.0",
-    "web-ext": "^6.5.0"
-  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint:js": "eslint -c  .eslintrc.js extension",
     "build": "web-ext build -s extension --overwrite-dest  --no-config-discovery",
     "format": "prettier 'extension/*.{js,css}' --tab-width=2 --arrow-parens=always --trailing-comma=es5 --no-bracket-spacing --write",
-    "lint": "npm-run-all lint:*",
     "lint:extension": "web-ext lint -s extension",
     "once": "web-ext run -s extension --verbose  --keep-profile-changes --firefox nightly  --no-config-discovery --firefox-profile=fxtranslations",
     "package": "npm run build && mv web-ext-artifacts/*.zip addon.xpi",
     "setup-webext": "npm install -g web-ext"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "web-ext": "^6.5.0"
   }
 }
