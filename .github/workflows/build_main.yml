@@ -15,9 +15,7 @@ jobs:
         run: npm install
       - name: Run linter
         run: npm run lint:js
-      - name: Build XPI
-        run: npm run build
       - uses: actions/upload-artifact@v2
         with:
-          name: firefox-translations
-          path: web-ext-artifacts/firefox_translations-*.zip
+          name: firefox_translations
+          path: extension/
