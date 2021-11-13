@@ -108,7 +108,6 @@
              },
             updateProgress: function updateProgress(tabId, progressMessage) {
               const translatonNotificationManager = translatonNotificationManagers.get(tabId);
-              console.log("updateProgress na api.js", translatonNotificationManager.notificationBox);
               translatonNotificationManager.notificationBox.updateTranslationProgress(true, progressMessage);
              },
              onTranslationRequest: new ExtensionCommon.EventManager({

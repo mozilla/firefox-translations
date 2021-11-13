@@ -211,7 +211,7 @@ class InPageTranslation {
                hashMapName,
                idCounter
               ] = translationMessage.payload[1].attrId;
-        const translatedText = translationMessage.payload[1].translatedParagraph.join("\n\n")
+        const translatedText = translationMessage.payload[1].translatedParagraph[0].join("\n\n")
         let targetNode = null;
         switch (hashMapName) {
             case "hiddenNodeMap":

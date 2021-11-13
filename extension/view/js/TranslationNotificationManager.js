@@ -85,4 +85,12 @@ class TranslationNotificationManager {
         this.bgScriptListenerCallback(message);
     }
 
+    enableStats(){
+
+        /*
+         * notify the mediator that the user wants to see statistics
+         */
+        const message = { command: "displayStatistics", tabId: this.tabId };
+        this.bgScriptListenerCallback(message);
+    }
 }

@@ -37,10 +37,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
           </hbox>
           <vbox class="translating-box" pack="center">
             <hbox>
-              <label value="&translation.translatingContent.label;"/>
-              <label anonid="progress-label" value=""/>
-              <label anonid="outboundtranslations-label" value="Enable translations of forms?"/>
-              <button class="notification-button" label="Yes" anonid="outboundTranslation" oncommand="this.closest('notification').outboundTranslationAccept()"/>
+              <label value="&translation.translatingContent.label;" style="display:none"/>
+              <label anonid="progress-label" value="" style="padding-left:5px"/>
+              <label anonid="outboundtranslations-label" value="Enable translations of forms?" style="padding-left:5px"/>
+              <button class="notification-button" label="Yes" anonid="outboundTranslation" style="padding-left:5px" oncommand="this.closest('notification').outboundTranslationAccept()"/>
             </hbox>
           </vbox>
           <hbox class="translated-box" align="center">
@@ -67,7 +67,9 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             <menuitem anonid="neverForSite" oncommand="this.closest('notification').neverForSite();" label="&translation.options.neverForSite.label;" accesskey="&translation.options.neverForSite.accesskey;"/>
             <menuseparator/>
             <menuitem oncommand="openPreferences('paneGeneral');" label="&translation.options.preferences.label;" accesskey="&translation.options.preferences.accesskey;"/>
-          </menupopup>
+            <menuseparator/>
+            <menuitem oncommand="this.closest('notification').displayStatistics();" label="Display Statistics"/>
+            </menupopup>
         </button>
       </hbox>
       <toolbarbutton anonid="closeButton" ondblclick="event.stopPropagation();"
@@ -244,7 +246,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   outboundTranslationAccept() {
     const from = this._getSourceLang();
     const to = this._getTargetLang();
-    // console.log({ data: `here ${from} - ${to}` });
     this.translationNotificationManager.requestOutboundTranslation(from, to);
     this._getAnonElt("outboundTranslation").setAttribute(
       "hidden",
@@ -355,6 +356,13 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this.translation.neverForSite(this._getSourceLang(), this._getTargetLang());
     this.closeCommand();
   }
+
+  displayStatistics() {
+    // let's notify the mediator that the user chose to see the statistics
+    // console.log({ data: `here ${0} - ${1}` });
+    this.translationNotificationManager.enableStats();
+  }
+
 };
 
 customElements.define(

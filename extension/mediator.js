@@ -3,7 +3,8 @@
  * lifecyle, interactions and the rendering of the UI elements
  */
 
-/* global LanguageDetection, OutboundTranslation, Translation , browser, InPageTranslation, browser */
+/* global LanguageDetection, OutboundTranslation, Translation , browser,
+InPageTranslation, browser, Telemetry */
 
 class Mediator {
 
@@ -14,8 +15,10 @@ class Mediator {
         this.languageDetection = new LanguageDetection();
         this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
+        this.telemetry = new Telemetry();
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
+        this.statsMode = false;
     }
 
     init() {
@@ -102,6 +105,18 @@ class Mediator {
                 this.messagesSenderLookupTable.get(message.payload[1].messageID)
                     .mediatorNotification(message);
                 this.messagesSenderLookupTable.delete(message.payload[1].messageID);
+                // eslint-disable-next-line no-case-declarations
+                const wordsPerSecond = this.telemetry.addAndGetTranslationTimeStamp(message.payload[1].translatedParagraph[1]);
+
+                if (this.statsMode) {
+                    // if the user chose to see stats in the infobar, we display them
+                    browser.runtime.sendMessage({
+                        command: "updateProgress",
+                        progressMessage: [null,`Translation enabled (stats mode) Words-per-second: ${wordsPerSecond}`],
+                        tabId: this.tabId
+                    });
+                }
+
                 // console.log("translation complete rcvd:", message, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
                 break;
             case "updateProgress":
@@ -115,7 +130,6 @@ class Mediator {
                     progressMessage: message.payload,
                     tabId: this.tabId
                 });
-                console.log("updateProgress on mediator", message.payload, this.tabId);
                 break;
             case "displayOutboundTranslation":
 
@@ -157,6 +171,10 @@ class Mediator {
                  *  worker to download the models
                  */
                 this.translation.loadOutboundTranslation(message);
+                break;
+
+            case "displayStatistics":
+                this.statsMode = true;
                 break;
             default:
                 // ignore

@@ -146,7 +146,7 @@ class TranslationHelper {
                 // model was lodaded properly, let's communicate the mediator and the UI
                 postMessage([
                     "updateProgress",
-                    "Form translations loaded."
+                    "Automatic page and form translations loaded."
                 ]);
                 postMessage([
                     "displayOutboundTranslation",
@@ -161,7 +161,7 @@ class TranslationHelper {
 
             /*
              * let's load the models and communicate to the caller (translation)
-             * that we finished loading
+             * when we are finished
              */
             let start = Date.now();
             try {
@@ -174,7 +174,7 @@ class TranslationHelper {
             this.engineState = this.ENGINE_STATE.LOADED;
             postMessage([
                 "updateProgress",
-                "Translation engine started."
+                "Automatic Translation enabled"
             ]);
             this.consumeTranslationQueue();
             console.log("loadLanguageModel function complete");
@@ -406,16 +406,20 @@ class TranslationHelper {
             let input = new this.WasmEngineModule.VectorString();
 
             // initialize the input
+            let total_words = 0;
             paragraphs.forEach(paragraph => {
                 // prevent empty paragraph - it breaks the translation
                 if (paragraph.trim() === "") {
                     return;
                 }
-                input.push_back(paragraph)
+                input.push_back(paragraph);
+                total_words += paragraph.trim().split(" ").length;
             })
 
+            const t0 = performance.now();
             // translate the input, which is a vector<String>; the result is a vector<Response>
             let result = this.translationService.translate(translationModel, input, responseOptions);
+            const timeElapsed = [total_words, performance.now() - t0];
 
             const translatedParagraphs = [];
             const translatedSentencesOfParagraphs = [];
@@ -428,7 +432,7 @@ class TranslationHelper {
 
             responseOptions.delete();
             input.delete();
-            return translatedParagraphs;
+            return [translatedParagraphs, timeElapsed];
         }
 
         // this function extracts all the translated sentences from the Response and returns them.
