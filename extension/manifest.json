@@ -62,5 +62,9 @@
           }
         }
     },
+    "icons": {
+      "16": "/view/icons/translation.16x16.png",
+      "32": "/view/icons/translation.32x32.png"
+    },
     "description": "Firefox Translations translates any webpage utilizing client based machine learning algorithms and models."
   }

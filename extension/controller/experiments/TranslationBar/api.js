@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-/* global ExtensionAPI, ExtensionCommon, ChromeUtils, modelRegistry, TranslationNotificationManager  */
+/* global ExtensionAPI, ChromeUtils, modelRegistry, TranslationNotificationManager  */
 
  // eslint-disable-next-line no-invalid-this
  this.experiments_translationbar = class extends ExtensionAPI {
@@ -20,6 +20,11 @@
 
       const { Services } = ChromeUtils.import(
         "resource://gre/modules/Services.jsm",
+        {},
+      );
+
+      const { ExtensionCommon } = ChromeUtils.import(
+        "resource://gre/modules/ExtensionCommon.jsm",
         {},
       );
 
@@ -42,6 +47,14 @@
           translationbar: {
             show: function show(tabId, detectedLanguage, navigatorLanguage) {
               try {
+
+                // disable the legacy translation infobar
+                Services.prefs.setBoolPref("browser.translation.ui.show", false);
+                Services.prefs.setBoolPref(
+                  "browser.translation.detectLanguage",
+                  false,
+                );
+
                 const { tabManager } = context.extension;
                 const tab = tabManager.get(tabId);
                 const chromeWin = tab.browser.ownerGlobal;
@@ -78,7 +91,12 @@
                 translationNotificationManager.navigatorLanguage = navigatorLanguage;
                 translationNotificationManager.tabId = tabId;
                 translationNotificationManager.bgScriptListenerCallback = bgScriptListenerCallback;
-                translationNotificationManager.notif = notif;
+                translationNotificationManager.notificationBox = notif;
+
+                /*
+                 * todo: find a way to use css here
+                 */
+                translationNotificationManager.logoIcon = context.extension.getURL("/view/icons/translation.16x16.png",)
 
                 notif.init(translationNotificationManager);
                 translatonNotificationManagers.set(tabId, translationNotificationManager);
@@ -90,6 +108,7 @@
              },
             updateProgress: function updateProgress(tabId, progressMessage) {
               const translatonNotificationManager = translatonNotificationManagers.get(tabId);
+              console.log("updateProgress na api.js", translatonNotificationManager.notificationBox);
               translatonNotificationManager.notificationBox.updateTranslationProgress(true, progressMessage);
              },
              onTranslationRequest: new ExtensionCommon.EventManager({

@@ -12,7 +12,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   static get markup() {
     return `
       <hbox anonid="details" align="center" flex="1">
-        <image class="messageImage"/>
+        <image  anonid="logoIcon" class="messageImage"/>
         <panel anonid="welcomePanel" class="translation-welcome-panel" type="arrow" align="start">
           <image class="translation-welcome-logo"/>
           <vbox flex="1" class="translation-welcome-content">
@@ -141,6 +141,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   init(translationNotificationManager) {
+
+    // set icon in the infobar. we should move this to a css file.
+    this._getAnonElt("logoIcon").setAttribute("src", translationNotificationManager.logoIcon);
+
     this.translationNotificationManager = translationNotificationManager;
     this.localizedLanguagesByCode = {};
 
