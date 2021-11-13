@@ -358,8 +358,11 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   displayStatistics() {
-    // let's notify the mediator that the user chose to see the statistics
-    // console.log({ data: `here ${0} - ${1}` });
+
+    /*
+     * let's notify the mediator that the user chose to see the statistics
+     * console.log({ data: `here ${0} - ${1}` });
+     */
     this.translationNotificationManager.enableStats();
   }
 
