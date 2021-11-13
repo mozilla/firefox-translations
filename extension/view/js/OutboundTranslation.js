@@ -129,15 +129,15 @@ class OutboundTranslation {
       * notification received from the mediator with our request. let's update
       * the original targeted textarea
       */
-      this.updateselectedTextArea(translationMessage.payload[1].translatedParagraph.join("\n\n"));
-      this.sendBackTranslationRequest(translationMessage.payload[1].translatedParagraph.join("\n\n"));
+      this.updateselectedTextArea(translationMessage.payload[1].translatedParagraph[0].join("\n\n"));
+      this.sendBackTranslationRequest(translationMessage.payload[1].translatedParagraph[0].join("\n\n"));
     } else {
 
       /*
        * and then request the translation to the mediator with the new text if
        * this is an outbound translation request
        */
-      this.updateBackTranslationTextArea(translationMessage.payload[1].translatedParagraph.join("\n\n"));
+      this.updateBackTranslationTextArea(translationMessage.payload[1].translatedParagraph[0].join("\n\n"));
     }
   }
 

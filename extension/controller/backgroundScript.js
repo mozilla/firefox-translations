@@ -55,7 +55,6 @@ const messageListener = async function(message, sender) {
 
             break;
         case "translationRequested":
-
             // requested for translation received. let's inform the mediator
             browser.tabs.sendMessage(
                 message.tabId,
@@ -86,8 +85,21 @@ const messageListener = async function(message, sender) {
                   to: message.from }
             );
             break;
+        case "displayStatistics":
+
+            /*
+             * inform the mediator that the user wants to see statistics
+             */
+            browser.tabs.sendMessage(
+                message.tabId,
+                { command: "displayStatistics",
+                  tabId: message.tabId }
+            );
+            break;
+
         default:
-          // ignore
+            // ignore
+            break;
     }
 }
 
