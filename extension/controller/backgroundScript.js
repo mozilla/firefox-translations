@@ -9,7 +9,6 @@
  */
 // eslint-disable-next-line max-lines-per-function
 const messageListener = async function(message, sender) {
-
     let languageDetection = null;
     let listenerCompleteLoad = null;
     switch (message.command) {

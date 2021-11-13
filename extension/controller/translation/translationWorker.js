@@ -143,7 +143,7 @@ class TranslationHelper {
             try {
                 await this.constructTranslationModel(message.from, message.to);
                 console.log(`Outbound Model '${message.from}${message.to}' successfully constructed. Time taken: ${(Date.now() - start) / 1000} secs`);
-                // model was lodaded properly, let's communicate the mediator and tje UI
+                // model was lodaded properly, let's communicate the mediator and the UI
                 postMessage([
                     "updateProgress",
                     "Form translations loaded."

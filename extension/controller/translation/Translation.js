@@ -31,7 +31,7 @@ class Translation {
     }
 
     /*
-     * handles all communicaiton received from the translation webworker
+     * handles all communication received from the translation webworker
      */
     translationWorkerMessageListener(translationMessage) {
         switch (translationMessage.data[0]) {

@@ -115,6 +115,7 @@ class Mediator {
                     progressMessage: message.payload,
                     tabId: this.tabId
                 });
+                console.log("updateProgress on mediator", message.payload, this.tabId);
                 break;
             case "displayOutboundTranslation":
 
