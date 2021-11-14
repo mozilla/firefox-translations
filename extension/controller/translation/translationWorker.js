@@ -75,14 +75,23 @@ class TranslationHelper {
                 Promise.resolve().then(function () {
                     // if there's a paragraph, then we translate
                     if (translationMessage.sourceParagraph) {
+
+                        const t0 = performance.now();
+                        // translate the input, which is a vector<String>; the result is a vector<Response>
+                        let total_words = 0;
+                        translationMessage.sourceParagraph.forEach(paragraph => {
+                            total_words += paragraph.trim().split(" ").length;
+                        })
+
                         const translation = this.translate(
                             translationMessage.sourceLanguage,
                             translationMessage.targetLanguage,
                             translationMessage.sourceParagraph
                         );
+                        const timeElapsed = [total_words, performance.now() - t0];
 
                         // now that we have a translation, let's report to the mediator
-                        translationMessage.translatedParagraph = translation;
+                        translationMessage.translatedParagraph = [translation, timeElapsed];
                         postMessage([
                             "translationComplete",
                             translationMessage
@@ -406,20 +415,16 @@ class TranslationHelper {
             let input = new this.WasmEngineModule.VectorString();
 
             // initialize the input
-            let total_words = 0;
             paragraphs.forEach(paragraph => {
                 // prevent empty paragraph - it breaks the translation
                 if (paragraph.trim() === "") {
                     return;
                 }
                 input.push_back(paragraph);
-                total_words += paragraph.trim().split(" ").length;
             })
 
-            const t0 = performance.now();
             // translate the input, which is a vector<String>; the result is a vector<Response>
             let result = this.translationService.translate(translationModel, input, responseOptions);
-            const timeElapsed = [total_words, performance.now() - t0];
 
             const translatedParagraphs = [];
             const translatedSentencesOfParagraphs = [];
@@ -432,7 +437,7 @@ class TranslationHelper {
 
             responseOptions.delete();
             input.delete();
-            return [translatedParagraphs, timeElapsed];
+            return translatedParagraphs;
         }
 
         // this function extracts all the translated sentences from the Response and returns them.
@@ -472,7 +477,7 @@ class TranslationHelper {
 
 const translationHelper = new TranslationHelper(postMessage);
 onmessage = function(message) {
-
+    console.log("message no worker", message.data[0]);
     switch (message.data[0]) {
         case "configEngine":
             importScripts("Queue.js");
