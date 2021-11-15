@@ -248,7 +248,7 @@ class TranslationHelper {
             cpu-threads: 0
             quiet: true
             quiet-translation: true
-            gemm-precision: int8shiftAll
+            gemm-precision: int8shiftAlphaAll
             `;
 
             const modelFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].model.name}`;
@@ -410,8 +410,11 @@ class TranslationHelper {
             }
             const translationModel = this.translationModels.get(languagePair);
 
-            // instantiate the arguments of translate() API i.e. ResponseOptions and input (vector<string>)
-            const responseOptions = new this.WasmEngineModule.ResponseOptions();
+            /*
+             * instantiate the arguments of translate() API i.e. ResponseOptions and input (vector<string>)
+             * const responseOptions = new this.WasmEngineModule.ResponseOptions();
+             */
+            const responseOptions = { qualityScores: true, alignment: false, html: true };
             let input = new this.WasmEngineModule.VectorString();
 
             // initialize the input
@@ -435,7 +438,6 @@ class TranslationHelper {
                 sourceSentencesOfParagraphs.push(this.getAllSourceSentencesOfParagraph(result.get(i)));
             }
 
-            responseOptions.delete();
             input.delete();
             return translatedParagraphs;
         }
@@ -477,7 +479,6 @@ class TranslationHelper {
 
 const translationHelper = new TranslationHelper(postMessage);
 onmessage = function(message) {
-    console.log("message no worker", message.data[0]);
     switch (message.data[0]) {
         case "configEngine":
             importScripts("Queue.js");

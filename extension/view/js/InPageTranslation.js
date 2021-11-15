@@ -145,7 +145,6 @@ class InPageTranslation {
            * send the content back to mediator in order to have the translation
            * requested by it
            */
-
           const payload = {
             text: text.split("\n"),
             type: "inpage",
