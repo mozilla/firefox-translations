@@ -99,14 +99,17 @@ class Mediator {
                 /*
                  * received the translation complete signal
                  * from the translation object. so we lookup the sender
-                 * in order to route the response back. in this this, it can be
+                 * in order to route the response back, which can be
                  * OutbountTranslation, InPageTranslation etc....
                  */
-                this.messagesSenderLookupTable.get(message.payload[1].messageID)
-                    .mediatorNotification(message);
-                this.messagesSenderLookupTable.delete(message.payload[1].messageID);
+                message.payload[1].forEach(translationMessage => {
+                    this.messagesSenderLookupTable.get(translationMessage.messageID)
+                    .mediatorNotification(translationMessage);
+                    this.messagesSenderLookupTable.delete(translationMessage.messageID);
+                });
+
                 // eslint-disable-next-line no-case-declarations
-                const wordsPerSecond = this.telemetry.addAndGetTranslationTimeStamp(message.payload[1].translatedParagraph[1]);
+                const wordsPerSecond = this.telemetry.addAndGetTranslationTimeStamp(message.payload[2]);
 
                 if (this.statsMode) {
                     // if the user chose to see stats in the infobar, we display them
