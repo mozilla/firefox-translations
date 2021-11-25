@@ -132,7 +132,6 @@ class InPageTranslation {
         this.hiddenNodeMap.forEach(this.submitTranslation, this);
     }
 
-
     submitTranslation(node, key) {
         if (this.messagesSent.has(key)) {
             // if we already sent this message, we just skip it
@@ -209,8 +208,8 @@ class InPageTranslation {
         const [
                hashMapName,
                idCounter
-              ] = translationMessage.payload[1].attrId;
-        const translatedText = translationMessage.payload[1].translatedParagraph[0].join("\n\n")
+              ] = translationMessage.attrId;
+        const translatedText = translationMessage.translatedParagraph;
         let targetNode = null;
         switch (hashMapName) {
             case "hiddenNodeMap":

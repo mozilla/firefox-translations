@@ -71,30 +71,36 @@ class TranslationHelper {
         consumeTranslationQueue() {
 
             while (this.translationQueue.length() > 0) {
-                const translationMessage = this.translationQueue.dequeue();
+                const translationMessagesBatch = this.translationQueue.dequeue();
                 Promise.resolve().then(function () {
-                    // if there's a paragraph, then we translate
-                    if (translationMessage.sourceParagraph) {
+                    if (translationMessagesBatch) {
 
-                        const t0 = performance.now();
-                        // translate the input, which is a vector<String>; the result is a vector<Response>
                         let total_words = 0;
-                        translationMessage.sourceParagraph.forEach(paragraph => {
-                            total_words += paragraph.trim().split(" ").length;
-                        })
+                        translationMessagesBatch.forEach(message => {
+                            message.sourceParagraph.forEach(paragraph => {
+                                total_words += paragraph.trim().split(" ").length;
+                            });
+                        });
 
-                        const translation = this.translate(
-                            translationMessage.sourceLanguage,
-                            translationMessage.targetLanguage,
-                            translationMessage.sourceParagraph
+                        console.log(" twarray to translate:", translationMessagesBatch);
+                        const t0 = performance.now();
+                        const translationResultBatch = this.translate(
+                            translationMessagesBatch
                         );
                         const timeElapsed = [total_words, performance.now() - t0];
-
-                        // now that we have a translation, let's report to the mediator
-                        translationMessage.translatedParagraph = [translation, timeElapsed];
+                        console.log(" twarray translated:", translationMessagesBatch);
+                        
+                        // now that we have the paragraphs back, let's reconstruct them.
+                        // we trust the engine will return the paragraphs always in the same order
+                        // we requested
+                        translationResultBatch.forEach( (result, index) => {
+                            translationMessagesBatch[index].translatedParagraph = result;
+                        });
+                        //and then report to the mediator
                         postMessage([
                             "translationComplete",
-                            translationMessage
+                            translationMessagesBatch,
+                            timeElapsed
                         ]);
                     }
                   }.bind(this));
@@ -119,8 +125,8 @@ class TranslationHelper {
                     this.engineState = this.ENGINE_STATE.LOADING;
                     // and load the module
                     this.loadTranslationEngine(
-                        message.sourceLanguage,
-                        message.targetLanguage
+                        message[0].sourceLanguage,
+                        message[0].targetLanguage
                     );
                     this.translationQueue.enqueue(message);
                     break;
@@ -390,20 +396,23 @@ class TranslationHelper {
             return alignedMemory;
         }
 
-        translate (from, to, paragraphs) {
+        translate (messages) {
 
             /*
              * if none of the languages is English then perform translation with
              * english as a pivot language.
              */
+            const from = messages[0].sourceLanguage;
+            const to = messages[0].targetLanguage;
+
             if (from !== "en" && to !== "en") {
-                let translatedParagraphsInEnglish = this.translateInvolvingEnglish(from, "en", paragraphs);
+                let translatedParagraphsInEnglish = this.translateInvolvingEnglish(from, "en", messages);
                 return this.translateInvolvingEnglish("en", to, translatedParagraphsInEnglish);
             }
-            return this.translateInvolvingEnglish(from, to, paragraphs);
+            return this.translateInvolvingEnglish(from, to, messages);
         }
 
-        translateInvolvingEnglish (from, to, paragraphs) {
+        translateInvolvingEnglish (from, to, messages) {
             const languagePair = `${from}${to}`;
             if (!this.translationModels.has(languagePair)) {
                 throw Error(`Please load translation model '${languagePair}' before translating`);
@@ -417,14 +426,13 @@ class TranslationHelper {
             const responseOptions = { qualityScores: true, alignment: false, html: true };
             let input = new this.WasmEngineModule.VectorString();
 
-            // initialize the input
-            paragraphs.forEach(paragraph => {
+            messages.forEach(message => {
                 // prevent empty paragraph - it breaks the translation
-                if (paragraph.trim() === "") {
+                if (message.sourceParagraph[0].trim() === "") {
                     return;
                 }
-                input.push_back(paragraph);
-            })
+                input.push_back(message.sourceParagraph[0]);
+            });
 
             // translate the input, which is a vector<String>; the result is a vector<Response>
             let result = this.translationService.translate(translationModel, input, responseOptions);
@@ -481,7 +489,7 @@ const translationHelper = new TranslationHelper(postMessage);
 onmessage = function(message) {
     switch (message.data[0]) {
         case "configEngine":
-            importScripts("Queue.js");
+            importScripts("/model/Queue.js");
             importScripts(message.data[1].engineLocalPath);
             importScripts(message.data[1].engineRemoteRegistry);
             importScripts(message.data[1].modelRegistry);

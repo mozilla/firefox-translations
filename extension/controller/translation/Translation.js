@@ -9,6 +9,10 @@
 class Translation {
     constructor (mediator){
         this.translationsMessagesCounter = 0;
+        this.TRANSLATION_INTERVAL = 100; // ms
+        this.MAX_TRANSLATION_MSGS = 500; // max translations to process per batch
+        this.translateSchedule = null; // holds a reference to the translation setTimeout
+        this.translationMessageBuffer = new Queue();
         this.mediator = mediator;
         const engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
         const engineRemoteRegistry = browser.runtime.getURL("model/engineRegistry.js");
@@ -62,12 +66,37 @@ class Translation {
      * the message to the worker
      */
     translate(translationMessage) {
+        // add this message to the queue
+        this.translationMessageBuffer.enqueue(translationMessage);
+
+        // and schedule an update if required
+        if (!this.translateSchedule) {
+            this.translateSchedule = setTimeout(this.submitMessages.bind(this), this.TRANSLATION_INTERVAL);
+        }
+    }
+
+    submitMessages() {
+        // timeout invoked. let's submit the messages
+        const messagesToGo = new Array(); 
+
+        // we'll process until the buffer is empty or we reach
+        while (!this.translationMessageBuffer.isEmpty() && messagesToGo.length < this.MAX_TRANSLATION_MSGS) {
+            const message = this.translationMessageBuffer.dequeue();
+            messagesToGo.push(message);
+        }
         if (this.translationWorker) {
             this.translationWorker.postMessage([
                 "translate",
-                translationMessage
+                messagesToGo
             ]);
         }
+
+        // and schedule an update if required
+        if (this.translationMessageBuffer.length() > 0) {
+            setTimeout(this.submitMessages.bind(this), this.TRANSLATION_INTERVAL);
+        }
+        // inform it is complete
+        this.translateSchedule = null;
     }
 
     // eslint-disable-next-line max-params
