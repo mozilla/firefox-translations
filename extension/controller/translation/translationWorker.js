@@ -342,7 +342,7 @@ class TranslationHelper {
                         // eslint-disable-next-line no-await-in-loop
                         ({ doneReading, value } = await reader.read());
                         chunks.push(value);
-                        receivedLength += value.length;
+                        if (value) receivedLength += value.length;
                         postMessage([
                             "updateProgress",
                             `Downloaded ${receivedLength} of ${contentLength}`
