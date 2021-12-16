@@ -46,6 +46,10 @@ class TranslationHelper {
                 engineRegistry.bergamotTranslatorWasm.fileSize,
                 engineRegistry.bergamotTranslatorWasm.sha256
             );
+            if (!wasmArrayBuffer) {
+                console.log("Error loading engine from cache or web.");
+                return;
+            }
             const initialModule = {
                 preRun: [
                     function() {
@@ -63,9 +67,17 @@ class TranslationHelper {
                 }.bind(this),
                 wasmBinary: wasmArrayBuffer,
             };
-            // eslint-disable-next-line no-unused-vars
-            const { addOnPreMain, Module } = loadEmscriptenGlueCode(initialModule);
-            this.WasmEngineModule = Module;
+            try {
+                // eslint-disable-next-line no-unused-vars
+                const { addOnPreMain, Module } = loadEmscriptenGlueCode(initialModule);
+                this.WasmEngineModule = Module;
+            } catch (e) {
+                console.log("Error loading wasm module:", e);
+                postMessage([
+                    "updateProgress",
+                    "Error loading translation module (wasm)"
+                ]);
+            }
         }
 
         consumeTranslationQueue() {
@@ -84,19 +96,19 @@ class TranslationHelper {
 
                         console.log(" twarray to translate:", translationMessagesBatch);
                         const t0 = performance.now();
-                        const translationResultBatch = this.translate(
-                            translationMessagesBatch
-                        );
+                        const translationResultBatch = this.translate(translationMessagesBatch);
                         const timeElapsed = [total_words, performance.now() - t0];
                         console.log(" twarray translated:", translationMessagesBatch);
-                        
-                        // now that we have the paragraphs back, let's reconstruct them.
-                        // we trust the engine will return the paragraphs always in the same order
-                        // we requested
-                        translationResultBatch.forEach( (result, index) => {
+
+                        /*
+                         * now that we have the paragraphs back, let's reconstruct them.
+                         * we trust the engine will return the paragraphs always in the same order
+                         * we requested
+                         */
+                        translationResultBatch.forEach((result, index) => {
                             translationMessagesBatch[index].translatedParagraph = result;
                         });
-                        //and then report to the mediator
+                        // and then report to the mediator
                         postMessage([
                             "translationComplete",
                             translationMessagesBatch,
@@ -277,9 +289,16 @@ class TranslationHelper {
             ]);
             const modelBuffer = downloadedBuffers[0];
             const shortListBuffer = downloadedBuffers[1];
-
-            const downloadedVocabBuffers = [];
+            if (!modelBuffer && !shortListBuffer) {
+                console.log("Error loading models from cache or web (models)");
+                return;
+            }
             const vocabAsArrayBuffer = await this.getItemFromCacheOrWeb(vocabFile, vocabFileSize, vocabFileChecksum);
+            if (!vocabAsArrayBuffer) {
+                console.log("Error loading models from cache or web (vocab)");
+                return;
+            }
+            const downloadedVocabBuffers = [];
             downloadedVocabBuffers.push(vocabAsArrayBuffer);
 
             console.log(`Total Download time for all files of '${languagePair}': ${(Date.now() - start) / 1000} secs`);
@@ -322,6 +341,7 @@ class TranslationHelper {
              */
             const cache = await caches.open(this.CACHE_NAME);
             let cache_match = await cache.match(itemURL);
+            const MAX_DOWNLOAD_TIME = 60000;
             if (!cache_match) {
 
                 /*
@@ -329,6 +349,7 @@ class TranslationHelper {
                  * we'll need to download it and inform the progress to the
                  * sender UI so it could display it to the user
                  */
+                console.log("no cache match. downloading");
                 const response = await fetch(itemURL);
                 if (response.status >= 200 && response.status < 300) {
                     await cache.put(itemURL, response.clone());
@@ -338,30 +359,58 @@ class TranslationHelper {
                     let chunks = [];
                     let doneReading = false;
                     let value = null;
+                    const tDownloadStart = performance.now();
+                    let elapsedTime = 0;
                     while (!doneReading) {
+                        //elapsedTime = performance.now() - tDownloadStart;
+                        console.log(`elapsedTime after doneReading ${elapsedTime}`);
+                        if (elapsedTime > MAX_DOWNLOAD_TIME) {
+                            console.log("timeout");
+                            cache.delete(itemURL);
+                            postMessage([
+                                "updateProgress",
+                                "Error downloading translation engine. (timeout)"
+                            ]);
+                            return null;
+                        }
                         // eslint-disable-next-line no-await-in-loop
-                        ({ doneReading, value } = await reader.read());
-                        chunks.push(value);
-                        if (value) receivedLength += value.length;
-                        postMessage([
-                            "updateProgress",
-                            `Downloaded ${receivedLength} of ${contentLength}`
-                        ]);
-                        console.log(`Received ${receivedLength} of ${contentLength} ${itemURL} ${doneReading}`);
-                        if (receivedLength === contentLength) {
-                            console.log(`Received ${receivedLength} of ${contentLength} ${itemURL} breaking`);
+                        const response = await reader.read();
+                        doneReading = response.done;
+                        value = response.value;
+                        console.log(`elapsedTime after reader.read ${elapsedTime} - doneReading ${doneReading}`);
+                        elapsedTime = performance.now() - tDownloadStart;
+
+                        if (doneReading) {
                             break;
                         }
+
+                        if (value) {
+                            chunks.push(value);
+                            receivedLength += value.length;
+                            console.log(`Received ${receivedLength} of ${contentLength} ${itemURL}.`);
+                            postMessage([
+                                "updateProgress",
+                                `Downloaded ${receivedLength} of ${contentLength}`
+                            ]);
+                        } else {
+                            cache.delete(itemURL);
+                            postMessage([
+                                "updateProgress",
+                                "Error downloading translation engine. (no data)"
+                            ]);
+                            return null;
+                        }
+
+
                     }
-                    let chunksAll = new Uint8Array(receivedLength);
-                    let position = 0;
-                    for (let chunk of chunks) {
-                        chunksAll.set(chunk, position);
-                        position += chunk.length;
-                    }
+                    console.log("wasm saved to cache");
                     cache_match = await cache.match(itemURL);
                 } else {
-                    console.log("TODO: ERROR DOWNLOADING ENGINE. REPORT TO UI");
+                    cache.delete(itemURL);
+                    postMessage([
+                        "updateProgress",
+                        "Error downloading translation engine. (not found)"
+                    ]);
                     return null;
                 }
             }
@@ -369,7 +418,10 @@ class TranslationHelper {
             const sha256 = await this.digestSha256(arraybuffer);
             if (sha256 !== fileChecksum) {
                 cache.delete(itemURL);
-                console.log("TODO: CHECKSUM ERROR DOWNLOADING ENGINE. REPORT TO UI");
+                postMessage([
+                    "updateProgress",
+                    "Error downloading translation engine. (checksum)"
+                ]);
                 return null;
             }
             return arraybuffer;
@@ -423,7 +475,7 @@ class TranslationHelper {
              * instantiate the arguments of translate() API i.e. ResponseOptions and input (vector<string>)
              * const responseOptions = new this.WasmEngineModule.ResponseOptions();
              */
-            const responseOptions = { qualityScores: true, alignment: false, html: true };
+            const responseOptions = { qualityScores: true, alignment: true, html: true };
             let input = new this.WasmEngineModule.VectorString();
 
             messages.forEach(message => {
