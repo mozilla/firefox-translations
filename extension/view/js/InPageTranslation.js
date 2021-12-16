@@ -60,15 +60,15 @@ class InPageTranslation {
         const nodeIterator = document.createNodeIterator(
             root,
             // eslint-disable-next-line no-bitwise
-            NodeFilter.SHOW_TEXT,
+            NodeFilter.SHOW_ELEMENT,
             acceptNode
         );
 
         let currentNode;
         // eslint-disable-next-line no-cond-assign
         while (currentNode = nodeIterator.nextNode()) {
-            // console.log('startTreeWalker - root:', root, 'currentnode', currentNode, 'nodehidden:', this.isElementHidden(currentNode.parentNode), 'nodeinViewPort:', this.isElementInViewport(currentNode.parentNode), 'nodeType:', currentNode.nodeType, 'tagName:', currentNode.tagName, 'content:', currentNode.innerHTML, 'wholeText:', currentNode.wholeText.trim());
-            this.queueTranslation(currentNode);
+            console.log('startTreeWalker - root:', root, 'currentnode', currentNode, 'nodehidden:', this.isElementHidden(currentNode.parentNode), 'nodeinViewPort:', this.isElementInViewport(currentNode.parentNode), 'nodeType:', currentNode.nodeType, 'tagName:', currentNode.tagName, 'content:', currentNode.innerHTML);
+            //this.queueTranslation(currentNode);
         }
 
         this.dispatchTranslations();
@@ -89,7 +89,7 @@ class InPageTranslation {
     }
 
     validateNode(node) {
-        if (node.nodeType === 3) {
+        if (node.nodeType === 1) {
             if (this.tagsSet.has(node.parentNode.nodeName.toLowerCase()) &&
                 node.textContent.trim().length > 0) {
                 return NodeFilter.FILTER_ACCEPT;
