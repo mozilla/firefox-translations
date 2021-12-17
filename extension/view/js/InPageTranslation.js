@@ -20,12 +20,14 @@ class InPageTranslation {
         // set of element types we want to translate
         this.tagsSet = new Set();
         this.tagsSet.add("div");
+        this.tagsSet.add("b");
+
+        /*
         this.tagsSet.add("p");
         this.tagsSet.add("span");
         this.tagsSet.add("#text");
         this.tagsSet.add("i");
         this.tagsSet.add("a");
-        this.tagsSet.add("b");
         this.tagsSet.add("h3");
         this.tagsSet.add("h2");
         this.tagsSet.add("h1");
@@ -35,6 +37,7 @@ class InPageTranslation {
         this.tagsSet.add("li");
         this.tagsSet.add("ul");
         this.tagsSet.add("td");
+        */
     }
 
     start() {
@@ -67,8 +70,8 @@ class InPageTranslation {
         let currentNode;
         // eslint-disable-next-line no-cond-assign
         while (currentNode = nodeIterator.nextNode()) {
-            console.log('startTreeWalker - root:', root, 'currentnode', currentNode, 'nodehidden:', this.isElementHidden(currentNode.parentNode), 'nodeinViewPort:', this.isElementInViewport(currentNode.parentNode), 'nodeType:', currentNode.nodeType, 'tagName:', currentNode.tagName, 'content:', currentNode.innerHTML);
-            //this.queueTranslation(currentNode);
+            console.log('startTreeWalker - root:', root, 'currentnode', currentNode, 'nodehidden:', this.isElementHidden(currentNode), 'nodeinViewPort:', this.isElementInViewport(currentNode), 'nodeType:', currentNode.nodeType, 'tagName:', currentNode.tagName, 'content:', currentNode.innerHTML);
+            this.queueTranslation(currentNode);
         }
 
         this.dispatchTranslations();
@@ -89,8 +92,8 @@ class InPageTranslation {
     }
 
     validateNode(node) {
-        if (node.nodeType === 1) {
-            if (this.tagsSet.has(node.parentNode.nodeName.toLowerCase()) &&
+        if (node.nodeType === 3) {
+            if (this.tagsSet.has(node.nodeName.toLowerCase()) &&
                 node.textContent.trim().length > 0) {
                 return NodeFilter.FILTER_ACCEPT;
             }
@@ -110,10 +113,10 @@ class InPageTranslation {
         this.translationsCounter += 1;
 
         // let's categorize the elements on their respective hashmaps
-        if (this.isElementHidden(node.parentNode)) {
+        if (this.isElementHidden(node)) {
             // if the element is entirely hidden
             this.hiddenNodeMap.set(this.translationsCounter, node);
-        } else if (this.isElementInViewport(node.parentNode)) {
+        } else if (this.isElementInViewport(node)) {
             // if the element is present in the viewport
             this.viewportNodeMap.set(this.translationsCounter, node);
         } else {
@@ -137,15 +140,14 @@ class InPageTranslation {
             // if we already sent this message, we just skip it
             return;
         }
-        const text = node.textContent;
-        if (text.trim().length) {
+        if (node.innerHTML.trim().length) {
 
           /*
            * send the content back to mediator in order to have the translation
            * requested by it
            */
           const payload = {
-            text: text.split("\n"),
+            text: node.innerHTML,
             type: "inpage",
             attrId: [
                      this.processingNodeMap,
@@ -171,7 +173,7 @@ class InPageTranslation {
         const callback = function(mutationsList) {
             for (const mutation of mutationsList) {
                 if (mutation.type === "childList") {
-                    // console.log(mutation);
+                    console.log("mutation", mutation);
                     mutation.addedNodes.forEach(node => this.startTreeWalker(node));
                 }
             }
@@ -197,7 +199,7 @@ class InPageTranslation {
     updateElements() {
         const updateElement = (translatedText, node) => {
             // console.log("translate from", node.textContent, " to ", translatedText);
-            node.textContent = translatedText;
+            node.innerHTML = translatedText;
         }
         this.updateMap.forEach(updateElement);
         this.updateMap.clear();

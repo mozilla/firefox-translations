@@ -25,7 +25,6 @@ class TranslationHelper {
             this.engineState = this.ENGINE_STATE.LOAD_PENDING;
         }
 
-
         get ENGINE_STATE () {
             return {
                 LOAD_PENDING: 0,
@@ -89,9 +88,7 @@ class TranslationHelper {
 
                         let total_words = 0;
                         translationMessagesBatch.forEach(message => {
-                            message.sourceParagraph.forEach(paragraph => {
-                                total_words += paragraph.trim().split(" ").length;
-                            });
+                            total_words += message.sourceParagraph.trim().split(" ").length;
                         });
 
                         console.log(" twarray to translate:", translationMessagesBatch);
@@ -196,7 +193,12 @@ class TranslationHelper {
               await this.constructTranslationModel(sourceLanguage, targetLanguage);
               console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(Date.now() - start) / 1000} secs`);
             } catch (error) {
-              console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
+                postMessage([
+                    "updateProgress",
+                    "Error loading translation engine (models)"
+                ]);
+                console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
+                return;
             }
             this.engineState = this.ENGINE_STATE.LOADED;
             postMessage([
@@ -459,12 +461,13 @@ class TranslationHelper {
 
             if (from !== "en" && to !== "en") {
                 let translatedParagraphsInEnglish = this.translateInvolvingEnglish(from, "en", messages);
-                return this.translateInvolvingEnglish("en", to, translatedParagraphsInEnglish);
+                return this.translateInvolvingEnglish("en", to, translatedParagraphsInEnglish, true);
             }
             return this.translateInvolvingEnglish(from, to, messages);
         }
 
-        translateInvolvingEnglish (from, to, messages) {
+        // eslint-disable-next-line max-params
+        translateInvolvingEnglish (from, to, messages, pivoting) {
             const languagePair = `${from}${to}`;
             if (!this.translationModels.has(languagePair)) {
                 throw Error(`Please load translation model '${languagePair}' before translating`);
@@ -478,24 +481,32 @@ class TranslationHelper {
             const responseOptions = { qualityScores: true, alignment: true, html: true };
             let input = new this.WasmEngineModule.VectorString();
 
+
             messages.forEach(message => {
+
+                /*
+                 * if we are not pivoting we read from a batch of messages. if we are
+                 * we then read from a batch of paragraphs
+                 */
+                const sourceParagraph = pivoting
+                        ? message
+                        : message.sourceParagraph;
                 // prevent empty paragraph - it breaks the translation
-                if (message.sourceParagraph[0].trim() === "") {
+                if (sourceParagraph.trim() === "") {
                     return;
                 }
-                input.push_back(message.sourceParagraph[0]);
+                console.log("paragraph added to input:", sourceParagraph);
+                input.push_back(sourceParagraph);
             });
+
 
             // translate the input, which is a vector<String>; the result is a vector<Response>
             let result = this.translationService.translate(translationModel, input, responseOptions);
 
             const translatedParagraphs = [];
-            const translatedSentencesOfParagraphs = [];
-            const sourceSentencesOfParagraphs = [];
             for (let i = 0; i < result.size(); i+=1) {
+                console.log("paragraph traduzido:", result.get(i).getTranslatedText());
                 translatedParagraphs.push(result.get(i).getTranslatedText());
-                translatedSentencesOfParagraphs.push(this.getAllTranslatedSentencesOfParagraph(result.get(i)));
-                sourceSentencesOfParagraphs.push(this.getAllSourceSentencesOfParagraph(result.get(i)));
             }
 
             input.delete();
