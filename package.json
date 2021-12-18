@@ -6,7 +6,7 @@
     "build": "web-ext build -s extension --overwrite-dest  --no-config-discovery",
     "format": "prettier 'extension/*.{js,css}' --tab-width=2 --arrow-parens=always --trailing-comma=es5 --no-bracket-spacing --write",
     "lint:extension": "web-ext lint -s extension",
-    "once": "web-ext run -s extension --verbose  --keep-profile-changes --firefox nightly  --no-config-discovery --firefox-profile=fxtranslations",
+    "once": "web-ext run -s extension --verbose  --keep-profile-changes --firefox nightly  --no-config-discovery",
     "package": "npm run build && mv web-ext-artifacts/*.zip addon.xpi",
     "setup-webext": "npm install -g web-ext"
   },

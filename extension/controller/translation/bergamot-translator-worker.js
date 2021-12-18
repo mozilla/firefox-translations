@@ -1,6 +1,6 @@
 function loadEmscriptenGlueCode(Module) {
 
-    var BERGAMOT_VERSION_FULL = "v0.3.1+420f12b";
+    var BERGAMOT_VERSION_FULL = "v0.3.1+793d132";
 
     var Module = typeof Module !== "undefined" ? Module : {};
 
@@ -166,7 +166,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      typeSection[1] = typeSection.length - 2;
      var bytes = new Uint8Array([ 0, 97, 115, 109, 1, 0, 0, 0 ].concat(typeSection, [ 2, 7, 1, 1, 101, 1, 102, 0, 0, 7, 5, 1, 1, 102, 0, 0 ]));
-     var module = new WebAssembly.Module(bytes);
+     var module = new WebAssembly.Module(bytes, {simdWormhole:true});
      var instance = new WebAssembly.Instance(module, {
       "e": {
        "f": func
@@ -722,7 +722,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      function instantiateArrayBuffer(receiver) {
       return getBinaryPromise().then(function(binary) {
-       return WebAssembly.instantiate(binary, info);
+       return WebAssembly.instantiate(binary, info, {simdWormhole:true});
       }).then(receiver, function(reason) {
        err("failed to asynchronously prepare wasm: " + reason);
        abort(reason);
@@ -733,7 +733,7 @@ function loadEmscriptenGlueCode(Module) {
        return fetch(wasmBinaryFile, {
         credentials: "same-origin"
        }).then(function(response) {
-        var result = WebAssembly.instantiateStreaming(response, info);
+        var result = WebAssembly.instantiateStreaming(response, info, {simdWormhole:true});
         return result.then(receiveInstantiatedSource, function(reason) {
          err("wasm streaming compile failed: " + reason);
          err("falling back to ArrayBuffer instantiation");
@@ -6198,9 +6198,6 @@ function loadEmscriptenGlueCode(Module) {
      * implementation.
      */
     function createWasmGemm() {
-        // Name of the optimized gemm implementation.
-        const OPTIMIZED_GEMM = "mozIntGemm";
-
         // A map of expected gemm function to the corresponding fallback gemm function names.
         const GEMM_TO_FALLBACK_FUNCTIONS_MAP = {
             "int8_prepare_a": "int8PrepareAFallback",
@@ -6212,21 +6209,28 @@ function loadEmscriptenGlueCode(Module) {
             "int8_select_columns_of_b": "int8SelectColumnsOfBFallback"
         };
 
-        /* const optimizedGemmModule = WebAssembly[OPTIMIZED_GEMM];
-        if (!optimizedGemmModule) {
-            return fallbackGemm(GEMM_TO_FALLBACK_FUNCTIONS_MAP);
-        }
+        // ToDo: Activate the if code and remove else code once optimized gemm can work without shared array buffer.
+        if (0) {
+            // Name of the optimized gemm implementation.
+            const OPTIMIZED_GEMM = "mozIntGemm";
 
-        const optimizedGemmModuleExports = new WebAssembly.Instance(optimizedGemmModule(), {"": {memory: wasmMemory}}).exports;
-        for (let key in GEMM_TO_FALLBACK_FUNCTIONS_MAP) {
-            if (!optimizedGemmModuleExports[key]) {
+            const optimizedGemmModule = WebAssembly[OPTIMIZED_GEMM];
+            if (!optimizedGemmModule) {
                 return fallbackGemm(GEMM_TO_FALLBACK_FUNCTIONS_MAP);
             }
-        }
-        console.log(`Using optimized gemm (${OPTIMIZED_GEMM}) implementation`);
-        return optimizedGemmModuleExports;*/
 
-        return fallbackGemm(GEMM_TO_FALLBACK_FUNCTIONS_MAP);
+            const optimizedGemmModuleExports = new WebAssembly.Instance(optimizedGemmModule(), {"": {memory: wasmMemory}}).exports;
+            for (let key in GEMM_TO_FALLBACK_FUNCTIONS_MAP) {
+                if (!optimizedGemmModuleExports[key]) {
+                    return fallbackGemm(GEMM_TO_FALLBACK_FUNCTIONS_MAP);
+                }
+            }
+            console.log(`Using optimized gemm (${OPTIMIZED_GEMM}) implementation`);
+            return optimizedGemmModuleExports;
+        }
+        else {
+            return fallbackGemm(GEMM_TO_FALLBACK_FUNCTIONS_MAP);
+        }
     }
 
     // Return the fallback gemm implementation.
@@ -6241,6 +6245,7 @@ function loadEmscriptenGlueCode(Module) {
         console.log(`Using fallback gemm implementation`);
         return fallbackGemmModuleExports;
     }
+
 
   return { addOnPreMain, Module };
 }

@@ -1,11 +1,11 @@
 /* eslint-disable no-unused-vars */
 
-const engineRegistryRootURL = "https://108-346428477-gh.circle-artifacts.com/0/wasm-without-wormhole/";
+const engineRegistryRootURL = "https://github.com/mozilla/bergamot-translator/releases/download/0.3.1%2B793d132/";
 
 const engineRegistry = {
     bergamotTranslatorWasm: {
-        fileName: "bergamot-translator-worker.wasm",
-        fileSize: 6875246,
-        sha256: "c2f5ad88723b6b34401c170c379e51911fc64d33349ac20ee4379e6a45361a1d"
+        fileName: "bergamot-translator-worker-with-wormhole.wasm",
+        fileSize: 6873610,
+        sha256: "92b7d791bd45f55921cf5796b2dfb8f4d7b5d78abf129cb5598e2828600e2456"
     }
 }
