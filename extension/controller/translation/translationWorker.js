@@ -457,12 +457,12 @@ class TranslationHelper {
 
             if (from !== "en" && to !== "en") {
                 let translatedParagraphsInEnglish = this.translateInvolvingEnglish(from, "en", messages);
-                return this.translateInvolvingEnglish("en", to, translatedParagraphsInEnglish);
+                return this.translateInvolvingEnglish("en", to, translatedParagraphsInEnglish, true);
             }
             return this.translateInvolvingEnglish(from, to, messages);
         }
 
-        translateInvolvingEnglish (from, to, messages) {
+        translateInvolvingEnglish (from, to, messages, pivoting) {
             const languagePair = `${from}${to}`;
             if (!this.translationModels.has(languagePair)) {
                 throw Error(`Please load translation model '${languagePair}' before translating`);
@@ -477,11 +477,20 @@ class TranslationHelper {
             let input = new this.WasmEngineModule.VectorString();
 
             messages.forEach(message => {
+
+                /*
+                 * if we are not pivoting we read from a batch of messages. if we are
+                 * we then read from a batch of paragraphs
+                 */
+                const sourceParagraph = pivoting
+                ? message
+                : message.sourceParagraph;
+
                 // prevent empty paragraph - it breaks the translation
-                if (message.sourceParagraph.trim() === "") {
+                if (sourceParagraph.trim() === "") {
                     return;
                 }
-                input.push_back(message.sourceParagraph);
+                input.push_back(sourceParagraph);
             });
 
             // translate the input, which is a vector<String>; the result is a vector<Response>
