@@ -145,7 +145,7 @@ class InPageTranslation {
            * requested by it
            */
           const payload = {
-            text: text.split("\n"),
+            text,
             type: "inpage",
             attrId: [
                      this.processingNodeMap,
@@ -210,6 +210,7 @@ class InPageTranslation {
                idCounter
               ] = translationMessage.attrId;
         const translatedText = translationMessage.translatedParagraph;
+        console.log("no enqueue", translatedText);
         let targetNode = null;
         switch (hashMapName) {
             case "hiddenNodeMap":

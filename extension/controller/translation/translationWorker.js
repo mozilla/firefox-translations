@@ -89,16 +89,14 @@ class TranslationHelper {
 
                         let total_words = 0;
                         translationMessagesBatch.forEach(message => {
-                            message.sourceParagraph.forEach(paragraph => {
-                                total_words += paragraph.trim().split(" ").length;
-                            });
+                            total_words += message.sourceParagraph.trim().split(" ").length;
                         });
 
                         console.log(" twarray to translate:", translationMessagesBatch);
                         const t0 = performance.now();
                         const translationResultBatch = this.translate(translationMessagesBatch);
                         const timeElapsed = [total_words, performance.now() - t0];
-                        console.log(" twarray translated:", translationMessagesBatch);
+                        console.log(" twarray translated:", translationResultBatch);
 
                         /*
                          * now that we have the paragraphs back, let's reconstruct them.
@@ -480,22 +478,18 @@ class TranslationHelper {
 
             messages.forEach(message => {
                 // prevent empty paragraph - it breaks the translation
-                if (message.sourceParagraph[0].trim() === "") {
+                if (message.sourceParagraph.trim() === "") {
                     return;
                 }
-                input.push_back(message.sourceParagraph[0]);
+                input.push_back(message.sourceParagraph);
             });
 
             // translate the input, which is a vector<String>; the result is a vector<Response>
             let result = this.translationService.translate(translationModel, input, responseOptions);
 
             const translatedParagraphs = [];
-            const translatedSentencesOfParagraphs = [];
-            const sourceSentencesOfParagraphs = [];
             for (let i = 0; i < result.size(); i+=1) {
                 translatedParagraphs.push(result.get(i).getTranslatedText());
-                translatedSentencesOfParagraphs.push(this.getAllTranslatedSentencesOfParagraph(result.get(i)));
-                sourceSentencesOfParagraphs.push(this.getAllSourceSentencesOfParagraph(result.get(i)));
             }
 
             input.delete();
