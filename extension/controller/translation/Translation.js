@@ -10,7 +10,7 @@ class Translation {
     constructor (mediator){
         this.translationsMessagesCounter = 0;
         this.TRANSLATION_INTERVAL = 100; // ms
-        this.MAX_TRANSLATION_MSGS = 500; // max translations to process per batch
+        this.MAX_TRANSLATION_MSGS = 100; // max translations to process per batch we should utilize here the max throughput per cpu type
         this.translateSchedule = null; // holds a reference to the translation setTimeout
         this.translationMessageBuffer = new Queue();
         this.mediator = mediator;
@@ -77,7 +77,7 @@ class Translation {
 
     submitMessages() {
         // timeout invoked. let's submit the messages
-        const messagesToGo = new Array(); 
+        const messagesToGo = new Array();
 
         // we'll process until the buffer is empty or we reach
         while (!this.translationMessageBuffer.isEmpty() && messagesToGo.length < this.MAX_TRANSLATION_MSGS) {
