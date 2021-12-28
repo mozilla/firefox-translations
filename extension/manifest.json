@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Firefox Translations",
-    "version": "0.9",
+    "version": "0.5",
     "applications": {
         "gecko": {
             "id": "firefox-translations@mozilla.org",
