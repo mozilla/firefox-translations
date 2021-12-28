@@ -399,7 +399,9 @@ class TranslationHelper {
                             return null;
                         }
 
-
+                        if (receivedLength === contentLength) {
+                            doneReading = true;
+                        }
                     }
                     console.log("wasm saved to cache");
                     cache_match = await cache.match(itemURL);
