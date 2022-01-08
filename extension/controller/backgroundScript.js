@@ -54,6 +54,14 @@ const messageListener = async function(message, sender) {
             );
 
             break;
+
+        case "loadTelemetryInfo":
+            const platformInfo = await browser.runtime.getPlatformInfo();
+            const env = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
+            env.os = platformInfo.os;
+            env.arch = platformInfo.arch;
+            browser.tabs.sendMessage(sender.tab.id, { command: "telemetryInfoLoaded", env })
+            break;
         case "translationRequested":
             // requested for translation received. let's inform the mediator
             browser.tabs.sendMessage(

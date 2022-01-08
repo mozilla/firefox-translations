@@ -57,6 +57,12 @@ class Translation {
                     payload: null
                 });
                 break;
+            case "onError":
+                this.mediator.contentScriptsMessageListener(this, {
+                    command: "onError",
+                    payload: translationMessage.data[1]
+                });
+                break;
             default:
         }
     }

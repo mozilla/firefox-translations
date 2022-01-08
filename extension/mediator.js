@@ -4,7 +4,7 @@
  */
 
 /* global LanguageDetection, OutboundTranslation, Translation , browser,
-InPageTranslation, browser, Telemetry */
+InPageTranslation, browser, Telemetry, TranslationTelemetry */
 
 class Mediator {
 
@@ -16,6 +16,7 @@ class Mediator {
         this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
         this.telemetry = new Telemetry();
+        this.translationTelemetry = new TranslationTelemetry();
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
         this.statsMode = false;
@@ -23,6 +24,7 @@ class Mediator {
 
     init() {
         browser.runtime.sendMessage({ command: "monitorTabLoad" });
+        browser.runtime.sendMessage({ command: "loadTelemetryInfo" });
     }
 
     // main entrypoint to handle the extension's load
@@ -53,7 +55,12 @@ class Mediator {
          * - initiate the outbound translation view and start the translation
          *      webworker
          */
-        if (!this.languageDetection.navigatorLanguage.includes(this.languageDetection.pageLanguage.language)) {
+        const pageLang = this.languageDetection.pageLanguage.language;
+        const navLang = this.languageDetection.navigatorLanguage;
+        this.telemetry.langTo = navLang;
+        this.telemetry.langFrom = pageLang;
+
+        if (!navLang.includes(pageLang)) {
 
             /*
              *  todo: we need to keep track if the translationbar was already displayed
@@ -67,8 +74,12 @@ class Mediator {
                 languageDetection: this.languageDetection
             });
             this.translationBarDisplayed = true;
+            this.telemetry.event("infobar", "displayed")
             // create the translation object
             this.translation = new Translation(this);
+            this.telemetry.increment( "languages", "lang_mismatch");
+            this.telemetry.submit("stats")
+            this.telemetry.submit("interaction")
         }
     }
 
@@ -80,7 +91,6 @@ class Mediator {
     contentScriptsMessageListener(sender, message) {
         switch (message.command) {
             case "translate":
-
                 // eslint-disable-next-line no-case-declarations
                 const translationMessage = this.translation.constructTranslationMessage(
                     message.payload.text,
@@ -93,6 +103,7 @@ class Mediator {
                 this.messagesSenderLookupTable.set(translationMessage.messageID, sender);
                 this.translation.translate(translationMessage);
                 // console.log("new translation message sent:", translationMessage, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
+                // this.telemetry.event( "infobar", "translate")
                 break;
             case "translationComplete":
 
@@ -109,8 +120,8 @@ class Mediator {
                 });
 
                 // eslint-disable-next-line no-case-declarations
-                const wordsPerSecond = this.telemetry.addAndGetTranslationTimeStamp(message.payload[2]);
-
+                const wordsPerSecond = this.translationTelemetry.addAndGetTranslationTimeStamp(message.payload[2]);
+                this.telemetry.quantity("performance", "full_page_translated_wps", wordsPerSecond)
                 if (this.statsMode) {
                     // if the user chose to see stats in the infobar, we display them
                     browser.runtime.sendMessage({
@@ -139,6 +150,10 @@ class Mediator {
                 /* display the outboundstranslation widget */
                 this.outboundTranslation.start();
                 break;
+            case "onError":
+                this.telemetry.increment("errors", message.payload);
+                this.telemetry.submit("errors")
+                break;
             default:
         }
     }
@@ -151,6 +166,9 @@ class Mediator {
         switch (message.command) {
             case "responseMonitorTabLoad":
                 this.start(message.tabId);
+                break;
+            case "telemetryInfoLoaded":
+                this.telemetry.telemetryInfo = message.env;
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);

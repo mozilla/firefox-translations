@@ -86,32 +86,39 @@ class TranslationHelper {
                 const translationMessagesBatch = this.translationQueue.dequeue();
                 Promise.resolve().then(function () {
                     if (translationMessagesBatch) {
+                        try {
+                            let total_words = 0;
+                            translationMessagesBatch.forEach(message => {
+                                total_words += message.sourceParagraph.trim().split(" ").length;
+                            });
 
-                        let total_words = 0;
-                        translationMessagesBatch.forEach(message => {
-                            total_words += message.sourceParagraph.trim().split(" ").length;
-                        });
+                            console.log(" twarray to translate:", translationMessagesBatch);
+                            const t0 = performance.now();
 
-                        console.log(" twarray to translate:", translationMessagesBatch);
-                        const t0 = performance.now();
-                        const translationResultBatch = this.translate(translationMessagesBatch);
-                        const timeElapsed = [total_words, performance.now() - t0];
-                        console.log(" twarray translated:", translationResultBatch);
+                            const translationResultBatch = this.translate(translationMessagesBatch);
+                            const timeElapsed = [total_words, performance.now() - t0];
+                            console.log(" twarray translated:", translationResultBatch);
 
-                        /*
-                         * now that we have the paragraphs back, let's reconstruct them.
-                         * we trust the engine will return the paragraphs always in the same order
-                         * we requested
-                         */
-                        translationResultBatch.forEach((result, index) => {
-                            translationMessagesBatch[index].translatedParagraph = result;
-                        });
-                        // and then report to the mediator
-                        postMessage([
-                            "translationComplete",
-                            translationMessagesBatch,
-                            timeElapsed
-                        ]);
+                            /*
+                             * now that we have the paragraphs back, let's reconstruct them.
+                             * we trust the engine will return the paragraphs always in the same order
+                             * we requested
+                             */
+                            translationResultBatch.forEach((result, index) => {
+                                translationMessagesBatch[index].translatedParagraph = result;
+                            });
+                            // and then report to the mediator
+                            postMessage([
+                                "translationComplete",
+                                translationMessagesBatch,
+                                timeElapsed
+                            ]);
+                                                }
+                        catch (e) {
+                            postMessage(["onError", "translation"]);
+                            console.error("Translation error: ", e)
+                            throw e;
+                        }
                     }
                   }.bind(this));
             }
@@ -369,6 +376,7 @@ class TranslationHelper {
                                 "updateProgress",
                                 "Error downloading translation engine. (timeout)"
                             ]);
+                            postMessage(["onError", "model_download"]);
                             return null;
                         }
                         // eslint-disable-next-line no-await-in-loop
@@ -396,6 +404,7 @@ class TranslationHelper {
                                 "updateProgress",
                                 "Error downloading translation engine. (no data)"
                             ]);
+                            postMessage(["onError", "model_download"]);
                             return null;
                         }
 
@@ -411,6 +420,7 @@ class TranslationHelper {
                         "updateProgress",
                         "Error downloading translation engine. (not found)"
                     ]);
+                    postMessage(["onError", "model_download"]);
                     return null;
                 }
             }
@@ -422,6 +432,7 @@ class TranslationHelper {
                     "updateProgress",
                     "Error downloading translation engine. (checksum)"
                 ]);
+                postMessage(["onError", "model_download"]);
                 return null;
             }
             return arraybuffer;
