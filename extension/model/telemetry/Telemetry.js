@@ -3,15 +3,29 @@
  */
 
 class TranslationTelemetry {
-    constructor() {
+    constructor(telemetry) {
+        this._telemetry = telemetry;
         this._totalWords = 0;
-        this._totalSeconds = 0;
+        this._totalMs = 0;
     }
 
-    addAndGetTranslationTimeStamp(timestamp) {
-        this._totalWords += timestamp[0];
-        this._totalSeconds += timestamp[1] / 1000;
-        return Math.round(this._totalWords / this._totalSeconds * 100) / 100;
+    get totalWords() {
+        return this._totalWords;
+    }
+
+    get totalSeconds() {
+        return this._totalMs / 1000;
+    }
+
+    addAndGetTranslationTimeStamp(numWords, timeElapsed) {
+        this._totalWords += numWords;
+        this._totalMs += timeElapsed;
+
+        const wps = Math.round(this._totalWords / this.totalSeconds * 100) / 100;
+
+        this._telemetry.quantity("performance", "full_page_translated_wps", wps)
+        this._telemetry.timespan("performance", "full_page_translated_time", this._totalMs)
+        this._telemetry.quantity("performance", "word_count", this._totalWords)
     }
 }
 
@@ -29,10 +43,10 @@ fetch(browser.runtime.getURL("model/telemetry/metrics.yaml"), { mode: "no-cors" 
 
 class Telemetry {
 
-    constructor() {
-        this._telemetryId = "org-mozilla-bergamot-test";
-        this._sendPings = false;
-        this._debug = true;
+    constructor(sendPings= false, debug= true) {
+        this._telemetryId = "org-mozilla-bergamot";
+        this._sendPings = sendPings;
+        this._debug = debug;
 
         this._telemetryInfo = null;
         this._langFrom = null;
@@ -93,17 +107,23 @@ class Telemetry {
     }
 
     timespan(category, name, valMs) {
+        if (typeof valMs != 'number')
+            throw new Error(`Telemetry: Timespan ${category}.${name} must be a number, value: ${valMs}`)
+
         for (const pingName of this._getPings(category, name, "timespan")) {
             let ping = this._build_ping(pingName);
             if (!("timespan" in ping.data.metrics))
                 ping.data.metrics.timespan = {}
-            ping.data.metrics.timestamp[`${category}.${name}.value`] = valMs;
-            ping.data.metrics.timestamp[`${category}.${name}.time_unit`] = "millisecond";
+            ping.data.metrics.timespan[`${category}.${name}.value`] = valMs;
+            ping.data.metrics.timespan[`${category}.${name}.time_unit`] = "millisecond";
             console.debug(`Telemetry: timespan metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
 
     quantity(category, name, val) {
+        if (typeof val != 'number')
+            throw new Error(`Telemetry: Quantity ${category}.${name} must be a number, value: ${val}`)
+
         for (const pingName of this._getPings(category, name, "quantity")) {
             let ping = this._build_ping(pingName);
             ping.data.metrics.quantity[`${category}.${name}`] = val;
@@ -111,18 +131,28 @@ class Telemetry {
         }
     }
 
+    string(category, name, val) {
+        if (typeof val != 'string')
+            throw new Error(`Telemetry: Suantity ${category}.${name} must be a string, value: ${val}`)
+
+        for (const pingName of this._getPings(category, name, "string")) {
+            let ping = this._build_ping(pingName);
+            ping.data.metrics.string[`${category}.${name}`] = val;
+            console.debug(`Telemetry: string metric ${category}.${name} recorded in ping ${pingName}: `, ping)
+        }
+    }
+
     submit(pingName) {
-        if (!(pingName in this._pings))
+        if (!(pingName in pingsSchema))
             throw new Error(`wrong ping name ${pingName}`)
 
-        let ping = this._pings[pingName];
-        if (ping == null) {
-            console.warn(`ping ${pingName} is empty`);
+        if (!(pingName in this._pings)) {
+            console.debug(`ping ${pingName} is empty, skipping sending`);
             return;
         }
 
+        let ping = this._pings[pingName];
         ping.data.ping_info.end_time = new Date().toISOString();
-
         const body = JSON.stringify(ping.data);
         console.debug(`Telemetry: ping submitted '${pingName}':`, ping.data);
 
@@ -134,13 +164,11 @@ class Telemetry {
                 };
             if (this._debug)
                 headers["X-Debug-Id"] = "bergamot";
-            fetch(`https://incoming.telemetry.mozilla.org/submit/${this.telemetryId}/${ping}/1/${uuid}`, {
+            // we can skip retries to not overcomplicate things, assuming telemetry is not a critical
+            // information and can be partially lost
+            fetch(`https://incoming.telemetry.mozilla.org/submit/${this._telemetryId}/${ping}/1/${uuid}`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json; charset=utf-8",
-                    "Date": new Date().toISOString(),
-                    "X-Debug-Id": "bergamot"
-                },
+                headers: headers,
                 body: body
             }).then(res => {
                 console.debug("Telemetry sent:", body);
@@ -160,23 +188,14 @@ class Telemetry {
         return  metricsSchema[category][name].send_in_pings;
     }
 
-    _getType(category, name) {
-        if (!(category in metricsSchema))
-            throw new Error(`metrics category ${category} is not present in the schema`)
-        if (!(name in metricsSchema[category]))
-            throw new Error(`metric ${name} is not present in category ${category}`)
-
-        return  metricsSchema[category][name].send_in_pings;
-    }
-
     _build_ping(pingName) {
         if (!(pingName in pingsSchema))
             throw new Error(`wrong ping name ${pingName}`)
         if (pingName in this._pings)
-            return this._pings[pingName];;
-
+            return this._pings[pingName];
+        // todo: check for each metadata whether it should be in the ping to follow the schema
         const now = new Date().toISOString();
-        this._pings[pingName] = {
+        let ping = {
             lastEventTimestamp: 0,
             eventsIndex: 0,
             data: {
@@ -221,7 +240,8 @@ class Telemetry {
                 }
             }
         };
-        return this._pings[pingName];
+        this._pings[pingName] = ping;
+        return ping;
     }
 
     static _osToGlean(os) {

@@ -16,7 +16,7 @@ class Mediator {
         this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
         this.telemetry = new Telemetry();
-        this.translationTelemetry = new TranslationTelemetry();
+        this.translationTelemetry = new TranslationTelemetry(this.telemetry);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
         this.statsMode = false;
@@ -25,6 +25,12 @@ class Mediator {
     init() {
         browser.runtime.sendMessage({ command: "monitorTabLoad" });
         browser.runtime.sendMessage({ command: "loadTelemetryInfo" });
+    }
+
+    // the page is closed or infobar is closed manually
+    closeSession() {
+        this.telemetry.submit("translation");
+        this.telemetry.submit("interaction");
     }
 
     // main entrypoint to handle the extension's load
@@ -74,12 +80,11 @@ class Mediator {
                 languageDetection: this.languageDetection
             });
             this.translationBarDisplayed = true;
-            this.telemetry.event("infobar", "displayed")
             // create the translation object
             this.translation = new Translation(this);
             this.telemetry.increment( "languages", "lang_mismatch");
+            // todo: send on timer
             this.telemetry.submit("stats")
-            this.telemetry.submit("interaction")
         }
     }
 
@@ -120,8 +125,9 @@ class Mediator {
                 });
 
                 // eslint-disable-next-line no-case-declarations
-                const wordsPerSecond = this.translationTelemetry.addAndGetTranslationTimeStamp(message.payload[2]);
-                this.telemetry.quantity("performance", "full_page_translated_wps", wordsPerSecond)
+                const wordsPerSecond = this.translationTelemetry.addAndGetTranslationTimeStamp(
+                    message.payload[2][0], message.payload[2][1]);
+
                 if (this.statsMode) {
                     // if the user chose to see stats in the infobar, we display them
                     browser.runtime.sendMessage({
@@ -150,7 +156,9 @@ class Mediator {
                 /* display the outboundstranslation widget */
                 this.outboundTranslation.start();
                 break;
+
             case "onError":
+                // payload is a metric name from metrics.yaml
                 this.telemetry.increment("errors", message.payload);
                 this.telemetry.submit("errors")
                 break;
@@ -177,7 +185,6 @@ class Mediator {
             case "translationRequested":
                 // here we handle when the user's translation request in the infobar
                 // eslint-disable-next-line no-case-declarations
-
                 // let's start the in-page translation widget
                 if (!this.inPageTranslation.started){
                     this.inPageTranslation.start();
@@ -197,6 +204,16 @@ class Mediator {
             case "displayStatistics":
                 this.statsMode = true;
                 break;
+
+            case "onInfobarEvent":
+                // 'name' is a metric name from metrics.yaml
+                this.telemetry.event("infobar", message.name);
+
+                if (message.name === "closed") {
+                    this.closeSession();
+                }
+                break;
+
             default:
                 // ignore
         }

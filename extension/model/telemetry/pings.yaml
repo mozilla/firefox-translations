@@ -47,7 +47,7 @@ stats:
 
 errors:
   description: |
-    Information about erros, it is sent when an error occurred.
+    Information about errors, it is sent when an error occurred.
   include_client_id: true
   send_if_empty: false
   bugs:

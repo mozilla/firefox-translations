@@ -93,6 +93,18 @@ const messageListener = async function(message, sender) {
                   to: message.from }
             );
             break;
+        case "onInfobarEvent":
+
+            /*
+             * inform the mediator that a UI event occurred in Infobar
+             */
+            browser.tabs.sendMessage(
+                message.tabId,
+                { command: "onInfobarEvent",
+                    tabId: message.tabId,
+                    name: message.name}
+            );
+            break;
         case "displayStatistics":
 
             /*
@@ -104,7 +116,6 @@ const messageListener = async function(message, sender) {
                   tabId: message.tabId }
             );
             break;
-
         default:
             // ignore
             break;

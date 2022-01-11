@@ -624,6 +624,23 @@ infobar:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-02-10
+  accept_outbound:
+    type: event
+    lifetime: ping
+    send_in_pings:
+      - interaction
+    description: |
+      User accepts translation of forms by clicking "yes" button.
+    bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-02-10
+
 
 languages:
   not_supported:

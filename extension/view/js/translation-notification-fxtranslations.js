@@ -175,6 +175,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     }
 
     this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_OFFER;
+    this.translationNotificationManager.reportInfobarEvent("displayed");
   }
 
   _getAnonElt(anonId) {
@@ -182,6 +183,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   fromLanguageChanged() {
+    this.translationNotificationManager.reportInfobarEvent("change_lang");
     this.translation.fromLanguageChanged(
       this._getSourceLang(),
       this._getTargetLang(),
@@ -190,6 +192,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   toLanguageChanged() {
+    this.translationNotificationManager.reportInfobarEvent("change_lang");
     this.translation.toLanguageChanged(
       this._getSourceLang(),
       this._getTargetLang(),
@@ -198,6 +201,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   translate() {
+    this.translationNotificationManager.reportInfobarEvent("translate");
     const from = this._getSourceLang();
     const to = this._getTargetLang();
     this.translationNotificationManager.requestInPageTranslation(from, to);
@@ -224,15 +228,21 @@ window.MozTranslationNotification = class extends MozElements.Notification {
      */
   }
 
+  _close() {
+    const from = this._getSourceLang();
+    const to = this._getTargetLang();
+    this.close();
+    // todo: undefined
+    // this.translation.infobarClosed(from, to);
+  }
+
   /*
    * to be called when the infobar should be closed per user's wish (e.g.
    * by clicking the notification's close button, the not now button or choosing never to translate)
    */
   closeCommand() {
-    const from = this._getSourceLang();
-    const to = this._getTargetLang();
-    this.close();
-    this.translation.infobarClosed(from, to);
+    this.translationNotificationManager.reportInfobarEvent("closed");
+    this._close();
   }
 
   /*
@@ -240,10 +250,12 @@ window.MozTranslationNotification = class extends MozElements.Notification {
    * by clicking the Not now button
    */
   notNow() {
-    this.closeCommand();
+    this.translationNotificationManager.reportInfobarEvent("not_now");
+    this._close();
   }
 
   outboundTranslationAccept() {
+    this.translationNotificationManager.reportInfobarEvent("accept_outbound");
     const from = this._getSourceLang();
     const to = this._getTargetLang();
     this.translationNotificationManager.requestOutboundTranslation(from, to);
@@ -265,6 +277,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   showOriginal() {
+    this.translationNotificationManager.reportInfobarEvent("accept_outbound");
     this.translation.showOriginalContent(
       this._getSourceLang(),
       this._getTargetLang(),
@@ -330,6 +343,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   neverForLanguage() {
+    this.translationNotificationManager.reportInfobarEvent("never_translate_lang");
     const kPrefName = "browser.translation.neverForLanguages";
     const sourceLang = this._getSourceLang();
 
@@ -349,6 +363,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   neverForSite() {
+    this.translationNotificationManager.reportInfobarEvent("never_translate_site");
     const principal = this.translation.browser.contentPrincipal;
     const perms = Services.perms;
     perms.addFromPrincipal(principal, "translate", perms.DENY_ACTION);
