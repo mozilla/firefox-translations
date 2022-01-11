@@ -8,6 +8,12 @@
             "strict_min_version": "79.0"
         }
     },
+    "browser_specific_settings": {
+      "gecko": {
+        "id": "firefox-translations@mozilla.org",
+        "strict_min_version": "79.0"
+      }
+    },
     "permissions": [
         "<all_urls>",
         "tabs",

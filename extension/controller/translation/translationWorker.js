@@ -360,7 +360,6 @@ class TranslationHelper {
                     const tDownloadStart = performance.now();
                     let elapsedTime = 0;
                     while (!doneReading) {
-                        //elapsedTime = performance.now() - tDownloadStart;
                         console.log(`elapsedTime after doneReading ${elapsedTime}`);
                         if (elapsedTime > MAX_DOWNLOAD_TIME) {
                             console.log("timeout");
@@ -464,6 +463,7 @@ class TranslationHelper {
             return this.translateInvolvingEnglish(from, to, messages);
         }
 
+        // eslint-disable-next-line max-params
         translateInvolvingEnglish (from, to, messages, pivoting) {
             const languagePair = `${from}${to}`;
             if (!this.translationModels.has(languagePair)) {

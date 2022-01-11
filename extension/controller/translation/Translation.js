@@ -3,7 +3,7 @@
  * interacting with the web worker, handle the language models, and communicate with the
  * mediator
  */
-/* global browser, TranslationMessage */
+/* global browser, TranslationMessage, Queue */
 
 // eslint-disable-next-line no-unused-vars
 class Translation {
@@ -77,7 +77,7 @@ class Translation {
 
     submitMessages() {
         // timeout invoked. let's submit the messages
-        const messagesToGo = new Array();
+        const messagesToGo = [];
 
         // we'll process until the buffer is empty or we reach
         while (!this.translationMessageBuffer.isEmpty() && messagesToGo.length < this.MAX_TRANSLATION_MSGS) {
