@@ -3,7 +3,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint:js": "eslint -c  .eslintrc.js extension",
-    "build": "web-ext build -s extension --overwrite-dest  --no-config-discovery",
+    "build": "web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
     "format": "prettier 'extension/*.{js,css}' --tab-width=2 --arrow-parens=always --trailing-comma=es5 --no-bracket-spacing --write",
     "lint:extension": "web-ext lint -s extension",
     "once": "web-ext run -s extension --verbose --firefox nightly  --no-config-discovery --pref=extensions.experiments.enabled=true --pref=extensions.translations.disabled=true --pref=javascript.options.wasm_simd_wormhole=true",
