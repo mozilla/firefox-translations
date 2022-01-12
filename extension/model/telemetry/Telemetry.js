@@ -20,8 +20,8 @@ class TranslationTelemetry {
     addAndGetTranslationTimeStamp(numWords, timeElapsed) {
         this._totalWords += numWords;
         this._totalMs += timeElapsed;
-
-        const wps = Math.round(this._totalWords / this.totalSeconds * 100) / 100;
+        // it has to be int to use in telemetry
+        const wps = Math.floor(this._totalWords / this.totalSeconds);
 
         this._telemetry.quantity("performance", "full_page_translated_wps", wps)
         this._telemetry.timespan("performance", "full_page_translated_time", this._totalMs)
@@ -31,6 +31,7 @@ class TranslationTelemetry {
 
 let metricsSchema = null;
 let pingsSchema = null;
+const createdDatetime = new Date().toISOString();
 
 //todo: use other yaml parser?
 fetch(browser.runtime.getURL("model/telemetry/pings.yaml"), { mode: "no-cors" })
@@ -92,16 +93,12 @@ class Telemetry {
             if (ping.lastEventTimestamp !== 0)
                 timestamp = newTimestamp - ping.lastEventTimestamp;
             ping.lastEventTimestamp = newTimestamp
-            const index = ping.eventsIndex.toString();
-            ping.eventsIndex += 1;
+            const newEvent = {category: category, name: name, timestamp: timestamp};
 
             if (!("events" in ping.data))
-                ping.data.events = {}
+                ping.data.events = []
 
-            ping.data.events[index] = {}
-            ping.data.events[index].category = category;
-            ping.data.events[index].name = name;
-            ping.data.events[index].timestamp = timestamp;
+            ping.data.events.push(newEvent);
             console.debug(`Telemetry: event metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
@@ -114,8 +111,9 @@ class Telemetry {
             let ping = this._build_ping(pingName);
             if (!("timespan" in ping.data.metrics))
                 ping.data.metrics.timespan = {}
-            ping.data.metrics.timespan[`${category}.${name}.value`] = valMs;
-            ping.data.metrics.timespan[`${category}.${name}.time_unit`] = "millisecond";
+            ping.data.metrics.timespan[`${category}.${name}`] = {}
+            ping.data.metrics.timespan[`${category}.${name}`].value = valMs;
+            ping.data.metrics.timespan[`${category}.${name}`].time_unit = "millisecond";
             console.debug(`Telemetry: timespan metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
@@ -166,7 +164,7 @@ class Telemetry {
                 headers["X-Debug-Id"] = "bergamot";
             // we can skip retries to not overcomplicate things, assuming telemetry is not a critical
             // information and can be partially lost
-            fetch(`https://incoming.telemetry.mozilla.org/submit/${this._telemetryId}/${ping}/1/${uuid}`, {
+            fetch(`https://incoming.telemetry.mozilla.org/submit/${this._telemetryId}/${pingName}/1/${uuid}`, {
                 method: "POST",
                 headers: headers,
                 body: body
@@ -197,7 +195,6 @@ class Telemetry {
         const now = new Date().toISOString();
         let ping = {
             lastEventTimestamp: 0,
-            eventsIndex: 0,
             data: {
                 metrics: {
                     string: {
@@ -230,7 +227,7 @@ class Telemetry {
                 client_info: {
                     telemetry_sdk_build: "0.15.0",
                     client_id: this._telemetryInfo.clientId,
-                    first_run_date: now,
+                    first_run_date: createdDatetime,
                     os: Telemetry._osToGlean(this._telemetryInfo.os),
                     os_version: "Unknown",
                     architecture: this._telemetryInfo.arch,

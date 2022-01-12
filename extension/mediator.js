@@ -15,7 +15,7 @@ class Mediator {
         this.languageDetection = new LanguageDetection();
         this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
-        this.telemetry = new Telemetry();
+        this.telemetry = new Telemetry(false);
         this.translationTelemetry = new TranslationTelemetry(this.telemetry);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
@@ -27,6 +27,7 @@ class Mediator {
         browser.runtime.sendMessage({ command: "loadTelemetryInfo" });
     }
 
+    // todo: subscribe to tab closing
     // the page is closed or infobar is closed manually
     closeSession() {
         this.telemetry.submit("translation");
@@ -108,7 +109,6 @@ class Mediator {
                 this.messagesSenderLookupTable.set(translationMessage.messageID, sender);
                 this.translation.translate(translationMessage);
                 // console.log("new translation message sent:", translationMessage, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
-                // this.telemetry.event( "infobar", "translate")
                 break;
             case "translationComplete":
 
