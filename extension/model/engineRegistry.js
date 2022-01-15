@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 
-const engineRegistryRootURL = "https://github.com/mozilla/bergamot-translator/releases/download/0.3.1%2B793d132/";
+let engineRegistryRootURL = "https://github.com/mozilla/bergamot-translator/releases/download/0.3.1%2B793d132/";
+const engineRegistryRootURLTest = "https://example.com/browser/browser/extensions/translations/test/browser/";
 
 const engineRegistry = {
     bergamotTranslatorWasm: {

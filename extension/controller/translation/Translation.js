@@ -28,7 +28,8 @@ class Translation {
                 {
                     engineLocalPath,
                     engineRemoteRegistry,
-                    modelRegistry
+                    modelRegistry,
+                    isMochitest: this.mediator.isMochitest
                 }
             ])
         }
