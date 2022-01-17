@@ -9,49 +9,13 @@
 ---
 $schema: moz://mozilla.org/schemas/glean/pings/2-0-0
 
-translation:
+custom:
   description: |
-    Translation session is completed.
+    A custom ping, sending time is fully controlled by the application.
   include_client_id: true
   send_if_empty: false
   bugs:
-    - https://github.com/mozilla-extensions/firefox-translations/issues/42
-  data_reviews:
-    - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
-  notification_emails:
-    - anatal-all@mozilla.com
-
-interaction:
-  description: |
-    User interaction events.
-  include_client_id: true
-  send_if_empty: false
-  bugs:
-    - https://github.com/mozilla-extensions/firefox-translations/issues/42
-  data_reviews:
-    - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
-  notification_emails:
-    - anatal-all@mozilla.com
-
-stats:
-  description: |
-    Usage statistics.
-  include_client_id: true
-  send_if_empty: false
-  bugs:
-    - https://github.com/mozilla-extensions/firefox-translations/issues/42
-  data_reviews:
-    - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
-  notification_emails:
-    - anatal-all@mozilla.com
-
-errors:
-  description: |
-    Information about errors, it is sent when an error occurred.
-  include_client_id: true
-  send_if_empty: false
-  bugs:
-    - https://github.com/mozilla-extensions/firefox-translations/issues/42
+    - https://github.com/mozilla/firefox-translations/issues/27
   data_reviews:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
   notification_emails:

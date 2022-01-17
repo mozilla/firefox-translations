@@ -33,7 +33,6 @@ let metricsSchema = null;
 let pingsSchema = null;
 const createdDatetime = new Date().toISOString();
 
-//todo: use other yaml parser?
 fetch(browser.runtime.getURL("model/telemetry/pings.yaml"), { mode: "no-cors" })
   .then(response => response.text())
   .then(text => pingsSchema = jsyaml.load(text));
@@ -158,7 +157,10 @@ class Telemetry {
             let uuid = self.crypto.randomUUID();
             let headers = {
                     "Content-Type": "application/json; charset=utf-8",
-                    "Date": new Date().toISOString()
+                    "Date": new Date().toISOString(),
+                      "X-Client-Type": "Glean.js",
+                      "X-Client-Version": "0.15.0",
+                      "X-Telemetry-Agent": `Glean/0.15.0 (JS on ${this._telemetryInfo.os})`
                 };
             if (this._debug)
                 headers["X-Debug-Id"] = "bergamot";

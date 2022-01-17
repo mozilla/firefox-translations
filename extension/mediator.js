@@ -15,7 +15,7 @@ class Mediator {
         this.languageDetection = new LanguageDetection();
         this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
-        this.telemetry = new Telemetry(false);
+        this.telemetry = new Telemetry(true, false);
         this.translationTelemetry = new TranslationTelemetry(this.telemetry);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
@@ -30,8 +30,10 @@ class Mediator {
     // todo: subscribe to tab closing
     // the page is closed or infobar is closed manually
     closeSession() {
-        this.telemetry.submit("translation");
-        this.telemetry.submit("interaction");
+        this.telemetry.submit("custom");
+        // todo: switch to v2 pings
+        // this.telemetry.submit("translation");
+        // this.telemetry.submit("interaction");
     }
 
     // main entrypoint to handle the extension's load
@@ -83,9 +85,10 @@ class Mediator {
             this.translationBarDisplayed = true;
             // create the translation object
             this.translation = new Translation(this);
-            this.telemetry.increment( "languages", "lang_mismatch");
+            this.telemetry.increment( "service", "lang_mismatch");
             // todo: send on timer
-            this.telemetry.submit("stats")
+            // todo: switch to v2
+            // this.telemetry.submit("stats")
         }
     }
 
@@ -160,7 +163,9 @@ class Mediator {
             case "onError":
                 // payload is a metric name from metrics.yaml
                 this.telemetry.increment("errors", message.payload);
-                this.telemetry.submit("errors")
+                 this.telemetry.submit("custom")
+                // todo: switch to v2
+                // this.telemetry.submit("errors")
                 break;
             default:
         }
