@@ -2,6 +2,7 @@
  * class responsible for all telemetry and performance statistics related operations
  */
 
+// eslint-disable-next-line
 class TranslationTelemetry {
     constructor(telemetry) {
         this._telemetry = telemetry;
@@ -60,6 +61,7 @@ class TranslationTelemetry {
     }
 }
 
+// eslint-disable-next-line
 class Telemetry {
 
     constructor(sendPings= false, debug= true) {
@@ -75,14 +77,18 @@ class Telemetry {
         this._createdDatetime = new Date().toISOString();
     }
 
-    set browserEnv(val) {
+    setBrowserEnv(val) {
         this._browserEnv = val;
     }
 
     async loadSchema() {
+        // eslint-disable-next-line no-undef
         let response = await fetch(browser.runtime.getURL("model/telemetry/pings.yaml"), { mode: "no-cors" });
+        // eslint-disable-next-line no-undef
         this._pingsSchema = jsyaml.load(await response.text());
+        // eslint-disable-next-line no-undef
         response = await fetch(browser.runtime.getURL("model/telemetry/metrics.yaml"), { mode: "no-cors" });
+        // eslint-disable-next-line no-undef
         this._metricsSchema = jsyaml.load(await response.text());
     }
 
@@ -90,15 +96,15 @@ class Telemetry {
         for (const pingName of this._getPings(category, name, "counter")) {
             let ping = this._build_ping(pingName);
 
-            if (!("counter" in ping.data.metrics))
-                ping.data.metrics.counter = {}
-
+            if (!("counter" in ping.data.metrics)) {
+                ping.data.metrics.counter = {};
+            }
             const key = `${category}.${name}`;
-            if (key in ping.data.metrics.counter)
+            if (key in ping.data.metrics.counter) {
                 ping.data.metrics.counter[key] += 1;
-            else
+            } else {
                 ping.data.metrics.counter[key] = 1;
-
+            }
             console.debug(`Telemetry: counter metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
@@ -109,27 +115,29 @@ class Telemetry {
 
             const newTimestamp = Date.now();
             let timestamp = 0;
-            if (ping.lastEventTimestamp !== 0)
+            if (ping.lastEventTimestamp !== 0) {
                 timestamp = newTimestamp - ping.lastEventTimestamp;
-            ping.lastEventTimestamp = newTimestamp
-            const newEvent = {category: category, name: name, timestamp: timestamp};
+            }
+            ping.lastEventTimestamp = newTimestamp;
+            const newEvent = { category, name, timestamp };
 
-            if (!("events" in ping.data))
+            if (!("events" in ping.data)) {
                 ping.data.events = []
-
+            }
             ping.data.events.push(newEvent);
             console.debug(`Telemetry: event metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
 
     timespan(category, name, valMs) {
-        if (typeof valMs != 'number')
-            throw new Error(`Telemetry: Timespan ${category}.${name} must be a number, value: ${valMs}`)
-
+        if (typeof valMs !== "number") {
+            throw new Error(`Telemetry: Timespan ${category}.${name} must be a number, value: ${valMs}`);
+        }
         for (const pingName of this._getPings(category, name, "timespan")) {
             let ping = this._build_ping(pingName);
-            if (!("timespan" in ping.data.metrics))
-                ping.data.metrics.timespan = {}
+            if (!("timespan" in ping.data.metrics)) {
+                ping.data.metrics.timespan = {};
+            }
             ping.data.metrics.timespan[`${category}.${name}`] = {}
             ping.data.metrics.timespan[`${category}.${name}`].value = valMs;
             ping.data.metrics.timespan[`${category}.${name}`].time_unit = "millisecond";
@@ -138,35 +146,38 @@ class Telemetry {
     }
 
     quantity(category, name, val) {
-        if (typeof val != 'number')
+        if (typeof val !== "number") {
             throw new Error(`Telemetry: Quantity ${category}.${name} must be a number, value: ${val}`)
-
+        }
         for (const pingName of this._getPings(category, name, "quantity")) {
             let ping = this._build_ping(pingName);
-            if (!("quantity" in ping.data.metrics))
-                ping.data.metrics.quantity = {}
+            if (!("quantity" in ping.data.metrics)) {
+                ping.data.metrics.quantity = {};
+            }
             ping.data.metrics.quantity[`${category}.${name}`] = val;
             console.debug(`Telemetry: quantity metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
 
     string(category, name, val) {
-        if (typeof val != 'string')
+        if (typeof val !== "string") {
             throw new Error(`Telemetry: Suantity ${category}.${name} must be a string, value: ${val}`)
-
+        }
         for (const pingName of this._getPings(category, name, "string")) {
             let ping = this._build_ping(pingName);
-            if (!("string" in ping.data.metrics))
+            if (!("string" in ping.data.metrics)) {
                 ping.data.metrics.string = {}
+            }
             ping.data.metrics.string[`${category}.${name}`] = val;
             console.debug(`Telemetry: string metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
 
+    // eslint-disable-next-line max-lines-per-function
     submit(pingName) {
-        if (!(pingName in this._pingsSchema))
+        if (!(pingName in this._pingsSchema)) {
             throw new Error(`Telemetry: wrong ping name ${pingName}`)
-
+        }
         if (!(pingName in this._pings)) {
             console.debug(`Telemetry: ping ${pingName} is empty, skipping sending`);
             return;
@@ -178,58 +189,69 @@ class Telemetry {
             ping.data.client_info.client_id = this._browserEnv.clientId;
             ping.data.client_info.os = Telemetry._osToGlean(this._browserEnv.os);
             ping.data.client_info.architecture = this._browserEnv.arch;
-        }
-        else
+        } else {
             console.warn("Telemetry: environment info is not loaded")
-
+        }
         const body = JSON.stringify(ping.data);
         console.debug(`Telemetry: ping submitted '${pingName}':`, body);
 
         if (this._sendPings) {
             let uuid = self.crypto.randomUUID();
+            // we imitate behavior of glean.js 0.15.0
             let headers = {
                 "Content-Type": "application/json; charset=utf-8",
                 "Date": new Date().toISOString(),
-                /* we imitate behavior of glean.js 0.15.0 */
                 "X-Client-Type": "Glean.js",
                 "X-Client-Version": "0.15.0",
                 "X-Telemetry-Agent": `Glean/0.15.0 (JS on ${this._browserEnv.os})`
             };
-            if (this._debug)
+            if (this._debug) {
                 headers["X-Debug-Id"] = "bergamot";
-            // we can skip retries to not overcomplicate things, assuming telemetry is not a critical
-            // information and can be partially lost
+            }
+
+            /*
+             * we can skip retries to not overcomplicate things, assuming telemetry is not a critical
+             * information and can be partially lost
+             */
             fetch(`https://incoming.telemetry.mozilla.org/submit/${this._telemetryId}/${pingName}/1/${uuid}`, {
                 method: "POST",
-                headers: headers,
-                body: body
+                headers,
+                body
             }).then(res => {
                 console.debug("Telemetry sent:", body);
                 console.debug("Telemetry: Request complete! response:", res);
             });
         }
-        delete this._pings[pingName];
+
+        Reflect.deleteProperty(this._pings, pingName);
     }
 
     _getPings(category, name, type) {
-        if (this._metricsSchema == null)
+        if (this._metricsSchema === null) {
             throw new Error(`Telemetry: metrics schema is not loaded, ${category}, ${name}`);
-        if (!(category in this._metricsSchema))
+        }
+        if (!(category in this._metricsSchema)) {
             throw new Error(`metrics category ${category} is not present in the schema`)
-        if (!(name in this._metricsSchema[category]))
+        }
+        if (!(name in this._metricsSchema[category])) {
             throw new Error(`metric ${name} is not present in category ${category}`)
-        if (this._metricsSchema[category][name].type !== type)
+        }
+        if (this._metricsSchema[category][name].type !== type) {
             throw new Error(`wrong metric type ${type} for ${category}.${name}`)
-        return  this._metricsSchema[category][name].send_in_pings;
+        }
+        return this._metricsSchema[category][name].send_in_pings;
     }
 
     _build_ping(pingName) {
-        if (this._pingsSchema == null)
+        if (this._pingsSchema === null) {
             throw new Error("Telemetry: pings schema is not loaded");
-        if (!(pingName in this._pingsSchema))
+        }
+        if (!(pingName in this._pingsSchema)) {
             throw new Error(`wrong ping name ${pingName}`)
-        if (pingName in this._pings)
+        }
+        if (pingName in this._pings) {
             return this._pings[pingName];
+        }
 
         let ping = {
             lastEventTimestamp: 0,
@@ -255,7 +277,7 @@ class Telemetry {
     }
 
     static _osToGlean(os) {
-        switch(os) {
+        switch (os) {
             case "mac":
               return "Darwin";
             case "win":

@@ -15,7 +15,10 @@ class Mediator {
         this.languageDetection = new LanguageDetection();
         this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
-        // todo: read from config
+
+        /*
+         *  todo: read from config
+         */
         this.telemetry = new Telemetry(true, false);
         this.translationTelemetry = new TranslationTelemetry(this.telemetry);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
@@ -84,8 +87,10 @@ class Mediator {
              */
             if (this.translationBarDisplayed) return;
 
-            // todo: check whether the language pair is not supported in model registry and report in telemetry
-            // this.telemetry.increment( "service", "not_supported");
+            /*
+             * todo: check whether the language pair is not supported in model registry and report in telemetry
+             * this.telemetry.increment( "service", "not_supported");
+             */
 
             // request the backgroundscript to display the translationbar
             browser.runtime.sendMessage({
@@ -95,7 +100,7 @@ class Mediator {
             this.translationBarDisplayed = true;
             // create the translation object
             this.translation = new Translation(this);
-            this.telemetry.increment( "service", "lang_mismatch");
+            this.telemetry.increment("service", "lang_mismatch");
         }
     }
 
@@ -135,8 +140,8 @@ class Mediator {
                 });
 
                 // eslint-disable-next-line no-case-declarations
-                const wordsPerSecond = this.translationTelemetry.addAndGetTranslationTimeStamp(
-                    message.payload[2][0], message.payload[2][1]);
+                const wordsPerSecond = this.translationTelemetry
+                    .addAndGetTranslationTimeStamp(message.payload[2][0], message.payload[2][1]);
 
                 if (this.statsMode) {
                     // if the user chose to see stats in the infobar, we display them
@@ -175,16 +180,17 @@ class Mediator {
                 break;
 
             case "onModelEvent":
+                // eslint-disable-next-line no-case-declarations
                 let metric = null;
-                if (message.payload.type === "downloaded")
+                if (message.payload.type === "downloaded") {
                     metric = "model_download_time_num";
-                else if (message.payload.type === "loaded") {
+                } else if (message.payload.type === "loaded") {
                     metric = "model_load_time_num";
                     // start timer when the model is fully loaded
                     this.translationTelemetry.translationStarted();
-                }
-                else
+                } else {
                     throw new Error(`Unexpected event type: ${message.payload.type}`)
+                }
                 this.telemetry.timespan("performance", metric, message.payload.timeMs);
                 break;
 
@@ -197,13 +203,14 @@ class Mediator {
      * handles all communication received from the background script
      * and properly delegates the calls to the responsible methods
      */
+    // eslint-disable-next-line max-lines-per-function
     bgScriptsMessageListener(message) {
         switch (message.command) {
             case "responseMonitorTabLoad":
                 this.start(message.tabId);
                 break;
             case "telemetryInfoLoaded":
-                this.telemetry.browserEnv = message.env;
+                this.telemetry.setBrowserEnv(message.env);
                 this.translationTelemetry.recordEnvironment(message.env);
                 this.translationTelemetry.recordVersions("0.5.0", "?", "?");
                 break;

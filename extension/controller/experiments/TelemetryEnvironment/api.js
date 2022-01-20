@@ -1,13 +1,16 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
+/*
+ * this Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/* eslint-disable max-lines-per-function */
 
 /* global ExtensionAPI, ChromeUtils */
 
-"use strict";
-
+// eslint-disable-next-line no-invalid-this
 this.experiment_telemetryEnvironment = class extends ExtensionAPI {
-  getAPI(context) {
+  getAPI() {
     const { TelemetryController } = ChromeUtils.import(
       "resource://gre/modules/TelemetryController.jsm",
       {},
@@ -21,10 +24,6 @@ this.experiment_telemetryEnvironment = class extends ExtensionAPI {
       {},
     );
 
-    /**
-     * These attributes are already sent as part of the telemetry ping envelope
-     * @returns {{}}
-     */
     const collectTelemetryEnvironment = () => {
       const environment = TelemetryEnvironment.currentEnvironment;
 

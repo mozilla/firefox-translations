@@ -115,8 +115,7 @@ class TranslationHelper {
                                 translationMessagesBatch,
                                 timeElapsed
                             ]);
-                                                }
-                        catch (e) {
+                        } catch (e) {
                             postMessage(["onError", "translation"]);
                             console.error("Translation error: ", e)
                             throw e;

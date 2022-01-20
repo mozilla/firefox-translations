@@ -66,11 +66,12 @@ class TranslationNotificationManager {
     }
 
     reportInfobarEvent(name) {
+
         /*
-         * Propagate UI event to bgScript
+         * propagate UI event to bgScript
          * to have the mediator notified
          */
-        const message = { command: "onInfobarEvent", tabId: this.tabId, name: name };
+        const message = { command: "onInfobarEvent", tabId: this.tabId, name };
         this.bgScriptListenerCallback(message);
     }
 

@@ -229,11 +229,15 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   _close() {
-    const from = this._getSourceLang();
-    const to = this._getTargetLang();
+
     this.close();
-    // todo: undefined
-    // this.translation.infobarClosed(from, to);
+
+    /*
+     * todo: this.translation is undefined
+     * const from = this._getSourceLang();
+     * const to = this._getTargetLang();
+     * this.translation.infobarClosed(from, to);
+     */
   }
 
   /*

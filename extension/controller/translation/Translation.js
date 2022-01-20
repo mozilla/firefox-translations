@@ -68,7 +68,7 @@ class Translation {
             case "onModelEvent":
                 this.mediator.contentScriptsMessageListener(this, {
                     command: "onModelEvent",
-                    payload: {type: translationMessage.data[1], timeMs: translationMessage.data[2]}
+                    payload: { type: translationMessage.data[1], timeMs: translationMessage.data[2] }
                 });
                 break;
 

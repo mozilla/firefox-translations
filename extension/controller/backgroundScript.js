@@ -60,11 +60,12 @@ const messageListener = async function(message, sender) {
             break;
 
         case "loadTelemetryInfo":
-            if (cachedEnvInfo == null) {
+            if (cachedEnvInfo === null) {
                 const platformInfo = await browser.runtime.getPlatformInfo();
                 const env = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
                 env.os = platformInfo.os;
                 env.arch = platformInfo.arch;
+                // eslint-disable-next-line require-atomic-updates
                 cachedEnvInfo = env;
             }
             browser.tabs.sendMessage(sender.tab.id, { command: "telemetryInfoLoaded", env: cachedEnvInfo })
@@ -109,7 +110,7 @@ const messageListener = async function(message, sender) {
                 message.tabId,
                 { command: "onInfobarEvent",
                     tabId: message.tabId,
-                    name: message.name}
+                    name: message.name }
             );
             break;
         case "displayStatistics":
