@@ -33,7 +33,7 @@
             "view/js/OutboundTranslation.js",
             "view/js/InPageTranslation.js",
             "model/telemetry/Telemetry.js",
-            "model/telemetry/js-yaml.min.js",
+            "model/telemetry/js-yaml.js",
             "mediator.js"
           ],
           "css": ["view/static/ot.css"],
