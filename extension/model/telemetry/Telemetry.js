@@ -27,20 +27,38 @@ class TranslationTelemetry {
         this._telemetry.quantity("performance", "full_page_translated_wps", totalWps)
         this._telemetry.timespan("performance", "full_page_translated_time", totalTimeMs)
         this._telemetry.quantity("performance", "word_count", this._totalWords)
+
+        return engineWps;
+    }
+
+    recordLangPair(from, to) {
+        this._telemetry.string("metadata", "from_lang", from);
+        this._telemetry.string("metadata", "to_lang", to);
+    }
+
+    recordEnvironment(env) {
+        this._telemetry.quantity("metadata", "system_memory", env.systemMemoryMb);
+        this._telemetry.quantity("metadata", "cpu_count", env.systemCpuCount);
+        this._telemetry.quantity("metadata", "cpu_cores_count", env.systemCpuCores);
+        this._telemetry.quantity("metadata", "cpu_family", env.systemCpuFamily);
+        this._telemetry.quantity("metadata", "cpu_model", env.systemCpuModel);
+        this._telemetry.quantity("metadata", "cpu_stepping", env.systemCpuStepping);
+        this._telemetry.quantity("metadata", "cpu_l2_cache", env.systemCpuL2cacheKB);
+        this._telemetry.quantity("metadata", "cpu_l3_cache", env.systemCpuL3cacheKB);
+        this._telemetry.quantity("metadata", "cpu_speed", env.systemCpuSpeedMhz);
+
+        this._telemetry.string("metadata", "firefox_client_id", env.clientId);
+        this._telemetry.string("metadata", "cpu_vendor", env.systemCpuVendor);
+        this._telemetry.string("metadata", "cpu_extensions", env.systemCpuExtensions.join(","));
+        this._telemetry.string("metadata", "cpu_extensions", env.systemCpuExtensions.join(","));
+    }
+
+    recordVersions(extensionVersion, extensionBuild, engineVersion) {
+        this._telemetry.string("metadata", "extension_version", extensionVersion.toString());
+        this._telemetry.string("metadata", "extension_build_id", extensionBuild);
+        this._telemetry.string("metadata", "bergamot_translator_version", engineVersion);
     }
 }
-
-let metricsSchema = null;
-let pingsSchema = null;
-const createdDatetime = new Date().toISOString();
-
-fetch(browser.runtime.getURL("model/telemetry/pings.yaml"), { mode: "no-cors" })
-  .then(response => response.text())
-  .then(text => pingsSchema = jsyaml.load(text));
-fetch(browser.runtime.getURL("model/telemetry/metrics.yaml"), { mode: "no-cors" })
-  .then(response => response.text())
-  .then(text => metricsSchema = jsyaml.load(text));
-
 
 class Telemetry {
 
@@ -49,22 +67,23 @@ class Telemetry {
         this._sendPings = sendPings;
         this._debug = debug;
 
-        this._telemetryInfo = null;
-        this._langFrom = null;
-        this._langTo = null;
+        this._browserEnv = null;
         this._pings = {}
+
+        this._metricsSchema = null;
+        this._pingsSchema = null;
+        this._createdDatetime = new Date().toISOString();
     }
 
-    set telemetryInfo(val) {
-        this._telemetryInfo = val;
+    set browserEnv(val) {
+        this._browserEnv = val;
     }
 
-    set langFrom(val) {
-        this._langFrom = val;
-    }
-
-    set langTo(val) {
-        this._langTo = val;
+    async loadSchema() {
+        let response = await fetch(browser.runtime.getURL("model/telemetry/pings.yaml"), { mode: "no-cors" });
+        this._pingsSchema = jsyaml.load(await response.text());
+        response = await fetch(browser.runtime.getURL("model/telemetry/metrics.yaml"), { mode: "no-cors" });
+        this._metricsSchema = jsyaml.load(await response.text());
     }
 
     increment(category, name) {
@@ -124,6 +143,8 @@ class Telemetry {
 
         for (const pingName of this._getPings(category, name, "quantity")) {
             let ping = this._build_ping(pingName);
+            if (!("quantity" in ping.data.metrics))
+                ping.data.metrics.quantity = {}
             ping.data.metrics.quantity[`${category}.${name}`] = val;
             console.debug(`Telemetry: quantity metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
@@ -135,13 +156,15 @@ class Telemetry {
 
         for (const pingName of this._getPings(category, name, "string")) {
             let ping = this._build_ping(pingName);
+            if (!("string" in ping.data.metrics))
+                ping.data.metrics.string = {}
             ping.data.metrics.string[`${category}.${name}`] = val;
             console.debug(`Telemetry: string metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
 
     submit(pingName) {
-        if (!(pingName in pingsSchema))
+        if (!(pingName in this._pingsSchema))
             throw new Error(`Telemetry: wrong ping name ${pingName}`)
 
         if (!(pingName in this._pings)) {
@@ -151,18 +174,27 @@ class Telemetry {
 
         let ping = this._pings[pingName];
         ping.data.ping_info.end_time = new Date().toISOString();
+        if (this._browserEnv !== null) {
+            ping.data.client_info.client_id = this._browserEnv.clientId;
+            ping.data.client_info.os = Telemetry._osToGlean(this._browserEnv.os);
+            ping.data.client_info.architecture = this._browserEnv.arch;
+        }
+        else
+            console.warn("Telemetry: environment info is not loaded")
+
         const body = JSON.stringify(ping.data);
         console.debug(`Telemetry: ping submitted '${pingName}':`, body);
 
         if (this._sendPings) {
             let uuid = self.crypto.randomUUID();
             let headers = {
-                    "Content-Type": "application/json; charset=utf-8",
-                    "Date": new Date().toISOString(),
-                      "X-Client-Type": "Glean.js",
-                      "X-Client-Version": "0.15.0",
-                      "X-Telemetry-Agent": `Glean/0.15.0 (JS on ${this._telemetryInfo.os})`
-                };
+                "Content-Type": "application/json; charset=utf-8",
+                "Date": new Date().toISOString(),
+                /* we imitate behavior of glean.js 0.15.0 */
+                "X-Client-Type": "Glean.js",
+                "X-Client-Version": "0.15.0",
+                "X-Telemetry-Agent": `Glean/0.15.0 (JS on ${this._browserEnv.os})`
+            };
             if (this._debug)
                 headers["X-Debug-Id"] = "bergamot";
             // we can skip retries to not overcomplicate things, assuming telemetry is not a critical
@@ -173,67 +205,45 @@ class Telemetry {
                 body: body
             }).then(res => {
                 console.debug("Telemetry sent:", body);
-                console.debug("Request complete! response:", res);
+                console.debug("Telemetry: Request complete! response:", res);
             });
         }
         delete this._pings[pingName];
     }
 
     _getPings(category, name, type) {
-        if (!(category in metricsSchema))
+        if (this._metricsSchema == null)
+            throw new Error(`Telemetry: metrics schema is not loaded, ${category}, ${name}`);
+        if (!(category in this._metricsSchema))
             throw new Error(`metrics category ${category} is not present in the schema`)
-        if (!(name in metricsSchema[category]))
+        if (!(name in this._metricsSchema[category]))
             throw new Error(`metric ${name} is not present in category ${category}`)
-        if (metricsSchema[category][name].type !== type)
+        if (this._metricsSchema[category][name].type !== type)
             throw new Error(`wrong metric type ${type} for ${category}.${name}`)
-        return  metricsSchema[category][name].send_in_pings;
+        return  this._metricsSchema[category][name].send_in_pings;
     }
 
     _build_ping(pingName) {
-        if (!(pingName in pingsSchema))
+        if (this._pingsSchema == null)
+            throw new Error("Telemetry: pings schema is not loaded");
+        if (!(pingName in this._pingsSchema))
             throw new Error(`wrong ping name ${pingName}`)
         if (pingName in this._pings)
             return this._pings[pingName];
-        // todo: check for each metadata whether it should be in the ping to follow the schema
-        const now = new Date().toISOString();
+
         let ping = {
             lastEventTimestamp: 0,
             data: {
-                metrics: {
-                    string: {
-                        "metadata.firefox_client_id": this._telemetryInfo.clientId,
-                        "metadata.extension_version": "0.5",
-                        "metadata.extension_build_id": "v0.5",
-                        "metadata.bergamot_translator_version": "?",
-                        "metadata.cpu_vendor": this._telemetryInfo.systemCpuVendor,
-                        "metadata.cpu_extensions": this._telemetryInfo.systemCpuExtensions.join(","),
-                        "metadata.from_lang": this._langFrom,
-                        "metadata.to_lang": this._langTo
-                    },
-                    quantity: {
-                        "metadata.system_memory": this._telemetryInfo.systemMemoryMb,
-                        "metadata.cpu_count": this._telemetryInfo.systemCpuCount,
-                        "metadata.cpu_cores_count": this._telemetryInfo.systemCpuCores,
-                        "metadata.cpu_family": this._telemetryInfo.systemCpuFamily,
-                        "metadata.cpu_model": this._telemetryInfo.systemCpuModel,
-                        "metadata.cpu_stepping": this._telemetryInfo.systemCpuStepping,
-                        "metadata.cpu_l2_cache": this._telemetryInfo.systemCpuL2cacheKB,
-                        "metadata.cpu_l3_cache": this._telemetryInfo.systemCpuL3cacheKB,
-                        "metadata.cpu_speed": this._telemetryInfo.systemCpuSpeedMhz
-                    }
-                },
+                metrics: {},
                 ping_info: {
                     seq: 1,
-                    start_time: now,
+                    start_time: new Date().toISOString(),
                     end_time: null
                 },
                 client_info: {
                     telemetry_sdk_build: "0.15.0",
-                    client_id: this._telemetryInfo.clientId,
-                    first_run_date: createdDatetime,
-                    os: Telemetry._osToGlean(this._telemetryInfo.os),
+                    first_run_date: this._createdDatetime,
                     os_version: "Unknown",
-                    architecture: this._telemetryInfo.arch,
                     locale: navigator.language,
                     app_build: "Unknown",
                     app_display_version: "Unknown"

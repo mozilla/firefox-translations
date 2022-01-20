@@ -16,7 +16,7 @@ class Mediator {
         this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
         // todo: read from config
-        this.telemetry = new Telemetry(true, false);
+        this.telemetry = new Telemetry(false, false);
         this.translationTelemetry = new TranslationTelemetry(this.telemetry);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
@@ -24,17 +24,16 @@ class Mediator {
     }
 
     init() {
-        browser.runtime.sendMessage({ command: "monitorTabLoad" });
-        browser.runtime.sendMessage({ command: "loadTelemetryInfo" });
+        this.telemetry.loadSchema()
+            .then(() => {
+                browser.runtime.sendMessage({ command: "monitorTabLoad" })
+                browser.runtime.sendMessage({ command: "loadTelemetryInfo" })
+            });
     }
 
-    // todo: subscribe to tab closing
     // the page is closed or infobar is closed manually
     closeSession() {
         this.telemetry.submit("custom");
-        // todo: switch to v2 pings
-        // this.telemetry.submit("translation");
-        // this.telemetry.submit("interaction");
     }
 
     // main entrypoint to handle the extension's load
@@ -54,7 +53,7 @@ class Mediator {
             languageDetection: this.languageDetection
         })
 
-        window.onbeforeunload = () => this.telemetry.submit("custom");
+        window.onbeforeunload = () => this.closeSession();
     }
 
     determineIfTranslationisRequired() {
@@ -69,9 +68,7 @@ class Mediator {
          */
         const pageLang = this.languageDetection.pageLanguage.language;
         const navLang = this.languageDetection.navigatorLanguage;
-        this.telemetry.langTo = navLang;
-        this.telemetry.langFrom = pageLang;
-
+        this.translationTelemetry.recordLangPair(pageLang, navLang);
 
         if (!navLang.includes(pageLang)) {
 
@@ -94,9 +91,6 @@ class Mediator {
             // create the translation object
             this.translation = new Translation(this);
             this.telemetry.increment( "service", "lang_mismatch");
-            // todo: send on timer
-            // todo: switch to v2
-            // this.telemetry.submit("stats")
         }
     }
 
@@ -173,8 +167,6 @@ class Mediator {
                 this.telemetry.increment("errors", message.payload);
                 // submit errors ping right away assuming the rest of experience is broken
                 this.telemetry.submit("custom")
-                // todo: switch to v2
-                // this.telemetry.submit("errors")
                 break;
 
             case "onModelEvent":
@@ -206,7 +198,9 @@ class Mediator {
                 this.start(message.tabId);
                 break;
             case "telemetryInfoLoaded":
-                this.telemetry.telemetryInfo = message.env;
+                this.telemetry.browserEnv = message.env;
+                this.translationTelemetry.recordEnvironment(message.env);
+                this.translationTelemetry.recordVersions("0.5.0", "?", "?");
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
