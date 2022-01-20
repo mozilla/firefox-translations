@@ -21,6 +21,11 @@ class Mediator {
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
         this.statsMode = false;
+        // if we are in the protected mochitest page, we flag it.
+        if (window.location.href ===
+            "https://example.com/browser/browser/extensions/translations/test/browser/browser_translation_test.html") {
+            this.isMochitest = true;
+        }
     }
 
     init() {

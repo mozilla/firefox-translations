@@ -79,7 +79,7 @@
                 );
 
                 const notificationBox = tab.browser.ownerGlobal.gBrowser.getNotificationBox(tab.browser);
-                let notif = notificationBox.appendNotification(`translation-notification-${chromeWin.now}`, {
+                let notif = notificationBox.appendNotification("fxtranslation-notification", {
                     priority: notificationBox.PRIORITY_INFO_HIGH,
                     notificationIs: `translation-notification-${chromeWin.now}`,
                 });

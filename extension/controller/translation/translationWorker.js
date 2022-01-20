@@ -1,7 +1,9 @@
+/* eslint-disable no-global-assign */
+/* eslint-disable no-native-reassign */
 /* eslint-disable max-lines */
 
-/* global engineRegistryRootURL, engineRegistry, loadEmscriptenGlueCode, Queue */
-/* global modelRegistryRootURL, modelRegistry,importScripts */
+/* global engineRegistryRootURL, engineRegistryRootURLTest, engineRegistry, loadEmscriptenGlueCode, Queue */
+/* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts */
 
 /*
  * this class should only be instantiated the web worker
@@ -382,7 +384,6 @@ class TranslationHelper {
                     const tDownloadStart = performance.now();
                     let elapsedTime = 0;
                     while (!doneReading) {
-                        //elapsedTime = performance.now() - tDownloadStart;
                         console.log(`elapsedTime after doneReading ${elapsedTime}`);
                         if (elapsedTime > MAX_DOWNLOAD_TIME) {
                             console.log("timeout");
@@ -490,6 +491,7 @@ class TranslationHelper {
             return this.translateInvolvingEnglish(from, to, messages);
         }
 
+        // eslint-disable-next-line max-params
         translateInvolvingEnglish (from, to, messages, pivoting) {
             const languagePair = `${from}${to}`;
             if (!this.translationModels.has(languagePair)) {
@@ -576,6 +578,13 @@ onmessage = function(message) {
             importScripts(message.data[1].engineLocalPath);
             importScripts(message.data[1].engineRemoteRegistry);
             importScripts(message.data[1].modelRegistry);
+            if (message.data[1].isMochitest){
+                // running tests. let's setup the proper tests endpoints
+                // eslint-disable-next-line no-global-assign
+                engineRegistryRootURL = engineRegistryRootURLTest;
+                // eslint-disable-next-line no-global-assign
+                modelRegistryRootURL = modelRegistryRootURLTest;
+            }
             break;
         case "translate":
             translationHelper.requestTranslation(message.data[1]);
