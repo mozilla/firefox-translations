@@ -16,7 +16,7 @@ class Mediator {
         this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
         // todo: read from config
-        this.telemetry = new Telemetry(false, false);
+        this.telemetry = new Telemetry(true, false);
         this.translationTelemetry = new TranslationTelemetry(this.telemetry);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
