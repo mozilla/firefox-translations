@@ -15,6 +15,7 @@ class Mediator {
         this.languageDetection = new LanguageDetection();
         this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
+        // todo: read from config
         this.telemetry = new Telemetry(true, false);
         this.translationTelemetry = new TranslationTelemetry(this.telemetry);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
@@ -52,6 +53,8 @@ class Mediator {
             command: "detectPageLanguage",
             languageDetection: this.languageDetection
         })
+
+        window.onbeforeunload = () => this.telemetry.submit("custom");
     }
 
     determineIfTranslationisRequired() {
@@ -69,6 +72,7 @@ class Mediator {
         this.telemetry.langTo = navLang;
         this.telemetry.langFrom = pageLang;
 
+
         if (!navLang.includes(pageLang)) {
 
             /*
@@ -77,6 +81,10 @@ class Mediator {
              * onLoad event twice.
              */
             if (this.translationBarDisplayed) return;
+
+            // todo: check whether the language pair is not supported in model registry and report in telemetry
+            // this.telemetry.increment( "service", "not_supported");
+
             // request the backgroundscript to display the translationbar
             browser.runtime.sendMessage({
                 command: "displayTranslationBar",
@@ -163,10 +171,27 @@ class Mediator {
             case "onError":
                 // payload is a metric name from metrics.yaml
                 this.telemetry.increment("errors", message.payload);
-                 this.telemetry.submit("custom")
+                // submit errors ping right away assuming the rest of experience is broken
+                this.telemetry.submit("custom")
                 // todo: switch to v2
                 // this.telemetry.submit("errors")
                 break;
+
+            case "onModelEvent":
+                let metric = null;
+                if (message.payload.type === "downloaded")
+                    metric = "model_download_time_num";
+                else if (message.payload.type === "loaded") {
+                    metric = "model_load_time_num";
+                    // start timer when the model is fully loaded
+                    this.translationTelemetry.translationStarted();
+                }
+                else
+                    throw new Error(`Unexpected event type: ${message.payload.type}`)
+                this.telemetry.timespan("performance", metric, message.payload.timeMs);
+                break;
+
+
             default:
         }
     }
@@ -214,7 +239,9 @@ class Mediator {
                 // 'name' is a metric name from metrics.yaml
                 this.telemetry.event("infobar", message.name);
 
-                if (message.name === "closed") {
+                if (message.name === "closed" ||
+                    message.name === "never_translate_site" ||
+                    message.name === "never_translate_lang") {
                     this.closeSession();
                 }
                 break;

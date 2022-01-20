@@ -199,7 +199,15 @@ class TranslationHelper {
             try {
               await this.constructTranslationService();
               await this.constructTranslationModel(sourceLanguage, targetLanguage);
-              console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(Date.now() - start) / 1000} secs`);
+              let finish = Date.now();
+              console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
+              postMessage([
+                "onModelEvent",
+                "loaded",
+                finish-start
+              ]);
+
+
             } catch (error) {
               console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
             }
@@ -306,7 +314,14 @@ class TranslationHelper {
             const downloadedVocabBuffers = [];
             downloadedVocabBuffers.push(vocabAsArrayBuffer);
 
-            console.log(`Total Download time for all files of '${languagePair}': ${(Date.now() - start) / 1000} secs`);
+            let finish = Date.now();
+            console.log(`Total Download time for all files of '${languagePair}': ${(finish - start) / 1000} secs`);
+              postMessage([
+                "onModelEvent",
+                "downloaded",
+                finish-start
+              ]);
+
 
             // cnstruct AlignedMemory objects with downloaded buffers
             let constructedAlignedMemories = await Promise.all([

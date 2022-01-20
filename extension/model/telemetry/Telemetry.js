@@ -6,25 +6,26 @@ class TranslationTelemetry {
     constructor(telemetry) {
         this._telemetry = telemetry;
         this._totalWords = 0;
-        this._totalMs = 0;
+        this._totalEngineMs = 0;
+        this._startTimestamp = null;
     }
 
-    get totalWords() {
-        return this._totalWords;
+    translationStarted() {
+        this._startTimestamp = Date.now();
     }
 
-    get totalSeconds() {
-        return this._totalMs / 1000;
-    }
-
-    addAndGetTranslationTimeStamp(numWords, timeElapsed) {
+    addAndGetTranslationTimeStamp(numWords, engineTimeElapsed) {
         this._totalWords += numWords;
-        this._totalMs += timeElapsed;
+        this._totalEngineMs += engineTimeElapsed;
         // it has to be int to use in telemetry
-        const wps = Math.floor(this._totalWords / this.totalSeconds);
+        const engineWps = Math.floor(this._totalWords / (this._totalEngineMs / 1000));
+        const totalTimeMs = Date.now() - this._startTimestamp;
+        const totalWps = Math.floor(this._totalWords / (totalTimeMs / 1000));
 
-        this._telemetry.quantity("performance", "full_page_translated_wps", wps)
-        this._telemetry.timespan("performance", "full_page_translated_time", this._totalMs)
+        this._telemetry.quantity("performance", "translation_engine_wps", engineWps)
+        this._telemetry.timespan("performance", "translation_engine_time", this._totalEngineMs)
+        this._telemetry.quantity("performance", "full_page_translated_wps", totalWps)
+        this._telemetry.timespan("performance", "full_page_translated_time", totalTimeMs)
         this._telemetry.quantity("performance", "word_count", this._totalWords)
     }
 }
@@ -141,17 +142,17 @@ class Telemetry {
 
     submit(pingName) {
         if (!(pingName in pingsSchema))
-            throw new Error(`wrong ping name ${pingName}`)
+            throw new Error(`Telemetry: wrong ping name ${pingName}`)
 
         if (!(pingName in this._pings)) {
-            console.debug(`ping ${pingName} is empty, skipping sending`);
+            console.debug(`Telemetry: ping ${pingName} is empty, skipping sending`);
             return;
         }
 
         let ping = this._pings[pingName];
         ping.data.ping_info.end_time = new Date().toISOString();
         const body = JSON.stringify(ping.data);
-        console.debug(`Telemetry: ping submitted '${pingName}':`, ping.data);
+        console.debug(`Telemetry: ping submitted '${pingName}':`, body);
 
         if (this._sendPings) {
             let uuid = self.crypto.randomUUID();

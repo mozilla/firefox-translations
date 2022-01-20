@@ -359,7 +359,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
       this._getSourceLang(),
       this._getTargetLang(),
     );
-    this.closeCommand();
+    this._close();
   }
 
   neverForSite() {
@@ -369,7 +369,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     perms.addFromPrincipal(principal, "translate", perms.DENY_ACTION);
 
     this.translation.neverForSite(this._getSourceLang(), this._getTargetLang());
-    this.closeCommand();
+    this._close();
   }
 
   displayStatistics() {
