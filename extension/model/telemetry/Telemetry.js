@@ -90,6 +90,7 @@ class Telemetry {
         response = await fetch(browser.runtime.getURL("model/telemetry/metrics.yaml"), { mode: "no-cors" });
         // eslint-disable-next-line no-undef
         this._metricsSchema = jsyaml.load(await response.text());
+        console.debug("Telemetry: schema is loaded");
     }
 
     increment(category, name) {

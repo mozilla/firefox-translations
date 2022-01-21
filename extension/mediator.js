@@ -31,12 +31,10 @@ class Mediator {
         }
     }
 
-    init() {
-        this.telemetry.loadSchema()
-            .then(() => {
-                browser.runtime.sendMessage({ command: "monitorTabLoad" })
-                browser.runtime.sendMessage({ command: "loadTelemetryInfo" })
-            });
+    async init() {
+        await this.telemetry.loadSchema();
+        browser.runtime.sendMessage({ command: "monitorTabLoad" });
+        browser.runtime.sendMessage({ command: "loadTelemetryInfo" });
     }
 
     // the page is closed or infobar is closed manually
@@ -46,8 +44,9 @@ class Mediator {
 
     // main entrypoint to handle the extension's load
     start(tabId) {
-
+        console.debug("starting mediator");
         this.tabId = tabId;
+        window.onbeforeunload = () => this.closeSession();
 
         // request the language detection class to extract a page's snippet
         this.languageDetection.extractPageContent();
@@ -60,8 +59,6 @@ class Mediator {
             command: "detectPageLanguage",
             languageDetection: this.languageDetection
         })
-
-        window.onbeforeunload = () => this.closeSession();
     }
 
     determineIfTranslationisRequired() {
