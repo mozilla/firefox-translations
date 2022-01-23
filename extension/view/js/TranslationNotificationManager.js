@@ -93,4 +93,8 @@ class TranslationNotificationManager {
         const message = { command: "displayStatistics", tabId: this.tabId };
         this.bgScriptListenerCallback(message);
     }
+
+    isPageLanguageSupported(){
+        return this.languageSet.has(this.detectedLanguage);
+    }
 }
