@@ -11,6 +11,15 @@ class LanguageDetection {
         this.navigatorLanguage = navigator.language.substring(0,2);
         this.pageLanguage = null;
         this.wordsToDetect = null;
+        this.ignoredTags = this.loadIgnoredTags();
+    }
+
+    loadIgnoredTags() {
+        const ignoredSet = new Set();
+        ignoredSet.add("SCRIPT");
+        ignoredSet.add("NOSCRIPT");
+        ignoredSet.add("IFRAME");
+        return ignoredSet;
     }
 
     /*
@@ -23,22 +32,24 @@ class LanguageDetection {
         const MAX_ELEMENTS = 100;
         let total_words = 0;
         let wordsToDetect = "";
-        const elements = document.querySelectorAll("div");
+        const elements = document.querySelectorAll("body")[0].children;
         for (let i = 0; i <= elements.length-1; i+=1) {
-            const cleanInnerText = elements[i].innerText
-                .replace(/\r?\n|\r/g, " ")
-                .replace(/\s+/g, " ")
-                .trim();
-            const elementSize = cleanInnerText.split(" ").length;
-            if (total_words + elementSize <= MAX_ELEMENTS) {
-                total_words += elementSize;
-                wordsToDetect = wordsToDetect.concat(cleanInnerText, " ");
-            } else {
-                const lastElement = cleanInnerText.split(" ");
-                for (let j = 0; j<= MAX_ELEMENTS - total_words -1; j+=1) {
-                    wordsToDetect = wordsToDetect.concat(lastElement[j], " ");
+            if (!this.ignoredTags.has(elements[i].tagName)) {
+                const cleanInnerText = elements[i].innerText
+                    .replace(/\r?\n|\r/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim();
+                const elementSize = cleanInnerText.split(" ").length;
+                if (total_words + elementSize <= MAX_ELEMENTS) {
+                    total_words += elementSize;
+                    wordsToDetect = wordsToDetect.concat(cleanInnerText, " ");
+                } else {
+                    const lastElement = cleanInnerText.split(" ");
+                    for (let j = 0; j<= MAX_ELEMENTS - total_words -1; j+=1) {
+                        wordsToDetect = wordsToDetect.concat(lastElement[j], " ");
+                    }
+                    break;
                 }
-                break;
             }
         }
         this.wordsToDetect = wordsToDetect;
