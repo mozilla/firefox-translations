@@ -47,6 +47,15 @@
           translationbar: {
             show: function show(tabId, detectedLanguage, navigatorLanguage) {
               try {
+                translationNotificationManager = new TranslationNotificationManager(
+                  this,
+                  modelRegistry,
+                  detectedLanguage
+                );
+
+                if (!translationNotificationManager.isPageLanguageSupported()) {
+                  return
+                }
 
                 // disable the legacy translation infobar
                 Services.prefs.setBoolPref("browser.translation.ui.show", false);
@@ -83,11 +92,7 @@
                     priority: notificationBox.PRIORITY_INFO_HIGH,
                     notificationIs: `translation-notification-${chromeWin.now}`,
                 });
-                translationNotificationManager = new TranslationNotificationManager(
-                  this,
-                  modelRegistry,
-                  detectedLanguage
-                );
+
                 translationNotificationManager.navigatorLanguage = navigatorLanguage;
                 translationNotificationManager.tabId = tabId;
                 translationNotificationManager.bgScriptListenerCallback = bgScriptListenerCallback;

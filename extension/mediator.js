@@ -61,7 +61,7 @@ class Mediator {
         if (!this.languageDetection.navigatorLanguage.includes(this.languageDetection.pageLanguage.language)) {
 
             /*
-             *  todo: we need to keep track if the translationbar was already displayed
+             * we need to keep track if the translationbar was already displayed
              * or not, since during tests we found the browser may send the
              * onLoad event twice.
              */
