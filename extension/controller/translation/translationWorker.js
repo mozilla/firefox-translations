@@ -211,6 +211,11 @@ class TranslationHelper {
 
             } catch (error) {
               console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
+              postMessage([
+                "updateProgress",
+                error.message
+            ]);
+              return;
             }
             this.engineState = this.ENGINE_STATE.LOADED;
             postMessage([
@@ -305,12 +310,12 @@ class TranslationHelper {
             const shortListBuffer = downloadedBuffers[1];
             if (!modelBuffer && !shortListBuffer) {
                 console.log("Error loading models from cache or web (models)");
-                return;
+                throw new Error("Error loading models from cache or web (models)");
             }
             const vocabAsArrayBuffer = await this.getItemFromCacheOrWeb(vocabFile, vocabFileSize, vocabFileChecksum);
             if (!vocabAsArrayBuffer) {
                 console.log("Error loading models from cache or web (vocab)");
-                return;
+                throw new Error("Error loading models from cache or web (vocab)");
             }
             const downloadedVocabBuffers = [];
             downloadedVocabBuffers.push(vocabAsArrayBuffer);
@@ -349,7 +354,7 @@ class TranslationHelper {
             if (translationModel) {
                 this.translationModels.set(languagePair, translationModel);
             }
-          }
+        }
 
         // eslint-disable-next-line max-lines-per-function
         async getItemFromCacheOrWeb(itemURL, fileSize, fileChecksum) {
@@ -371,7 +376,18 @@ class TranslationHelper {
                  * sender UI so it could display it to the user
                  */
                 console.log("no cache match. downloading");
-                const response = await fetch(itemURL);
+                let response = null;
+                try {
+                    response = await fetch(itemURL);
+                } catch (exception) {
+                    console.log("Error downloading translation modules. (not found)");
+                    postMessage([
+                        "updateProgress",
+                        "Error downloading translation modules. (not found)"
+                    ]);
+                    return null;
+                }
+
                 if (response.status >= 200 && response.status < 300) {
                     await cache.put(itemURL, response.clone());
                     const reader = response.body.getReader();
