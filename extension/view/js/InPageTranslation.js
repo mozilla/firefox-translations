@@ -14,6 +14,31 @@ class InPageTranslation {
         this.updateTimeout = null;
         this.UI_UPDATE_INTERVAL = 500;
         this.messagesSent = new Set();
+        this.nodesSent = new Set();
+        this.inlineTags = new Set([
+            "abbr",
+            "a",
+            "b",
+            "em",
+            "i",
+            "kbd",
+            "mark",
+            "math",
+            "output",
+            "q",
+            "ruby",
+            "small",
+            "span",
+            "strong",
+            "sub",
+            "sup",
+            "time",
+            "u",
+            "var",
+            "wbr",
+            "ins",
+            "del"
+        ]);
     }
 
     loadTagsSet() {
@@ -22,7 +47,7 @@ class InPageTranslation {
         this.tagsSet.add("div");
         this.tagsSet.add("p");
         this.tagsSet.add("span");
-        this.tagsSet.add("#text");
+        // this.tagsSet.add("#text");
         this.tagsSet.add("i");
         this.tagsSet.add("a");
         this.tagsSet.add("b");
@@ -32,9 +57,10 @@ class InPageTranslation {
         this.tagsSet.add("h4");
         this.tagsSet.add("label");
         this.tagsSet.add("body");
-        this.tagsSet.add("li");
+        // this.tagsSet.add("li");
         this.tagsSet.add("ul");
-        this.tagsSet.add("td");
+        this.tagsSet.add("ol");
+        this.tagsSet.add("table");
     }
 
     start() {
@@ -60,7 +86,7 @@ class InPageTranslation {
         const nodeIterator = document.createNodeIterator(
             root,
             // eslint-disable-next-line no-bitwise
-            NodeFilter.SHOW_TEXT,
+            NodeFilter.SHOW_ELEMENT,
             acceptNode
         );
 
@@ -88,17 +114,57 @@ class InPageTranslation {
         return element.style.display === "none" || element.style.visibility === "hidden" || element.offsetParent === null;
     }
 
-    validateNode(node) {
-        if (node.nodeType === 3) {
-            if (this.tagsSet.has(node.parentNode.nodeName.toLowerCase()) &&
-                node.textContent.trim().length > 0) {
-                return NodeFilter.FILTER_ACCEPT;
-            }
-            return NodeFilter.FILTER_REJECT;
+    isParentTranslating(node){
+        /*
+         * if the parent of the node is already translating we should reject
+         * it since we already sent it to translation
+         */
+
+        // if the immediate parent is the body we just allow it
+        if (node.parentNode === document.body) {
+            return false;
         }
-        return this.tagsSet.has(node.nodeName.toLowerCase())
-                ? NodeFilter.FILTER_ACCEPT
-                : NodeFilter.FILTER_REJECT;
+
+        // let's iterate until we find either the body or if the parent was sent
+        let lastNode = node;
+        while (lastNode.parentNode) {
+            // console.log("isParentTranslating node", node, " isParentTranslating nodeParent ", lastNode.parentNode);
+            if (this.nodesSent.has(lastNode.parentNode)) {
+                return true;
+            }
+            lastNode = lastNode.parentNode;
+        }
+
+        return false;
+    }
+
+    hasTextOfItsOwn(node) {
+        for (let child of node.childNodes) {
+            switch (child.nodeType) {
+                case 1: // Element
+                    if (this.inlineTags.has(child.nodeName.toLowerCase()))
+                        return true;
+                    break;
+                case 3:
+                    if (child.textContent.trim().length > 0)
+                        return true;
+                    break;
+            }
+        }
+
+        return false;
+    }
+
+    validateNode(node) {
+        if (this.tagsSet.has(node.nodeName.toLowerCase()) &&
+            node.textContent.trim().length > 0 &&
+            !this.isParentTranslating(node)) {
+            if (this.hasTextOfItsOwn(node))
+                return NodeFilter.FILTER_ACCEPT;
+            else
+                return NodeFilter.FILTER_SKIP;
+        }
+        return NodeFilter.FILTER_REJECT;
     }
 
     queueTranslation(node) {
@@ -110,16 +176,17 @@ class InPageTranslation {
         this.translationsCounter += 1;
 
         // let's categorize the elements on their respective hashmaps
-        if (this.isElementHidden(node.parentNode)) {
+        if (this.isElementHidden(node)) {
             // if the element is entirely hidden
             this.hiddenNodeMap.set(this.translationsCounter, node);
-        } else if (this.isElementInViewport(node.parentNode)) {
+        } else if (this.isElementInViewport(node)) {
             // if the element is present in the viewport
             this.viewportNodeMap.set(this.translationsCounter, node);
         } else {
             // if the element is visible but not present in the viewport
             this.nonviewportNodeMap.set(this.translationsCounter, node);
         }
+        this.nodesSent.add(node);
     }
 
     dispatchTranslations() {
@@ -137,7 +204,7 @@ class InPageTranslation {
             // if we already sent this message, we just skip it
             return;
         }
-        const text = node.textContent;
+        const text = node.innerHTML;
         if (text.trim().length) {
 
           /*
@@ -195,9 +262,8 @@ class InPageTranslation {
     }
 
     updateElements() {
-        const updateElement = (translatedText, node) => {
-            // console.log("translate from", node.textContent, " to ", translatedText);
-            node.textContent = translatedText;
+        const updateElement = (translatedHTML, node) => {
+            node.innerHTML = translatedHTML;
         }
         this.updateMap.forEach(updateElement);
         this.updateMap.clear();
