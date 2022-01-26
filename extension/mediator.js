@@ -74,10 +74,10 @@ class Mediator {
         const navLang = this.languageDetection.navigatorLanguage;
         this.translationTelemetry.recordLangPair(pageLang, navLang);
 
-        if (!navLang.includes(pageLang)) {
+        if (this.languageDetection.shouldDisplayTranslation()) {
 
             /*
-             *  todo: we need to keep track if the translationbar was already displayed
+             * we need to keep track if the translationbar was already displayed
              * or not, since during tests we found the browser may send the
              * onLoad event twice.
              */
