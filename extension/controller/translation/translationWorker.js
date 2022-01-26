@@ -494,7 +494,15 @@ class TranslationHelper {
              * instantiate the arguments of translate() API i.e. ResponseOptions and input (vector<string>)
              * const responseOptions = new this.WasmEngineModule.ResponseOptions();
              */
-            const responseOptions = { qualityScores: true, alignment: true, html: true };
+            const htmlOptions = new this.WasmEngineModule.HTMLOptions();
+            htmlOptions.setContinuationDelimiters("\n ,.(){}[]0123456789");
+            
+            const responseOptions = {
+                qualityScores: true,
+                alignment: false,
+                html: true,
+                htmlOptions
+            };
             let input = new this.WasmEngineModule.VectorString();
 
             messages.forEach(message => {
