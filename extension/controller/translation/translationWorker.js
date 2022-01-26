@@ -272,6 +272,7 @@ class TranslationHelper {
             quiet: true
             quiet-translation: true
             gemm-precision: int8shiftAlphaAll
+            alignment: soft
             `;
 
             const modelFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].model.name}`;
