@@ -39,7 +39,7 @@
             "view/js/OutboundTranslation.js",
             "view/js/InPageTranslation.js",
             "model/telemetry/Telemetry.js",
-            "model/telemetry/js-yaml.js",
+            "model/telemetry/TelemetrySchema.js",
             "mediator.js"
           ],
           "css": ["view/static/ot.css"],
@@ -49,9 +49,7 @@
     "web_accessible_resources": [
       "ot.html",
       "model/Queue.js",
-      "controller/translation/translationWorker.js",
-      "model/telemetry/metrics.yaml",
-      "model/telemetry/pings.yaml"
+      "controller/translation/translationWorker.js"
     ],
     "incognito": "spanning",
     "experiment_apis": {

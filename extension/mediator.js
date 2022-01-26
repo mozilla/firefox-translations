@@ -31,8 +31,7 @@ class Mediator {
         }
     }
 
-    async init() {
-        await this.telemetry.loadSchema();
+    init() {
         browser.runtime.sendMessage({ command: "monitorTabLoad" });
         browser.runtime.sendMessage({ command: "loadTelemetryInfo" });
     }

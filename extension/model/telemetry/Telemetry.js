@@ -2,6 +2,8 @@
  * class responsible for all telemetry and performance statistics related operations
  */
 
+/* global telemetrySchema */
+
 // eslint-disable-next-line
 class TranslationTelemetry {
     constructor(telemetry) {
@@ -71,26 +73,11 @@ class Telemetry {
 
         this._browserEnv = null;
         this._pings = {}
-
-        this._metricsSchema = null;
-        this._pingsSchema = null;
         this._createdDatetime = new Date().toISOString();
     }
 
     setBrowserEnv(val) {
         this._browserEnv = val;
-    }
-
-    async loadSchema() {
-        // eslint-disable-next-line no-undef
-        let response = await fetch(browser.runtime.getURL("model/telemetry/pings.yaml"), { mode: "no-cors" });
-        // eslint-disable-next-line no-undef
-        this._pingsSchema = jsyaml.load(await response.text());
-        // eslint-disable-next-line no-undef
-        response = await fetch(browser.runtime.getURL("model/telemetry/metrics.yaml"), { mode: "no-cors" });
-        // eslint-disable-next-line no-undef
-        this._metricsSchema = jsyaml.load(await response.text());
-        console.debug("Telemetry: schema is loaded");
     }
 
     increment(category, name) {
@@ -176,7 +163,7 @@ class Telemetry {
 
     // eslint-disable-next-line max-lines-per-function
     submit(pingName) {
-        if (!(pingName in this._pingsSchema)) {
+        if (!telemetrySchema.pings.includes(pingName)) {
             throw new Error(`Telemetry: wrong ping name ${pingName}`)
         }
         if (!(pingName in this._pings)) {
@@ -228,26 +215,20 @@ class Telemetry {
     }
 
     _getPings(category, name, type) {
-        if (this._metricsSchema === null) {
-            throw new Error(`Telemetry: metrics schema is not loaded, ${category}, ${name}`);
-        }
-        if (!(category in this._metricsSchema)) {
+        if (!(category in telemetrySchema.metrics)) {
             throw new Error(`metrics category ${category} is not present in the schema`)
         }
-        if (!(name in this._metricsSchema[category])) {
+        if (!(name in telemetrySchema.metrics[category])) {
             throw new Error(`metric ${name} is not present in category ${category}`)
         }
-        if (this._metricsSchema[category][name].type !== type) {
+        if (telemetrySchema.metrics[category][name].type !== type) {
             throw new Error(`wrong metric type ${type} for ${category}.${name}`)
         }
-        return this._metricsSchema[category][name].send_in_pings;
+        return telemetrySchema.metrics[category][name].send_in_pings;
     }
 
     _build_ping(pingName) {
-        if (this._pingsSchema === null) {
-            throw new Error("Telemetry: pings schema is not loaded");
-        }
-        if (!(pingName in this._pingsSchema)) {
+        if (!telemetrySchema.pings.includes(pingName)) {
             throw new Error(`wrong ping name ${pingName}`)
         }
         if (pingName in this._pings) {
