@@ -37,7 +37,11 @@ class InPageTranslation {
             "var",
             "wbr",
             "ins",
-            "del"
+            "del",
+
+            // Not really but for testing
+            "td",
+            "li"
         ]);
     }
 
@@ -57,10 +61,14 @@ class InPageTranslation {
         this.tagsSet.add("h4");
         this.tagsSet.add("label");
         this.tagsSet.add("body");
+        this.tagsSet.add("header");
+        this.tagsSet.add("footer");
         // this.tagsSet.add("li");
         this.tagsSet.add("ul");
         this.tagsSet.add("ol");
-        this.tagsSet.add("table");
+        this.tagsSet.add("td");
+        this.tagsSet.add("th");
+        this.tagsSet.add("caption");
     }
 
     start() {
@@ -139,20 +147,26 @@ class InPageTranslation {
     }
 
     hasTextOfItsOwn(node) {
+        let inlineElements = 0;
+        let blockElements = 0;
+
         for (let child of node.childNodes) {
             switch (child.nodeType) {
-                case 1: // Element
-                    if (this.inlineTags.has(child.nodeName.toLowerCase()))
-                        return true;
-                    break;
-                case 3:
+                case 3: // TextNode
                     if (child.textContent.trim().length > 0)
                         return true;
+                    break;
+
+                case 1: // Element
+                    if (this.inlineTags.has(child.nodeName.toLowerCase()))
+                        inlineElements++;
+                    else
+                        blockElements++;
                     break;
             }
         }
 
-        return false;
+        return inlineElements >= blockElements;
     }
 
     validateNode(node) {
