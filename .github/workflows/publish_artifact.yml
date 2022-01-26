@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Setup Emscripten toolchain
-        uses: mymindstorm/setup-emsdk@v11
+        uses: mymindstorm/setup-emsdk@v9
         with:
           version: 2.0.9
           actions-cache-folder: emsdk-cache
