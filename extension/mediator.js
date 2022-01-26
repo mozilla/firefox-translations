@@ -74,7 +74,7 @@ class Mediator {
         const navLang = this.languageDetection.navigatorLanguage;
         this.translationTelemetry.recordLangPair(pageLang, navLang);
 
-        if (this.languageDetection.shouldDisplayTranslation()) {
+        if (this.languageDetection.isLangMismatch()) {
 
             /*
              * we need to keep track if the translationbar was already displayed
@@ -83,20 +83,21 @@ class Mediator {
              */
             if (this.translationBarDisplayed) return;
 
-            /*
-             * todo: check whether the language pair is not supported in model registry and report in telemetry
-             * this.telemetry.increment( "service", "not_supported");
-             */
-
-            // request the backgroundscript to display the translationbar
-            browser.runtime.sendMessage({
-                command: "displayTranslationBar",
-                languageDetection: this.languageDetection
-            });
-            this.translationBarDisplayed = true;
-            // create the translation object
-            this.translation = new Translation(this);
             this.telemetry.increment("service", "lang_mismatch");
+
+            if (this.languageDetection.shouldDisplayTranslation()) {
+                // request the backgroundscript to display the translationbar
+                browser.runtime.sendMessage({
+                    command: "displayTranslationBar",
+                    languageDetection: this.languageDetection
+                });
+                this.translationBarDisplayed = true;
+                // create the translation object
+                this.translation = new Translation(this);
+            }
+            else {
+                this.telemetry.increment( "service", "not_supported");
+            }
         }
     }
 
