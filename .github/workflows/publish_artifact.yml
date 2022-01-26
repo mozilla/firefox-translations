@@ -4,16 +4,28 @@ on:
     tags:
       - "v*.*.*"
 
+env:
+  EM_VERSION: 2.0.9
+  EM_CACHE_FOLDER: 'emsdk-cache'
+
 jobs:
   build-wasm:
     name: WASM (Custom Marian) Ubuntu
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup Emscripten toolchain
-        uses: mymindstorm/setup-emsdk@v9
+      - name: Setup cache
+        id: cache-system-libraries
+        uses: actions/cache@v2
         with:
-          version: 2.0.9
+          path: ${{env.EM_CACHE_FOLDER}}
+          key: ${{env.EM_VERSION}}-${{ runner.os }}
+
+      - name: Setup Emscripten toolchain
+        uses: mymindstorm/setup-emsdk@v11
+        with:
+          version: ${{env.EM_VERSION}}
+          actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
 
       - name: Verify Emscripten setup
         run: emcc -v
@@ -35,11 +47,11 @@ jobs:
 
       - name: Instantiate simd wormhole
         working-directory: build-wasm
-        run: bash ../wasm/patch-artifacts-enable-wormhole.sh
+        run: bash ../bergamot-translator/wasm/patch-artifacts-enable-wormhole.sh
 
       - name: Import GEMM library from a separate wasm module
         working-directory: build-wasm
-        run: bash ../wasm/patch-artifacts-import-gemm-module.sh
+        run: bash ../bergamot-translator/wasm/patch-artifacts-import-gemm-module.sh
 
       - name: Upload wasm artifact
         uses: actions/upload-artifact@v2
@@ -60,7 +72,7 @@ jobs:
       - name: Download wasm build
         uses: actions/download-artifact@v2
       - name: Import wasm build
-        run: .github/deploy-wasm.sh bergamot-translator-worker
+        run: bash .github/deploy-wasm.sh bergamot-translator-worker
       - name: Install dependencies
         run: npm install
       - name: Run linter
