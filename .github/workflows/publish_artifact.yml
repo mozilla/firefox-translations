@@ -4,28 +4,17 @@ on:
     tags:
       - "v*.*.*"
 
-env:
-  EM_VERSION: 2.0.9
-  EM_CACHE_FOLDER: 'emsdk-cache'
-
 jobs:
   build-wasm:
     name: WASM (Custom Marian) Ubuntu
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup cache
-        id: cache-system-libraries
-        uses: actions/cache@v2
-        with:
-          path: ${{env.EM_CACHE_FOLDER}}
-          key: ${{env.EM_VERSION}}-${{ runner.os }}
-
       - name: Setup Emscripten toolchain
         uses: mymindstorm/setup-emsdk@v11
         with:
-          version: ${{env.EM_VERSION}}
-          actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
+          version: 2.0.9
+          actions-cache-folder: emsdk-cache
 
       - name: Verify Emscripten setup
         run: emcc -v
@@ -57,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: bergamot-translator-worker
-          path: ${{github.workspace}}/build-wasm/bergamot-translator-worker.{js,wasm}
+          path: ${{github.workspace}}/build-wasm/bergamot-translator-worker.*
 
   build-extension:
     runs-on: ubuntu-latest
@@ -75,8 +64,8 @@ jobs:
         run: bash .github/deploy-wasm.sh bergamot-translator-worker
       - name: Install dependencies
         run: npm install
-      - name: Run linter
-        run: npm run lint:js
+      # - name: Run linter
+      #   run: npm run lint:js
       - name: Build
         run: npm run build
       - name: Create Release
