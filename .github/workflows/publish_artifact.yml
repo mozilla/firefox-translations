@@ -5,20 +5,68 @@ on:
       - "v*.*.*"
 
 jobs:
-  build:
+  build-wasm:
+    name: WASM (Custom Marian) Ubuntu
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup Emscripten toolchain
+        uses: mymindstorm/setup-emsdk@v9
+        with:
+          version: 2.0.9
+
+      - name: Verify Emscripten setup
+        run: emcc -v
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Configure builds
+        run: |
+          mkdir -p build-wasm
+          cd build-wasm
+          emcmake cmake -DCOMPILE_WASM=on ../bergamot-translator
+
+      - name: Compile
+        working-directory: build-wasm
+        run: emmake make -j2
+
+      - name: Instantiate simd wormhole
+        working-directory: build-wasm
+        run: bash ../wasm/patch-artifacts-enable-wormhole.sh
+
+      - name: Import GEMM library from a separate wasm module
+        working-directory: build-wasm
+        run: bash ../wasm/patch-artifacts-import-gemm-module.sh
+
+      - name: Upload wasm artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: bergamot-translator-worker
+          path: ${{github.workspace}}/build-wasm/bergamot-translator-worker.{js,wasm}
+
+  build-extension:
+    runs-on: ubuntu-latest
+    needs:
+      - build-wasm
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js
         uses: actions/setup-node@v1
         with:
           node-version: '17.x'
+      - name: Download wasm build
+        uses: actions/download-artifact@v2
+      - name: Import wasm build
+        run: .github/deploy-wasm.sh bergamot-translator-worker
       - name: Install dependencies
         run: npm install
       - name: Run linter
         run: npm run lint:js
       - name: Build
-        run: npm run build        
+        run: npm run build
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -29,8 +77,16 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: true
-      - name: Upload Release Asset
-        id: upload-release-asset 
+      - name: Upload wasm binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: bergamot-translator-worker/bergamot-translator-worker.wasm
+          asset_name: bergamot-translator-worker.wasm
+          asset_content_type: application/wasm
+      - name: Upload extension
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

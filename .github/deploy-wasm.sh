@@ -1,13 +1,10 @@
 #!/bin/bash
-WASM_BASE=../bergamot-translator/build-wasm/bergamot-translator-worker
+WASM_BASE=$1/bergamot-translator-worker
 WASM_BIN=$WASM_BASE.wasm
 WASM_JS=$WASM_BASE.js
-REMOTE=ikhoefgeen.nl:www/ikhoefgeen.nl/translate/
 
 SHA256_SUM=`sha256sum $WASM_BIN | cut -d' ' -f1`
 FILESIZE=`stat $WASM_BIN | cut -d' ' -f8`
-
-scp $WASM_BIN $REMOTE/bergamot-translator-worker-${SHA256_SUM:0:8}.wasm
 
 {
 	echo -e "function loadEmscriptenGlueCode(Module) {\n"
@@ -18,12 +15,12 @@ scp $WASM_BIN $REMOTE/bergamot-translator-worker-${SHA256_SUM:0:8}.wasm
 cat > extension/model/engineRegistry.js <<EOF
 /* eslint-disable no-unused-vars */
 
-let engineRegistryRootURL = "https://translate.ikhoefgeen.nl/";
+let engineRegistryRootURL = "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/";
 const engineRegistryRootURLTest = "https://example.com/browser/browser/extensions/translations/test/browser/";
 
 const engineRegistry = {
     bergamotTranslatorWasm: {
-        fileName: "bergamot-translator-worker-${SHA256_SUM:0:8}.wasm",
+        fileName: "bergamot-translator-worker.wasm",
         fileSize: ${FILESIZE},
         sha256: "${SHA256_SUM}"
     }
