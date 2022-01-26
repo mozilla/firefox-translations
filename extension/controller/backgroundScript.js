@@ -9,7 +9,6 @@
  */
 
 let cachedEnvInfo = null;
-console.debug("bg script loaded");
 
 // eslint-disable-next-line max-lines-per-function
 const messageListener = async function(message, sender) {

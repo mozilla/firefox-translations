@@ -43,7 +43,6 @@ class Mediator {
 
     // main entrypoint to handle the extension's load
     start(tabId) {
-        console.debug("starting mediator");
         this.tabId = tabId;
         window.onbeforeunload = () => this.closeSession();
 
