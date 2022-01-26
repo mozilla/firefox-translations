@@ -191,7 +191,7 @@ class Telemetry {
                 "Date": new Date().toISOString(),
                 "X-Client-Type": "Glean.js",
                 "X-Client-Version": "0.15.0",
-                "X-Telemetry-Agent": `Glean/0.15.0`
+                "X-Telemetry-Agent": "Glean/0.15.0"
             };
             if (this._debug) {
                 headers["X-Debug-Id"] = "bergamot";

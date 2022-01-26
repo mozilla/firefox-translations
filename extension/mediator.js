@@ -93,9 +93,8 @@ class Mediator {
                 this.translationBarDisplayed = true;
                 // create the translation object
                 this.translation = new Translation(this);
-            }
-            else {
-                this.telemetry.increment( "service", "not_supported");
+            } else {
+                this.telemetry.increment("service", "not_supported");
             }
         }
     }

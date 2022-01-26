@@ -67,7 +67,7 @@ class LanguageDetection {
     }
 
     /*
-     * Page language is different from user languages
+     * page language is different from user languages
      */
     isLangMismatch() {
         return !this.navigatorLanguage.includes(this.pageLanguage.language);
