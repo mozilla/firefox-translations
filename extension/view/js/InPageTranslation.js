@@ -78,12 +78,23 @@ class InPageTranslation {
          * title to be translated
          */
         this.started = true;
+        this.addDebugStylesheet();
+
         const pageTitle = document.getElementsByTagName("title")[0];
         if (pageTitle) {
             this.queueTranslation(pageTitle);
         }
         this.startTreeWalker(document.body);
         this.startMutationObserver();
+    }
+
+    addDebugStylesheet() {
+        const element = document.createElement('style');
+        document.head.appendChild(element);
+
+        const sheet = element.sheet;
+        sheet.insertRule('[x-firefox-translated] { border: 2px solid red; }', 0);
+        sheet.insertRule('[x-firefox-translated=""] { border: 2px solid blue; }', 1);
     }
 
     startTreeWalker(root) {
@@ -189,6 +200,9 @@ class InPageTranslation {
          */
         this.translationsCounter += 1;
 
+        // Debugging: mark the node so we can add CSS to see them
+        node.setAttribute('x-firefox-translated', this.translationCounter);
+
         // let's categorize the elements on their respective hashmaps
         if (this.isElementHidden(node)) {
             // if the element is entirely hidden
@@ -277,6 +291,7 @@ class InPageTranslation {
 
     updateElements() {
         const updateElement = (translatedHTML, node) => {
+            node.setAttribute('x-firefox-translated', '');
             node.innerHTML = translatedHTML;
         }
         this.updateMap.forEach(updateElement);
