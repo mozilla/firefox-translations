@@ -53,10 +53,6 @@
                   detectedLanguage
                 );
 
-                if (!translationNotificationManager.isPageLanguageSupported()) {
-                  return
-                }
-
                 // disable the legacy translation infobar
                 Services.prefs.setBoolPref("browser.translation.ui.show", false);
                 Services.prefs.setBoolPref(

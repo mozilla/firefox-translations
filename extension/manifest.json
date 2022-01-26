@@ -39,6 +39,7 @@
             "view/js/OutboundTranslation.js",
             "view/js/InPageTranslation.js",
             "model/Telemetry.js",
+            "model/modelRegistry.js",
             "mediator.js"
           ],
           "css": ["view/static/ot.css"],

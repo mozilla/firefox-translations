@@ -58,7 +58,7 @@ class Mediator {
          * - initiate the outbound translation view and start the translation
          *      webworker
          */
-        if (!this.languageDetection.navigatorLanguage.includes(this.languageDetection.pageLanguage.language)) {
+        if (this.languageDetection.shouldDisplayTranslation()) {
 
             /*
              * we need to keep track if the translationbar was already displayed
