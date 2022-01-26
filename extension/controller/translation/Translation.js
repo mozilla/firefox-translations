@@ -10,7 +10,7 @@ class Translation {
     constructor (mediator){
         this.translationsMessagesCounter = 0;
         this.TRANSLATION_INTERVAL = 100; // ms
-        this.MAX_TRANSLATION_MSGS = 100; // max translations to process per batch we should utilize here the max throughput per cpu type
+        this.MAX_TRANSLATION_MSGS = 4; // max translations to process per batch we should utilize here the max throughput per cpu type
         this.translateSchedule = null; // holds a reference to the translation setTimeout
         this.translationMessageBuffer = new Queue();
         this.mediator = mediator;
