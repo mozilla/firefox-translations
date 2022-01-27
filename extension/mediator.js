@@ -13,7 +13,6 @@ class Mediator {
         this.translation = null;
         this.translationsCounter = 0;
         this.languageDetection = new LanguageDetection();
-        this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
 
         /*
@@ -166,6 +165,7 @@ class Mediator {
             case "displayOutboundTranslation":
 
                 /* display the outboundstranslation widget */
+                this.outboundTranslation = new OutboundTranslation(this);
                 this.outboundTranslation.start();
                 break;
 
@@ -194,6 +194,12 @@ class Mediator {
                 break;
 
 
+            case "domMutation":
+
+                if (this.outboundTranslation) {
+                    this.outboundTranslation.updateZIndex(message.payload);
+                }
+                break;
             default:
         }
     }

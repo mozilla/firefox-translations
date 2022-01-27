@@ -12,6 +12,7 @@ class OutboundTranslation {
     this.backTranslationsTextArea = null;
     this.translationTimeout = null;
     this.TYPING_TIMEOUT = 500; // constant defining how long to wait before translating after the user stopped typing
+    this.highestZIndex = 0;
   }
 
   // eslint-disable-next-line max-lines-per-function
@@ -21,7 +22,7 @@ class OutboundTranslation {
     try {
       // first we load the pageFragment (UI)
       const response = await fetch(browser
-        .runtime.getURL("view/static/ot.html"), { mode: "no-cors" });
+        .runtime.getURL("view/static/outboundTranslation.html"), { mode: "no-cors" });
       if (response.ok) {
         pageFragment = await response.text();
       } else {
@@ -31,36 +32,38 @@ class OutboundTranslation {
       console.error(exception.message, exception.stack);
     }
 
-      // then we create the div that holds it
-      this.otDiv = document.createElement("div");
-      this.otDiv.className = "fxtranslations-ot";
-      this.otDiv.innerHTML = pageFragment;
+    // then we create the div that holds it
+    this.otDiv = document.createElement("div");
+    this.otDiv.className = "fxtranslations-ot";
+    this.otDiv.innerHTML = pageFragment;
+    this.otDiv.id = "fxtranslations-ot";
+    this.updateZIndex(document.body.children);
 
-      /*
-       * we scan all textareas and attach our listeners to display
-       * the UI when the element receives focus
-       */
-      const textareas = document.querySelectorAll("textarea");
-      for (const textarea of textareas) {
-        textarea.addEventListener("focus", () => {
-          this.attachOtToTextAreaListener();
-        });
-      }
-
-      /*
-       * we then add the typying listeners to the outbound translation main
-       * textarea in order to capture what's input and push it to the
-       * translatinon queue
-       */
-      this.otDiv.querySelector("textarea").addEventListener("keydown", () => {
-        if (this.translationTimeout) {
-          clearTimeout(this.translationTimeout);
-        }
-        this.translationTimeout = setTimeout(
-          this.sendTextToTranslation.bind(this),
-          this.TYPING_TIMEOUT
-        );
+    /*
+     * we scan all textareas and attach our listeners to display
+     * the UI when the element receives focus
+     */
+    const textareas = document.querySelectorAll("textarea");
+    for (const textarea of textareas) {
+      textarea.addEventListener("focus", () => {
+        this.attachOtToTextAreaListener();
       });
+    }
+
+    /*
+     * we then add the typying listeners to the outbound translation main
+     * textarea in order to capture what's input and push it to the
+     * translatinon queue
+     */
+    this.otDiv.querySelector("textarea").addEventListener("keydown", () => {
+      if (this.translationTimeout) {
+        clearTimeout(this.translationTimeout);
+      }
+      this.translationTimeout = setTimeout(
+        this.sendTextToTranslation.bind(this),
+        this.TYPING_TIMEOUT
+      );
+    });
 
   }
 
@@ -147,5 +150,61 @@ class OutboundTranslation {
 
   updateselectedTextArea(content) {
     this.selectedTextArea.value = content;
+  }
+
+  determineHighsetZIndex(root) {
+    // if the root itsels has the zindex property, we start with it
+    let highestZ = this.extractElementZIndex(root);
+    // then we loop through its children
+    const elements = root.getElementsByTagName("*");
+    if (!elements.length) return highestZ;
+    for (let element of elements) {
+      const currentZ = this.extractElementZIndex(element);
+      if (currentZ > highestZ) {
+        highestZ = currentZ;
+      }
+    }
+    return highestZ;
+  }
+
+  extractElementZIndex(element){
+    // first we check if the element contains inline style set
+    let styleZIndex = element.style &&
+                      element.style.zIndex &&
+                      !isNaN(element.style.zIndex)
+    ? parseInt(element.style.zIndex, 10)
+    : 0;
+
+    /*
+     * then we check if the element also has a computed zindex in a css file
+     * yes, that can happen. this is the world wild web.
+     */
+    let computedZIndex = getComputedStyle(element) &&
+                        getComputedStyle(element).zIndex &&
+                        !isNaN(getComputedStyle(element).zIndex)
+    ? parseInt(getComputedStyle(element).zIndex, 10)
+    : 0;
+    return Math.max(styleZIndex, computedZIndex);
+  }
+
+  updateZIndex(nodes) {
+    // we have a collection of nodes, so we need to iterate
+    if (nodes.nodeType === 1) {
+      // we have a single node
+      const zindex = this.determineHighsetZIndex(nodes);
+      if (zindex > this.highestZIndex) {
+        this.highestZIndex = zindex;
+      }
+    } else {
+      // we have a collection of nodes
+      for (const node of nodes) {
+        const zindex = this.determineHighsetZIndex(node);
+        if (zindex > this.highestZIndex) {
+          this.highestZIndex = zindex;
+        }
+      }
+    }
+
+    this.otDiv.style.zIndex = this.highestZIndex + 1;
   }
 }

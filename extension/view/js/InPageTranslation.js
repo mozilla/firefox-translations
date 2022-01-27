@@ -186,8 +186,17 @@ class InPageTranslation {
         const callback = function(mutationsList) {
             for (const mutation of mutationsList) {
                 if (mutation.type === "childList") {
-                    // console.log(mutation);
                     mutation.addedNodes.forEach(node => this.startTreeWalker(node));
+
+                    /*
+                     * let's send this mutation to the outbound translation view
+                     * so it could reposition its z-index
+                     */
+                    this.notifyMediator("domMutation", mutation.addedNodes);
+                } else if (mutation.type === "attributes" &&
+                           mutation.attributeName === "style" &&
+                           mutation.target.id !== "fxtranslations-ot") {
+                    this.notifyMediator("domMutation", mutation.target);
                 }
             }
         }.bind(this);
@@ -225,7 +234,6 @@ class InPageTranslation {
                idCounter
               ] = translationMessage.attrId;
         const translatedText = translationMessage.translatedParagraph;
-        console.log("no enqueue", translatedText);
         let targetNode = null;
         switch (hashMapName) {
             case "hiddenNodeMap":
