@@ -60,9 +60,16 @@ class LanguageDetection {
         let to = "en".concat(this.navigatorLanguage.substring(0,2));
         if (from === "enen") from = to;
         if (to === "enen") to = from;
-        return !this.navigatorLanguage.includes(this.pageLanguage.language) &&
+        return this.isLangMismatch() &&
             languageSet.has(from) &&
             languageSet.has(to);
 
+    }
+
+    /*
+     * page language is different from user languages
+     */
+    isLangMismatch() {
+        return !this.navigatorLanguage.includes(this.pageLanguage.language);
     }
 }

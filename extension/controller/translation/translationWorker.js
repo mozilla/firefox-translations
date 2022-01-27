@@ -88,32 +88,38 @@ class TranslationHelper {
                 const translationMessagesBatch = this.translationQueue.dequeue();
                 Promise.resolve().then(function () {
                     if (translationMessagesBatch) {
+                        try {
+                            let total_words = 0;
+                            translationMessagesBatch.forEach(message => {
+                                total_words += message.sourceParagraph.trim().split(" ").length;
+                            });
 
-                        let total_words = 0;
-                        translationMessagesBatch.forEach(message => {
-                            total_words += message.sourceParagraph.trim().split(" ").length;
-                        });
+                            console.log(" twarray to translate:", translationMessagesBatch);
+                            const t0 = performance.now();
 
-                        console.log(" twarray to translate:", translationMessagesBatch);
-                        const t0 = performance.now();
-                        const translationResultBatch = this.translate(translationMessagesBatch);
-                        const timeElapsed = [total_words, performance.now() - t0];
-                        console.log(" twarray translated:", translationResultBatch);
+                            const translationResultBatch = this.translate(translationMessagesBatch);
+                            const timeElapsed = [total_words, performance.now() - t0];
+                            console.log(" twarray translated:", translationResultBatch);
 
-                        /*
-                         * now that we have the paragraphs back, let's reconstruct them.
-                         * we trust the engine will return the paragraphs always in the same order
-                         * we requested
-                         */
-                        translationResultBatch.forEach((result, index) => {
-                            translationMessagesBatch[index].translatedParagraph = result;
-                        });
-                        // and then report to the mediator
-                        postMessage([
-                            "translationComplete",
-                            translationMessagesBatch,
-                            timeElapsed
-                        ]);
+                            /*
+                             * now that we have the paragraphs back, let's reconstruct them.
+                             * we trust the engine will return the paragraphs always in the same order
+                             * we requested
+                             */
+                            translationResultBatch.forEach((result, index) => {
+                                translationMessagesBatch[index].translatedParagraph = result;
+                            });
+                            // and then report to the mediator
+                            postMessage([
+                                "translationComplete",
+                                translationMessagesBatch,
+                                timeElapsed
+                            ]);
+                        } catch (e) {
+                            postMessage(["onError", "translation"]);
+                            console.error("Translation error: ", e)
+                            throw e;
+                        }
                     }
                   }.bind(this));
             }
@@ -194,7 +200,15 @@ class TranslationHelper {
             try {
               await this.constructTranslationService();
               await this.constructTranslationModel(sourceLanguage, targetLanguage);
-              console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(Date.now() - start) / 1000} secs`);
+              let finish = Date.now();
+              console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
+              postMessage([
+                "onModelEvent",
+                "loaded",
+                finish-start
+              ]);
+
+
             } catch (error) {
               console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
               postMessage([
@@ -307,7 +321,14 @@ class TranslationHelper {
             const downloadedVocabBuffers = [];
             downloadedVocabBuffers.push(vocabAsArrayBuffer);
 
-            console.log(`Total Download time for all files of '${languagePair}': ${(Date.now() - start) / 1000} secs`);
+            let finish = Date.now();
+            console.log(`Total Download time for all files of '${languagePair}': ${(finish - start) / 1000} secs`);
+              postMessage([
+                "onModelEvent",
+                "downloaded",
+                finish-start
+              ]);
+
 
             // cnstruct AlignedMemory objects with downloaded buffers
             let constructedAlignedMemories = await Promise.all([
@@ -387,6 +408,7 @@ class TranslationHelper {
                                 "updateProgress",
                                 "Error downloading translation engine. (timeout)"
                             ]);
+                            postMessage(["onError", "model_download"]);
                             return null;
                         }
                         // eslint-disable-next-line no-await-in-loop
@@ -414,6 +436,7 @@ class TranslationHelper {
                                 "updateProgress",
                                 "Error downloading translation engine. (no data)"
                             ]);
+                            postMessage(["onError", "model_download"]);
                             return null;
                         }
 
@@ -429,6 +452,7 @@ class TranslationHelper {
                         "updateProgress",
                         "Error downloading translation engine. (not found)"
                     ]);
+                    postMessage(["onError", "model_download"]);
                     return null;
                 }
             }
@@ -440,6 +464,7 @@ class TranslationHelper {
                     "updateProgress",
                     "Error downloading translation engine. (checksum)"
                 ]);
+                postMessage(["onError", "model_download"]);
                 return null;
             }
             return arraybuffer;
