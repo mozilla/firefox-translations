@@ -41,6 +41,7 @@ class TranslationHelper {
                 "updateProgress",
                 "Loading Translation Engine"
             ]);
+            /*
             const itemURL = `${engineRegistryRootURL}${engineRegistry.bergamotTranslatorWasm.fileName}`;
             // first we load the wasm engine
             const wasmArrayBuffer = await this.getItemFromCacheOrWeb(
@@ -48,6 +49,10 @@ class TranslationHelper {
                 engineRegistry.bergamotTranslatorWasm.fileSize,
                 engineRegistry.bergamotTranslatorWasm.sha256
             );
+            */
+
+            const wasmArrayBuffer = await fetch("bergamot-translator-worker.wasm").then(response => response.arrayBuffer());
+
             if (!wasmArrayBuffer) {
                 console.log("Error loading engine from cache or web.");
                 return;
@@ -496,7 +501,8 @@ class TranslationHelper {
              */
             const htmlOptions = new this.WasmEngineModule.HTMLOptions();
             htmlOptions.setContinuationDelimiters("\n ,.(){}[]0123456789");
-            
+            htmlOptions.setSubstituteInlineTagsWithSpaces(true);
+
             const responseOptions = {
                 qualityScores: true,
                 alignment: false,

@@ -1,2 +1,4 @@
 node_modules
 web-ext-artifacts
+extension/controller/translation/bergamot-translator-worker.wasm
+extension/controller/translation/bergamot-translator-worker.js
