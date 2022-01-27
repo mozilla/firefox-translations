@@ -44,7 +44,6 @@ class Mediator {
     // main entrypoint to handle the extension's load
     start(tabId) {
         this.tabId = tabId;
-        window.onbeforeunload = () => this.closeSession();
 
         // request the language detection class to extract a page's snippet
         this.languageDetection.extractPageContent();
@@ -69,9 +68,6 @@ class Mediator {
          * - initiate the outbound translation view and start the translation
          *      webworker
          */
-        const pageLang = this.languageDetection.pageLanguage.language;
-        const navLang = this.languageDetection.navigatorLanguage;
-        this.translationTelemetry.recordLangPair(pageLang, navLang);
 
         if (this.languageDetection.isLangMismatch()) {
 
@@ -82,7 +78,11 @@ class Mediator {
              */
             if (this.translationBarDisplayed) return;
 
+            const pageLang = this.languageDetection.pageLanguage.language;
+            const navLang = this.languageDetection.navigatorLanguage;
+            this.translationTelemetry.recordLangPair(pageLang, navLang);
             this.telemetry.increment("service", "lang_mismatch");
+            window.onbeforeunload = () => this.closeSession();
 
             if (this.languageDetection.shouldDisplayTranslation()) {
                 // request the backgroundscript to display the translationbar
