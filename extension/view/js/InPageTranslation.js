@@ -56,10 +56,14 @@ class InPageTranslation {
         this.tagsSet.add("i");
         this.tagsSet.add("a");
         this.tagsSet.add("b");
-        this.tagsSet.add("h3");
-        this.tagsSet.add("h2");
+        this.tagsSet.add("strong");
+        this.tagsSet.add("em");
         this.tagsSet.add("h1");
+        this.tagsSet.add("h2");
+        this.tagsSet.add("h3");
         this.tagsSet.add("h4");
+        this.tagsSet.add("h5");
+        this.tagsSet.add("h6");
         this.tagsSet.add("label");
         this.tagsSet.add("body");
         this.tagsSet.add("header");
@@ -67,10 +71,14 @@ class InPageTranslation {
         // this.tagsSet.add("li");
         this.tagsSet.add("ul");
         this.tagsSet.add("ol");
+        this.tagsSet.add("dt");
+        this.tagsSet.add("dd");
         this.tagsSet.add("td");
         this.tagsSet.add("th");
         this.tagsSet.add("caption");
         this.tagsSet.add("button");
+        this.tagsSet.add("option");
+        this.tagsSet.add("legend");
     }
 
     start() {
