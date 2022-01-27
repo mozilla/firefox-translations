@@ -28,7 +28,7 @@ class InPageTranslation {
             "q",
             "ruby",
             "small",
-            "span",
+            // "span", // removed because Amazon uses it as a div. We now look at if 'display:contents'
             "strong",
             "sub",
             "sup",
@@ -41,7 +41,8 @@ class InPageTranslation {
 
             // Not really but for testing
             "td",
-            "li"
+            "li",
+            "br"
         ]);
     }
 
@@ -69,6 +70,7 @@ class InPageTranslation {
         this.tagsSet.add("td");
         this.tagsSet.add("th");
         this.tagsSet.add("caption");
+        this.tagsSet.add("button");
     }
 
     start() {
@@ -165,11 +167,12 @@ class InPageTranslation {
             switch (child.nodeType) {
                 case 3: // TextNode
                     if (child.textContent.trim().length > 0)
-                        return true;
+                        inlineElements++;
                     break;
 
                 case 1: // Element
-                    if (this.inlineTags.has(child.nodeName.toLowerCase()))
+                    if (this.inlineTags.has(child.nodeName.toLowerCase()) 
+                        || child.nodeName.toLowerCase() == 'span' && this.hasTextOfItsOwn(child))
                         inlineElements++;
                     else
                         blockElements++;
