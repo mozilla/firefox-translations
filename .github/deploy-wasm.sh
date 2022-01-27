@@ -4,7 +4,7 @@ WASM_BIN=$WASM_BASE.wasm
 WASM_JS=$WASM_BASE.js
 
 SHA256_SUM=`sha256sum $WASM_BIN | cut -d' ' -f1`
-FILESIZE=`stat $WASM_BIN | cut -d' ' -f8`
+FILESIZE=`stat -c%s $WASM_BIN`
 
 {
 	echo -e "function loadEmscriptenGlueCode(Module) {\n"
