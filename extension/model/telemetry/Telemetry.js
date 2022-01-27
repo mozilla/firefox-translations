@@ -66,10 +66,11 @@ class TranslationTelemetry {
 // eslint-disable-next-line
 class Telemetry {
 
-    constructor(sendPings= false, debug= true) {
+    constructor(sendPings= false, debug= true, enableLogging = false) {
         this._telemetryId = "org-mozilla-bergamot";
         this._sendPings = sendPings;
         this._debug = debug;
+        this._enableLogging = enableLogging;
 
         this._browserEnv = null;
         this._pings = {}
@@ -93,7 +94,8 @@ class Telemetry {
             } else {
                 ping.data.metrics.counter[key] = 1;
             }
-            console.debug(`Telemetry: counter metric ${category}.${name} recorded in ping ${pingName}: `, ping)
+
+            this._log(`counter metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
 
@@ -113,7 +115,7 @@ class Telemetry {
                 ping.data.events = []
             }
             ping.data.events.push(newEvent);
-            console.debug(`Telemetry: event metric ${category}.${name} recorded in ping ${pingName}: `, ping)
+            this._log(`event metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
 
@@ -129,7 +131,7 @@ class Telemetry {
             ping.data.metrics.timespan[`${category}.${name}`] = {}
             ping.data.metrics.timespan[`${category}.${name}`].value = valMs;
             ping.data.metrics.timespan[`${category}.${name}`].time_unit = "millisecond";
-            console.debug(`Telemetry: timespan metric ${category}.${name} recorded in ping ${pingName}: `, ping)
+            this._log(`timespan metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
 
@@ -143,7 +145,7 @@ class Telemetry {
                 ping.data.metrics.quantity = {};
             }
             ping.data.metrics.quantity[`${category}.${name}`] = val;
-            console.debug(`Telemetry: quantity metric ${category}.${name} recorded in ping ${pingName}: `, ping)
+            this._log(`quantity metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
 
@@ -157,7 +159,7 @@ class Telemetry {
                 ping.data.metrics.string = {}
             }
             ping.data.metrics.string[`${category}.${name}`] = val;
-            console.debug(`Telemetry: string metric ${category}.${name} recorded in ping ${pingName}: `, ping)
+            this._log(`string metric ${category}.${name} recorded in ping ${pingName}: `, ping)
         }
     }
 
@@ -167,7 +169,7 @@ class Telemetry {
             throw new Error(`Telemetry: wrong ping name ${pingName}`)
         }
         if (!(pingName in this._pings)) {
-            console.debug(`Telemetry: ping ${pingName} is empty, skipping sending`);
+            this._log(`ping ${pingName} is empty, skipping sending`);
             return;
         }
 
@@ -181,7 +183,7 @@ class Telemetry {
             console.warn("Telemetry: environment info is not loaded")
         }
         const body = JSON.stringify(ping.data);
-        console.debug(`Telemetry: ping submitted '${pingName}':`, body);
+        this._log(`ping submitted '${pingName}':`, body);
 
         if (this._sendPings) {
             let uuid = self.crypto.randomUUID();
@@ -206,8 +208,8 @@ class Telemetry {
                 headers,
                 body
             }).then(res => {
-                console.debug("Telemetry sent:", body);
-                console.debug("Telemetry: Request complete! response:", res);
+                this._log("Telemetry sent:", body);
+                this._log("Request complete! response:", res);
             });
         }
 
@@ -258,6 +260,11 @@ class Telemetry {
         return ping;
     }
 
+    _log(...args) {
+        if (!this._enableLogging) return;
+        console.debug("Telemetry: ", ...args)
+    }
+
     static _osToGlean(os) {
         switch (os) {
             case "mac":
@@ -276,6 +283,4 @@ class Telemetry {
               return "Unknown";
             }
     }
-
-
 }
