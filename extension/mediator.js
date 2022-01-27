@@ -19,8 +19,9 @@ class Mediator {
         /*
          *  todo: read from config
          */
-        this.telemetry = new Telemetry(true, false);
+        this.telemetry = new Telemetry(true, false, false);
         this.translationTelemetry = new TranslationTelemetry(this.telemetry);
+        this.translationTelemetry.recordVersions(browser.runtime.getManifest().version, "?", "?");
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
         this.statsMode = false;
@@ -205,9 +206,8 @@ class Mediator {
                 this.start(message.tabId);
                 break;
             case "telemetryInfoLoaded":
-                this.telemetry.setBrowserEnv(message.env);
                 this.translationTelemetry.recordEnvironment(message.env);
-                this.translationTelemetry.recordVersions("0.5.0", "?", "?");
+                this.telemetry.setBrowserEnv(message.env);
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
