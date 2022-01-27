@@ -85,7 +85,7 @@ class Translation {
             const message = this.translationMessageBuffer.dequeue();
             messagesToGo.push(message);
         }
-        if (this.translationWorker) {
+        if (this.translationWorker && messagesToGo.length > 0) {
             this.translationWorker.postMessage([
                 "translate",
                 messagesToGo
