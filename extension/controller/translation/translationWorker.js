@@ -94,12 +94,10 @@ class TranslationHelper {
                                 total_words += message.sourceParagraph.trim().split(" ").length;
                             });
 
-                            console.log(" twarray to translate:", translationMessagesBatch);
                             const t0 = performance.now();
 
                             const translationResultBatch = this.translate(translationMessagesBatch);
                             const timeElapsed = [total_words, performance.now() - t0];
-                            console.log(" twarray translated:", translationResultBatch);
 
                             /*
                              * now that we have the paragraphs back, let's reconstruct them.
