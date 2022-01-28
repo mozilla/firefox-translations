@@ -1,16 +1,14 @@
 {
     "manifest_version": 2,
-    "name": "Firefox Translations",
+    "name": "Bergamot Translations",
     "version": "0.5",
     "applications": {
         "gecko": {
-            "id": "firefox-translations@mozilla.org",
             "strict_min_version": "79.0"
         }
     },
     "browser_specific_settings": {
       "gecko": {
-        "id": "firefox-translations@mozilla.org",
         "strict_min_version": "79.0"
       }
     },
@@ -64,5 +62,5 @@
       "16": "/view/icons/translation.16x16.png",
       "32": "/view/icons/translation.32x32.png"
     },
-    "description": "Firefox Translations translates any webpage utilizing client based machine learning algorithms and models."
+    "description": "Experimental Bergamot Translations translates any webpage utilizing client based machine learning algorithms and models."
   }
