@@ -66,6 +66,9 @@ jobs:
         uses: actions/download-artifact@v2
       - name: Import wasm build
         run: bash .github/deploy-wasm.sh bergamot-translator-worker
+      - name: Write version number
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: bash .github/deploy-tag.sh ${{ github.ref }}
       - name: Install dependencies
         run: npm install
       - name: Run linter
@@ -74,6 +77,7 @@ jobs:
       - name: Build
         run: npm run build
       - name: Sign
+        if: startsWith(github.ref, 'refs/tags/v')
         run: npm run sign
         env:
           WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
@@ -85,7 +89,7 @@ jobs:
           path: ${{github.workspace}}/web-ext-artifacts/bergamot_translations*.xpi
       - name: Create Release
         id: create_release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -95,7 +99,7 @@ jobs:
           draft: false
           prerelease: true
       - name: Upload extension
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
