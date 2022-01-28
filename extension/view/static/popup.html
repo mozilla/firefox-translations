@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		
+	</head>
+	<body>
+		<div class="states">
+			<div id="state-offer">
+				<p>Wanna translate this page?</p>
+				<select id="lang-from"></select>
+				<select id="lang-to"></select>
+				<button id="translate-btn">Translate page</button>
+			</div>
+			<div id="state-translating">
+				<p>Translating page…</p>
+			</div>
+			<div id="state-translated">
+				<p>Page translated <button>Nooo</button></p>
+			</div>
+			<div id="state-error">
+				<p>Error during translation:</p>
+				<p><code id="error-message"></code></p>
+			</div>
+		</div>
+		<script src="popup.js"></script>
+	</body>
+</html>

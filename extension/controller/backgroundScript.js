@@ -46,11 +46,12 @@ const messageListener = async function(message, sender) {
             /*
              * request the experiments API do display the infobar
              */
-            await browser.experiments.translationbar.show(
-                sender.tab.id,
-                message.languageDetection.pageLanguage.language,
-                message.languageDetection.navigatorLanguage
-            );
+            // await browser.experiments.translationbar.show(
+            //     sender.tab.id,
+            //     message.languageDetection.pageLanguage.language,
+            //     message.languageDetection.navigatorLanguage
+            // );
+            browser.pageAction.show(sender.tab.id);
 
             break;
         case "translationRequested":
@@ -64,10 +65,10 @@ const messageListener = async function(message, sender) {
             );
             break;
         case "updateProgress":
-            browser.experiments.translationbar.updateProgress(
-                message.tabId,
-                message.progressMessage[1]
-            );
+            // browser.experiments.translationbar.updateProgress(
+            //     message.tabId,
+            //     message.progressMessage[1]
+            // );
             break;
         case "outBoundtranslationRequested":
 
@@ -103,4 +104,4 @@ const messageListener = async function(message, sender) {
 }
 
 browser.runtime.onMessage.addListener(messageListener);
-browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
+// browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);

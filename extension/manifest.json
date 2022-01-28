@@ -51,15 +51,14 @@
       "controller/translation/translationWorker.js"
     ],
     "incognito": "spanning",
-    "experiment_apis": {
-        "experiments_translationbar": {
-          "schema": "controller/experiments/TranslationBar/schema.json",
-          "parent": {
-            "scopes": ["addon_parent"],
-            "paths": [["experiments", "translationbar"]],
-            "script": "controller/experiments/TranslationBar/api.js"
-          }
-        }
+    "page_action": {
+      "browser_style": true,
+      "default_icon": {
+        "19": "/view/icons/translation.16x16.png",
+        "38": "/view/icons/translation.32x32.png"
+      },
+      "default_title": "Translation available",
+      "default_popup": "/view/static/popup.html"
     },
     "icons": {
       "16": "/view/icons/translation.16x16.png",
