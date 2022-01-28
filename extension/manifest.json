@@ -2,6 +2,7 @@
     "manifest_version": 2,
     "name": "Bergamot Translations",
     "version": "0.0.0",
+    "version_name": "development",
     "applications": {
         "gecko": {
             "strict_min_version": "79.0"
