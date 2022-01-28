@@ -19,10 +19,9 @@ const messageListener = async function(message, sender) {
              * extracted from the page
              */
             languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
-            languageDetection.pageLanguage = await
-                browser.experiments.languageDetector.detect(languageDetection.wordsToDetect);
-            browser.tabs.sendMessage(sender.tab.id, { command: "responseDetectPageLanguage",
-                languageDetection })
+            languageDetection.pageLanguage = await browser.i18n.detectLanguage(languageDetection.wordsToDetect);
+            languageDetection.pageLanguage.language = languageDetection.pageLanguage.languages[0].language;
+            browser.tabs.sendMessage(sender.tab.id, { command: "responseDetectPageLanguage", languageDetection })
             break;
         case "monitorTabLoad":
 

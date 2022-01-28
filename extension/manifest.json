@@ -52,14 +52,6 @@
     ],
     "incognito": "spanning",
     "experiment_apis": {
-        "experiment_languageDetector": {
-          "schema": "controller/experiments/LanguageDetector/schema.json",
-          "parent": {
-            "scopes": ["addon_parent"],
-            "paths": [["experiments", "languageDetector"]],
-            "script": "controller/experiments/LanguageDetector/api.js"
-          }
-        },
         "experiments_translationbar": {
           "schema": "controller/experiments/TranslationBar/schema.json",
           "parent": {
