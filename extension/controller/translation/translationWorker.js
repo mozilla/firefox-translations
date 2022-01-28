@@ -17,7 +17,7 @@ class TranslationHelper {
             // all variables specific to translation service
             this.translationService = null;
             this.responseOptions = null;
-            this.input = null;
+
             // a map of language-pair to TranslationModel object
             this.translationModels = new Map();
             this.CACHE_NAME = "fxtranslations";
@@ -270,7 +270,6 @@ class TranslationHelper {
             /*
              * for available configuration options,
              * please check: https://marian-nmt.github.io/docs/cmd/marian-decoder/
-             * TODO: gemm-precision: int8shiftAlphaAll (for the models that support this)
              * DONOT CHANGE THE SPACES BETWEEN EACH ENTRY OF CONFIG
              */
             const modelConfig = `
@@ -309,7 +308,7 @@ class TranslationHelper {
             ]);
             const modelBuffer = downloadedBuffers[0];
             const shortListBuffer = downloadedBuffers[1];
-            if (!modelBuffer && !shortListBuffer) {
+            if (!modelBuffer || !shortListBuffer) {
                 console.log("Error loading models from cache or web (models)");
                 throw new Error("Error loading models from cache or web (models)");
             }
@@ -517,7 +516,6 @@ class TranslationHelper {
 
             /*
              * instantiate the arguments of translate() API i.e. ResponseOptions and input (vector<string>)
-             * const responseOptions = new this.WasmEngineModule.ResponseOptions();
              */
             const responseOptions = { qualityScores: true, alignment: true, html: true };
             let input = new this.WasmEngineModule.VectorString();
