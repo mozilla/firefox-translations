@@ -83,7 +83,9 @@ const messageListener = async function(message, sender) {
                 { command: "translationRequested",
                   tabId: message.tabId,
                   from: message.from,
-                  to: message.to }
+                  to: message.to,
+                  withOutboundTranslation: message.withOutboundTranslation,
+                  withQualityEstimation: message.withQualityEstimation }
             );
             break;
         case "updateProgress":

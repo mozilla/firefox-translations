@@ -13,18 +13,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     return `
       <hbox anonid="details" align="center" flex="1">
         <image  anonid="logoIcon" class="messageImage"/>
-        <panel anonid="welcomePanel" class="translation-welcome-panel" type="arrow" align="start">
-          <image class="translation-welcome-logo"/>
-          <vbox flex="1" class="translation-welcome-content">
-            <description class="translation-welcome-headline" anonid="welcomeHeadline"/>
-            <description class="translation-welcome-body" anonid="welcomeBody"/>
-            <hbox align="center">
-              <label anonid="learnMore" class="plain" onclick="openTrustedLinkIn('https://support.mozilla.org/kb/automatic-translation', 'tab'); this.parentNode.parentNode.parentNode.hidePopup();" is="text-link"/>
-              <spacer flex="1"/>
-              <button anonid="thanksButton" onclick="this.parentNode.parentNode.parentNode.hidePopup();"/>
-            </hbox>
-          </vbox>
-        </panel>
         <deck anonid="translationStates" selectedIndex="0">
           <hbox class="translate-offer-box" align="center">
             <label value="&translation.thisPageIsIn.label;"/>
@@ -33,14 +21,13 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             </menulist>
             <label value="&translation.translateThisPage.label;"/>
             <button class="notification-button primary" label="&translation.translate.button;" anonid="translate" oncommand="this.closest('notification').translate();"/>
-            <button class="notification-button" label="&translation.notNow.button;" anonid="notNow" oncommand="this.closest('notification').notNow();"/>
+            <checkbox anonid="outboundtranslations-check" label="Enable translations of forms?" checked="true" style="padding-left:5px"/>
+            <checkbox anonid="qualityestimations-check" label="Enable quality estimation?" style="padding-left:5px"/>
           </hbox>
           <vbox class="translating-box" pack="center">
             <hbox>
               <label value="&translation.translatingContent.label;" style="display:none"/>
               <label anonid="progress-label" value="" style="padding-left:5px"/>
-              <label anonid="outboundtranslations-label" value="Enable translations of forms?" style="padding-left:5px"/>
-              <button class="notification-button" label="Yes" anonid="outboundTranslation" style="padding-left:5px" oncommand="this.closest('notification').outboundTranslationAccept()"/>
             </hbox>
           </vbox>
           <hbox class="translated-box" align="center">
@@ -204,28 +191,13 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this.translationNotificationManager.reportInfobarEvent("translate");
     const from = this._getSourceLang();
     const to = this._getTargetLang();
-    this.translationNotificationManager.requestInPageTranslation(from, to);
+    this.translationNotificationManager.requestInPageTranslation(
+        from,
+        to,
+        this._getAnonElt("outboundtranslations-check").checked,
+        this._getAnonElt("qualityestimations-check").checked
+    );
     this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATING;
-
-    /*
-     * initiate translation
-     * this.translation.translate(from, to);
-     *
-     * // Store the values used in the translation in the from and to inputs
-     * if (
-     * this.translation.uiState.infobarState ===
-     * this.translation.TranslationInfoBarStates.STATE_OFFER
-     * ) {
-     * this._getAnonElt("fromLanguage").setAttribute(
-     *  "value",
-     *  this.localizedLanguagesByCode[from],
-     * );
-     * this._getAnonElt("toLanguage").setAttribute(
-     *  "value",
-     *  this.localizedLanguagesByCode[to],
-     * );
-     * }
-     */
   }
 
   _close() {
@@ -256,22 +228,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   notNow() {
     this.translationNotificationManager.reportInfobarEvent("not_now");
     this._close();
-  }
-
-  outboundTranslationAccept() {
-    this.translationNotificationManager.reportInfobarEvent("accept_outbound");
-    const from = this._getSourceLang();
-    const to = this._getTargetLang();
-    this.translationNotificationManager.requestOutboundTranslation(from, to);
-    this._getAnonElt("outboundTranslation").setAttribute(
-      "hidden",
-      true,
-    );
-    this._getAnonElt("outboundtranslations-label").setAttribute(
-      "hidden",
-      true,
-    );
-    this.updateTranslationProgress(true, "Loading form translation");
   }
 
   _handleButtonHiding() {

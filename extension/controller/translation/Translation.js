@@ -121,7 +121,9 @@ class Translation {
         tabId,
         navigatorLanguage,
         pageLanguage,
-        attrId
+        attrId,
+        withOutboundTranslation,
+        withQualityEstimation
     ) {
 
         /*
@@ -155,15 +157,8 @@ class Translation {
         translationMessage.tabId = tabId;
         translationMessage.type = type;
         translationMessage.attrId = attrId;
+        translationMessage.withOutboundTranslation = withOutboundTranslation;
+        translationMessage.withQualityEstimation = withQualityEstimation;
         return translationMessage;
-    }
-
-    loadOutboundTranslation(translationMessage) {
-        if (this.translationWorker) {
-            this.translationWorker.postMessage([
-                "loadOutboundTranslation",
-                translationMessage
-            ]);
-        }
     }
 }

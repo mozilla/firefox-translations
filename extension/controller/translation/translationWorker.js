@@ -27,7 +27,6 @@ class TranslationHelper {
             this.engineState = this.ENGINE_STATE.LOAD_PENDING;
         }
 
-
         get ENGINE_STATE () {
             return {
                 LOAD_PENDING: 0,
@@ -36,7 +35,7 @@ class TranslationHelper {
               };
         }
 
-        async loadTranslationEngine(sourceLanguage, targetLanguage) {
+        async loadTranslationEngine(sourceLanguage, targetLanguage, withOutboundTranslation) {
             postMessage([
                 "updateProgress",
                 "Loading Translation Engine"
@@ -65,7 +64,7 @@ class TranslationHelper {
                      * initialized, we then load the language models
                      */
                     console.log(`Wasm Runtime initialized Successfully (preRun -> onRuntimeInitialized) in ${(Date.now() - this.wasmModuleStartTimestamp) / 1000} secs`);
-                    this.loadLanguageModel(sourceLanguage, targetLanguage);
+                    this.loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation);
                 }.bind(this),
                 wasmBinary: wasmArrayBuffer,
             };
@@ -142,8 +141,10 @@ class TranslationHelper {
                     // and load the module
                     this.loadTranslationEngine(
                         message[0].sourceLanguage,
-                        message[0].targetLanguage
+                        message[0].targetLanguage,
+                        message[0].withOutboundTranslation
                     );
+
                     this.translationQueue.enqueue(message);
                     break;
                 case this.ENGINE_STATE.LOADING:
@@ -165,30 +166,7 @@ class TranslationHelper {
             }
         }
 
-        async loadOutboundTranslation(message) {
-
-            /*
-             * load the outbound translation model
-             */
-            let start = Date.now();
-            try {
-                await this.constructTranslationModel(message.from, message.to);
-                console.log(`Outbound Model '${message.from}${message.to}' successfully constructed. Time taken: ${(Date.now() - start) / 1000} secs`);
-                // model was lodaded properly, let's communicate the mediator and the UI
-                postMessage([
-                    "updateProgress",
-                    "Automatic page and form translations loaded."
-                ]);
-                postMessage([
-                    "displayOutboundTranslation",
-                    null
-                ]);
-            } catch (error) {
-              console.log(`Outbound Model '${message.from}${message.to}' construction failed: '${error.message} - ${error.stack}'`);
-            }
-        }
-
-        async loadLanguageModel(sourceLanguage, targetLanguage) {
+        async loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation) {
 
             /*
              * let's load the models and communicate to the caller (translation)
@@ -198,6 +176,15 @@ class TranslationHelper {
             try {
               await this.constructTranslationService();
               await this.constructTranslationModel(sourceLanguage, targetLanguage);
+              if (withOutboundTranslation) {
+                console.log("OT:translationWorker.js::loadOutboundTranslation inicio " + new Date().toLocaleTimeString());
+                await this.constructTranslationModel(targetLanguage, sourceLanguage);
+                postMessage([
+                    "displayOutboundTranslation",
+                    null
+                ]);
+                console.log("OT:translationWorker.js::loadOutboundTranslation fim " + new Date().toLocaleTimeString());
+              }
               let finish = Date.now();
               console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
               postMessage([
@@ -205,7 +192,6 @@ class TranslationHelper {
                 "loaded",
                 finish-start
               ]);
-
 
             } catch (error) {
               console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
@@ -607,9 +593,6 @@ onmessage = function(message) {
             break;
         case "translate":
             translationHelper.requestTranslation(message.data[1]);
-            break;
-        case "loadOutboundTranslation":
-            translationHelper.loadOutboundTranslation(message.data[1]);
             break;
         default:
             // ignore

@@ -15,6 +15,8 @@ class InPageTranslation {
         this.UI_UPDATE_INTERVAL = 500;
         this.messagesSent = new Set();
         this.initialWordsInViewportReported = false;
+        this.withOutboundTranslation = null;
+        this.withQualityEstimation = null;
     }
 
     loadTagsSet() {
@@ -162,6 +164,8 @@ class InPageTranslation {
           const payload = {
             text,
             type: "inpage",
+            withOutboundTranslation: this.withOutboundTranslation,
+            withQualityEstimation: this.withQualityEstimation,
             attrId: [
                      this.processingNodeMap,
                      key
@@ -181,7 +185,7 @@ class InPageTranslation {
         const targetNode = document;
 
         // options for the observer (which mutations to observe)
-        const config = { attributes: true, childList: true, subtree: true };
+        const config = { attributes: true, childList: true, subtree: false };
         // callback function to execute when mutations are observed
         const callback = function(mutationsList) {
             for (const mutation of mutationsList) {

@@ -115,7 +115,9 @@ class Mediator {
                     message.tabId,
                     this.languageDetection.navigatorLanguage,
                     this.languageDetection.pageLanguage.language,
-                    message.payload.attrId
+                    message.payload.attrId,
+                    message.payload.withOutboundTranslation,
+                    message.payload.withQualityEstimation
                 );
                 this.messagesSenderLookupTable.set(translationMessage.messageID, sender);
                 this.translation.translate(translationMessage);
@@ -230,20 +232,11 @@ class Mediator {
                 // eslint-disable-next-line no-case-declarations
                 // let's start the in-page translation widget
                 if (!this.inPageTranslation.started){
+                    this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
+                    this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
                     this.inPageTranslation.start();
                 }
-
                 break;
-            case "outboundTranslationRequested":
-
-                /*
-                 * so, now that we received the request from the infobar to
-                 * start outbound translation, let's request the
-                 *  worker to download the models
-                 */
-                this.translation.loadOutboundTranslation(message);
-                break;
-
             case "displayStatistics":
                 this.statsMode = true;
                 break;
