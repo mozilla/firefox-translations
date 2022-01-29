@@ -50,6 +50,14 @@ class OutboundTranslation {
       });
     }
 
+    // scan all text inputs
+    const textinputs = document.querySelectorAll("input[type='text']");
+    for (const input of textinputs) {
+      input.addEventListener("focus", () => {
+        this.attachOtToTextAreaListener();
+      });
+    }
+
     /*
      * we then add the typying listeners to the outbound translation main
      * textarea in order to capture what's input and push it to the
