@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable max-lines */
 
-let modelRegistryRootURL = "https://storage.googleapis.com/bergamot-models-sandbox/0.2.11";
+let modelRegistryRootURL = "https://storage.googleapis.com/bergamot-models-sandbox/0.2.12";
 const modelRegistryRootURLTest = "https://example.com/browser/browser/extensions/translations/test/browser";
 
 const modelRegistry = {
@@ -310,21 +310,67 @@ const modelRegistry = {
       size: 828426,
       estimatedCompressedSize: 416995,
       expectedSha256Hash:
-        "e3b66bc141f6123cd40746e2fb9b8ee4f89cbf324ab27d6bbf3782e52f15fa2d",
+          "e3b66bc141f6123cd40746e2fb9b8ee4f89cbf324ab27d6bbf3782e52f15fa2d",
     },
     lex: {
       name: "lex.50.50.eten.s2t.bin",
       size: 3974944,
       estimatedCompressedSize: 1920655,
       expectedSha256Hash:
-        "6992bedc590e60e610a28129c80746fe5f33144a4520e2c5508d87db14ca54f8",
+          "6992bedc590e60e610a28129c80746fe5f33144a4520e2c5508d87db14ca54f8",
     },
     model: {
       name: "model.eten.intgemm.alphas.bin",
       size: 17140754,
       estimatedCompressedSize: 12222624,
       expectedSha256Hash:
-        "aac98a2371e216ee2d4843cbe896c617f6687501e17225ac83482eba52fd0028",
+          "aac98a2371e216ee2d4843cbe896c617f6687501e17225ac83482eba52fd0028",
+    },
+  },
+  bgen: {
+    vocab: {
+      name: "vocab.bgen.spm",
+      size: 920621,
+      estimatedCompressedSize: 435213,
+      expectedSha256Hash:
+        "24ce87ba39216714f222ca6a105f30b1863a7ef8b58c9fafdc7a66184e9813a5",
+    },
+    lex: {
+      name: "lex.50.50.bgen.s2t.bin",
+      size: 6182512,
+      estimatedCompressedSize: 3272580,
+      expectedSha256Hash:
+        "71e8d040a2f63705bec232cd186f32e9f9a78e7968216516c4535589f6a828f9",
+    },
+    model: {
+      name: "model.bgen.intgemm.alphas.bin",
+      size: 17140899,
+      estimatedCompressedSize: 13167979,
+      expectedSha256Hash:
+        "71900847a98cf66bd1d05eaafc23a794c8c1285fb3f0e2ecd2849e6f81c79d53",
+    },
+  },
+  enbg: {
+    vocab: {
+      name: "vocab.bgen.spm",
+      size: 919745,
+      estimatedCompressedSize: 435044,
+      expectedSha256Hash:
+        "b14e44beb653db924c826e1696bcfab23ca9fd3e479baf8bea67d0be77432192",
+    },
+    lex: {
+      name: "lex.50.50.enbg.s2t.bin",
+      size: 5607608,
+      estimatedCompressedSize: 2950444,
+      expectedSha256Hash:
+        "0f9b794b6f8a9c4b5b781fde49391852b398184b730f89a09428cf562e8bede6",
+    },
+    model: {
+      name: "model.enbg.intgemm.alphas.bin",
+      size: 17140899,
+      estimatedCompressedSize: 13311038,
+      expectedSha256Hash:
+        "02715a7a81a610a37439d4f788a6f3efcc1ecb39618bc4184442a39378907dfe",
     },
   },
 };
