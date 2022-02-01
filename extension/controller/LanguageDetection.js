@@ -4,6 +4,7 @@
  * translation bar should be displayed
  */
 
+/* global modelRegistry*/
 // eslint-disable-next-line no-unused-vars
 class LanguageDetection {
 
@@ -42,5 +43,33 @@ class LanguageDetection {
             }
         }
         this.wordsToDetect = wordsToDetect;
+    }
+
+    /*
+     * return if the page mets the conditiions to display
+     * or not the translation bar
+     */
+    shouldDisplayTranslation() {
+        const languageSet = new Set()
+        if (modelRegistry) {
+            for (const languagePair of Object.keys(modelRegistry)){
+                languageSet.add(languagePair);
+            }
+        }
+        let from = this.pageLanguage.language.concat("en");
+        let to = "en".concat(this.navigatorLanguage.substring(0,2));
+        if (from === "enen") from = to;
+        if (to === "enen") to = from;
+        return this.isLangMismatch() &&
+            languageSet.has(from) &&
+            languageSet.has(to);
+
+    }
+
+    /*
+     * page language is different from user languages
+     */
+    isLangMismatch() {
+        return !this.navigatorLanguage.includes(this.pageLanguage.language);
     }
 }

@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable max-lines */
 
-let modelRegistryRootURL = "https://storage.googleapis.com/bergamot-models-sandbox/0.2.10";
+let modelRegistryRootURL = "https://storage.googleapis.com/bergamot-models-sandbox/0.2.12";
 const modelRegistryRootURLTest = "https://example.com/browser/browser/extensions/translations/test/browser";
 
 const modelRegistry = {
@@ -184,9 +184,9 @@ const modelRegistry = {
     model: {
       name: "model.deen.intgemm.alphas.bin",
       size: 17140837,
-      estimatedCompressedSize: 13091214,
+      estimatedCompressedSize: 12995752,
       expectedSha256Hash:
-        "dda44d87ab0d8ad3b3871122fd3ee385f37878183a8b4ec139cd909531ec5009",
+        "1980225d00dc5645491777accff5b3c9d20b92eff67a25135f1cf8fe2ed8fb8f",
     },
   },
   encs: {
@@ -215,24 +215,24 @@ const modelRegistry = {
   ende: {
     vocab: {
       name: "vocab.deen.spm",
-      size: 797501,
-      estimatedCompressedSize: 412505,
+      size: 784269,
+      estimatedCompressedSize: 410171,
       expectedSha256Hash:
-        "bc8f8229933d8294c727f3eab12f6f064e7082b929f2d29494c8a1e619ba174c",
+        "417668f2ed297970febafb5b079a9d5ebc4ed0b3550ac8386d67a90473a09bd7",
     },
     lex: {
       name: "lex.50.50.ende.s2t.bin",
-      size: 3062492,
-      estimatedCompressedSize: 1575385,
+      size: 3943644,
+      estimatedCompressedSize: 2113181,
       expectedSha256Hash:
-        "764797d075f0642c0b079cce6547348d65fe4e92ac69fa6a8605cd8b53dacb3f",
+        "f03eb8245042feb7a5800815b8d0dc215d7a60691632405b65c461d250cedbe6",
     },
     model: {
       name: "model.ende.intgemm.alphas.bin",
-      size: 17140498,
-      estimatedCompressedSize: 13207068,
+      size: 17140835,
+      estimatedCompressedSize: 12768493,
       expectedSha256Hash:
-        "f0946515c6645304f0706fa66a051c3b7b7c507f12d0c850f276c18165a10c14",
+        "b3e980d6602ab0bdfe8d9315cb5fc282a16bb1c8dccf38e70945c584551c4318",
     },
   },
   enes: {
@@ -310,21 +310,67 @@ const modelRegistry = {
       size: 828426,
       estimatedCompressedSize: 416995,
       expectedSha256Hash:
-        "e3b66bc141f6123cd40746e2fb9b8ee4f89cbf324ab27d6bbf3782e52f15fa2d",
+          "e3b66bc141f6123cd40746e2fb9b8ee4f89cbf324ab27d6bbf3782e52f15fa2d",
     },
     lex: {
       name: "lex.50.50.eten.s2t.bin",
       size: 3974944,
       estimatedCompressedSize: 1920655,
       expectedSha256Hash:
-        "6992bedc590e60e610a28129c80746fe5f33144a4520e2c5508d87db14ca54f8",
+          "6992bedc590e60e610a28129c80746fe5f33144a4520e2c5508d87db14ca54f8",
     },
     model: {
       name: "model.eten.intgemm.alphas.bin",
       size: 17140754,
       estimatedCompressedSize: 12222624,
       expectedSha256Hash:
-        "aac98a2371e216ee2d4843cbe896c617f6687501e17225ac83482eba52fd0028",
+          "aac98a2371e216ee2d4843cbe896c617f6687501e17225ac83482eba52fd0028",
+    },
+  },
+  bgen: {
+    vocab: {
+      name: "vocab.bgen.spm",
+      size: 920621,
+      estimatedCompressedSize: 435213,
+      expectedSha256Hash:
+        "24ce87ba39216714f222ca6a105f30b1863a7ef8b58c9fafdc7a66184e9813a5",
+    },
+    lex: {
+      name: "lex.50.50.bgen.s2t.bin",
+      size: 6182512,
+      estimatedCompressedSize: 3272580,
+      expectedSha256Hash:
+        "71e8d040a2f63705bec232cd186f32e9f9a78e7968216516c4535589f6a828f9",
+    },
+    model: {
+      name: "model.bgen.intgemm.alphas.bin",
+      size: 17140899,
+      estimatedCompressedSize: 13167979,
+      expectedSha256Hash:
+        "71900847a98cf66bd1d05eaafc23a794c8c1285fb3f0e2ecd2849e6f81c79d53",
+    },
+  },
+  enbg: {
+    vocab: {
+      name: "vocab.bgen.spm",
+      size: 919745,
+      estimatedCompressedSize: 435044,
+      expectedSha256Hash:
+        "b14e44beb653db924c826e1696bcfab23ca9fd3e479baf8bea67d0be77432192",
+    },
+    lex: {
+      name: "lex.50.50.enbg.s2t.bin",
+      size: 5607608,
+      estimatedCompressedSize: 2950444,
+      expectedSha256Hash:
+        "0f9b794b6f8a9c4b5b781fde49391852b398184b730f89a09428cf562e8bede6",
+    },
+    model: {
+      name: "model.enbg.intgemm.alphas.bin",
+      size: 17140899,
+      estimatedCompressedSize: 13311038,
+      expectedSha256Hash:
+        "02715a7a81a610a37439d4f788a6f3efcc1ecb39618bc4184442a39378907dfe",
     },
   },
 };

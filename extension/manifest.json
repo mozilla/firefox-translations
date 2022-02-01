@@ -37,7 +37,9 @@
             "controller/translation/translationWorker.js",
             "view/js/OutboundTranslation.js",
             "view/js/InPageTranslation.js",
-            "model/Telemetry.js",
+            "model/telemetry/Telemetry.js",
+            "model/telemetry/TelemetrySchema.js",
+            "model/modelRegistry.js",
             "mediator.js"
           ],
           "css": ["view/static/ot.css"],

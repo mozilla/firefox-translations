@@ -17,7 +17,7 @@ class TranslationHelper {
             // all variables specific to translation service
             this.translationService = null;
             this.responseOptions = null;
-            this.input = null;
+
             // a map of language-pair to TranslationModel object
             this.translationModels = new Map();
             this.CACHE_NAME = "fxtranslations";
@@ -93,32 +93,38 @@ class TranslationHelper {
                 const translationMessagesBatch = this.translationQueue.dequeue();
                 Promise.resolve().then(function () {
                     if (translationMessagesBatch) {
+                        try {
+                            let total_words = 0;
+                            translationMessagesBatch.forEach(message => {
+                                total_words += message.sourceParagraph.trim().split(" ").length;
+                            });
 
-                        let total_words = 0;
-                        translationMessagesBatch.forEach(message => {
-                            total_words += message.sourceParagraph.trim().split(" ").length;
-                        });
+                            console.log(" twarray to translate:", translationMessagesBatch);
+                            const t0 = performance.now();
 
-                        console.log(" twarray to translate:", translationMessagesBatch);
-                        const t0 = performance.now();
-                        const translationResultBatch = this.translate(translationMessagesBatch);
-                        const timeElapsed = [total_words, performance.now() - t0];
-                        console.log(" twarray translated:", translationResultBatch);
+                            const translationResultBatch = this.translate(translationMessagesBatch);
+                            const timeElapsed = [total_words, performance.now() - t0];
+                            console.log(" twarray translated:", translationResultBatch);
 
-                        /*
-                         * now that we have the paragraphs back, let's reconstruct them.
-                         * we trust the engine will return the paragraphs always in the same order
-                         * we requested
-                         */
-                        translationResultBatch.forEach((result, index) => {
-                            translationMessagesBatch[index].translatedParagraph = result;
-                        });
-                        // and then report to the mediator
-                        postMessage([
-                            "translationComplete",
-                            translationMessagesBatch,
-                            timeElapsed
-                        ]);
+                            /*
+                             * now that we have the paragraphs back, let's reconstruct them.
+                             * we trust the engine will return the paragraphs always in the same order
+                             * we requested
+                             */
+                            translationResultBatch.forEach((result, index) => {
+                                translationMessagesBatch[index].translatedParagraph = result;
+                            });
+                            // and then report to the mediator
+                            postMessage([
+                                "translationComplete",
+                                translationMessagesBatch,
+                                timeElapsed
+                            ]);
+                        } catch (e) {
+                            postMessage(["onError", "translation"]);
+                            console.error("Translation error: ", e)
+                            throw e;
+                        }
                     }
                   }.bind(this));
             }
@@ -199,7 +205,15 @@ class TranslationHelper {
             try {
               await this.constructTranslationService();
               await this.constructTranslationModel(sourceLanguage, targetLanguage);
-              console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(Date.now() - start) / 1000} secs`);
+              let finish = Date.now();
+              console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
+              postMessage([
+                "onModelEvent",
+                "loaded",
+                finish-start
+              ]);
+
+
             } catch (error) {
               console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
               postMessage([
@@ -261,7 +275,6 @@ class TranslationHelper {
             /*
              * for available configuration options,
              * please check: https://marian-nmt.github.io/docs/cmd/marian-decoder/
-             * TODO: gemm-precision: int8shiftAlphaAll (for the models that support this)
              * DONOT CHANGE THE SPACES BETWEEN EACH ENTRY OF CONFIG
              */
             const modelConfig = `
@@ -300,7 +313,7 @@ class TranslationHelper {
             ]);
             const modelBuffer = downloadedBuffers[0];
             const shortListBuffer = downloadedBuffers[1];
-            if (!modelBuffer && !shortListBuffer) {
+            if (!modelBuffer || !shortListBuffer) {
                 console.log("Error loading models from cache or web (models)");
                 throw new Error("Error loading models from cache or web (models)");
             }
@@ -312,7 +325,14 @@ class TranslationHelper {
             const downloadedVocabBuffers = [];
             downloadedVocabBuffers.push(vocabAsArrayBuffer);
 
-            console.log(`Total Download time for all files of '${languagePair}': ${(Date.now() - start) / 1000} secs`);
+            let finish = Date.now();
+            console.log(`Total Download time for all files of '${languagePair}': ${(finish - start) / 1000} secs`);
+              postMessage([
+                "onModelEvent",
+                "downloaded",
+                finish-start
+              ]);
+
 
             // cnstruct AlignedMemory objects with downloaded buffers
             let constructedAlignedMemories = await Promise.all([
@@ -392,6 +412,7 @@ class TranslationHelper {
                                 "updateProgress",
                                 "Error downloading translation engine. (timeout)"
                             ]);
+                            postMessage(["onError", "model_download"]);
                             return null;
                         }
                         // eslint-disable-next-line no-await-in-loop
@@ -419,6 +440,7 @@ class TranslationHelper {
                                 "updateProgress",
                                 "Error downloading translation engine. (no data)"
                             ]);
+                            postMessage(["onError", "model_download"]);
                             return null;
                         }
 
@@ -434,6 +456,7 @@ class TranslationHelper {
                         "updateProgress",
                         "Error downloading translation engine. (not found)"
                     ]);
+                    postMessage(["onError", "model_download"]);
                     return null;
                 }
             }
@@ -445,6 +468,7 @@ class TranslationHelper {
                     "updateProgress",
                     "Error downloading translation engine. (checksum)"
                 ]);
+                postMessage(["onError", "model_download"]);
                 return null;
             }
             return arraybuffer;
@@ -497,7 +521,6 @@ class TranslationHelper {
 
             /*
              * instantiate the arguments of translate() API i.e. ResponseOptions and input (vector<string>)
-             * const responseOptions = new this.WasmEngineModule.ResponseOptions();
              */
             const htmlOptions = new this.WasmEngineModule.HTMLOptions();
             htmlOptions.setContinuationDelimiters("\n ,.(){}[]0123456789");
