@@ -37,8 +37,6 @@
             "controller/translation/translationWorker.js",
             "view/js/OutboundTranslation.js",
             "view/js/InPageTranslation.js",
-            "model/telemetry/Telemetry.js",
-            "model/telemetry/TelemetrySchema.js",
             "model/modelRegistry.js",
             "mediator.js"
           ],

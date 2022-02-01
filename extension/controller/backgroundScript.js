@@ -7,9 +7,6 @@
  * this script does not have access to the page content, since it runs in the
  * extension's background process.
  */
-
-let cachedEnvInfo = null;
-
 // eslint-disable-next-line max-lines-per-function
 const messageListener = async function(message, sender) {
     let languageDetection = null;
@@ -56,18 +53,6 @@ const messageListener = async function(message, sender) {
             // );
             browser.pageAction.show(sender.tab.id);
 
-            break;
-
-        case "loadTelemetryInfo":
-            if (cachedEnvInfo === null) {
-                const platformInfo = await browser.runtime.getPlatformInfo();
-                const env = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
-                env.os = platformInfo.os;
-                env.arch = platformInfo.arch;
-                // eslint-disable-next-line require-atomic-updates
-                cachedEnvInfo = env;
-            }
-            browser.tabs.sendMessage(sender.tab.id, { command: "telemetryInfoLoaded", env: cachedEnvInfo })
             break;
         case "translationRequested":
             // requested for translation received. let's inform the mediator

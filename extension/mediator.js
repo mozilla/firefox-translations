@@ -4,7 +4,7 @@
  */
 
 /* global LanguageDetection, OutboundTranslation, Translation , browser,
-InPageTranslation, browser, Telemetry, TranslationTelemetry */
+InPageTranslation, browser */
 
 class Mediator {
 
@@ -16,15 +16,8 @@ class Mediator {
         this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
 
-        /*
-         *  todo: read from config
-         */
-        this.telemetry = new Telemetry(true, false, false);
-        this.translationTelemetry = new TranslationTelemetry(this.telemetry);
-        this.translationTelemetry.recordVersions(browser.runtime.getManifest().version, "?", "?");
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
-        this.statsMode = false;
         // if we are in the protected mochitest page, we flag it.
         if (window.location.href ===
             "https://example.com/browser/browser/extensions/translations/test/browser/browser_translation_test.html") {
@@ -34,12 +27,6 @@ class Mediator {
 
     init() {
         browser.runtime.sendMessage({ command: "monitorTabLoad" });
-        browser.runtime.sendMessage({ command: "loadTelemetryInfo" });
-    }
-
-    // the page is closed or infobar is closed manually
-    closeSession() {
-        this.telemetry.submit("custom");
     }
 
     // main entrypoint to handle the extension's load
@@ -81,8 +68,6 @@ class Mediator {
 
             const pageLang = this.languageDetection.pageLanguage.language;
             const navLang = this.languageDetection.navigatorLanguage;
-            this.translationTelemetry.recordLangPair(pageLang, navLang);
-            this.telemetry.increment("service", "lang_mismatch");
             window.onbeforeunload = () => this.closeSession();
 
             if (this.languageDetection.shouldDisplayTranslation()) {
@@ -94,8 +79,6 @@ class Mediator {
                 this.translationBarDisplayed = true;
                 // create the translation object
                 this.translation = new Translation(this);
-            } else {
-                this.telemetry.increment("service", "not_supported");
             }
         }
     }
@@ -135,19 +118,6 @@ class Mediator {
                     this.messagesSenderLookupTable.delete(translationMessage.messageID);
                 });
 
-                // eslint-disable-next-line no-case-declarations
-                const wordsPerSecond = this.translationTelemetry
-                    .addAndGetTranslationTimeStamp(message.payload[2][0], message.payload[2][1]);
-
-                if (this.statsMode) {
-                    // if the user chose to see stats in the infobar, we display them
-                    browser.runtime.sendMessage({
-                        command: "updateProgress",
-                        progressMessage: [null,`Translation enabled (stats mode) Words-per-second: ${wordsPerSecond}`],
-                        tabId: this.tabId
-                    });
-                }
-
                 // console.log("translation complete rcvd:", message, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
                 break;
             case "updateProgress":
@@ -169,25 +139,9 @@ class Mediator {
                 break;
 
             case "onError":
-                // payload is a metric name from metrics.yaml
-                this.telemetry.increment("errors", message.payload);
-                // submit errors ping right away assuming the rest of experience is broken
-                this.telemetry.submit("custom")
                 break;
 
             case "onModelEvent":
-                // eslint-disable-next-line no-case-declarations
-                let metric = null;
-                if (message.payload.type === "downloaded") {
-                    metric = "model_download_time_num";
-                } else if (message.payload.type === "loaded") {
-                    metric = "model_load_time_num";
-                    // start timer when the model is fully loaded
-                    this.translationTelemetry.translationStarted();
-                } else {
-                    throw new Error(`Unexpected event type: ${message.payload.type}`)
-                }
-                this.telemetry.timespan("performance", metric, message.payload.timeMs);
                 break;
 
 
@@ -204,10 +158,6 @@ class Mediator {
         switch (message.command) {
             case "responseMonitorTabLoad":
                 this.start(message.tabId);
-                break;
-            case "telemetryInfoLoaded":
-                this.translationTelemetry.recordEnvironment(message.env);
-                this.telemetry.setBrowserEnv(message.env);
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
@@ -232,14 +182,7 @@ class Mediator {
                 this.translation.loadOutboundTranslation(message);
                 break;
 
-            case "displayStatistics":
-                this.statsMode = true;
-                break;
-
             case "onInfobarEvent":
-                // 'name' is a metric name from metrics.yaml
-                this.telemetry.event("infobar", message.name);
-
                 if (message.name === "closed" ||
                     message.name === "never_translate_site" ||
                     message.name === "never_translate_lang") {
