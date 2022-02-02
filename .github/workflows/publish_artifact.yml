@@ -51,6 +51,7 @@ jobs:
         with:
           name: bergamot-translator-worker
           path: ${{github.workspace}}/build-wasm/bergamot-translator-worker.*
+          if-no-files-found: error
 
   build-extension:
     runs-on: ubuntu-latest
@@ -81,6 +82,7 @@ jobs:
         with:
           name: extension
           path: ${{github.workspace}}/web-ext-artifacts/bergamot_translations.xpi
+          if-no-files-found: error
       - name: Sign
         if: startsWith(github.ref, 'refs/tags/v')
         run: npm run sign
