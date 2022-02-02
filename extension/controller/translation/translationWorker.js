@@ -5,622 +5,478 @@
 /* global engineRegistryRootURL, engineRegistryRootURLTest, engineRegistry, loadEmscriptenGlueCode, Queue */
 /* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts */
 
-/*
- * this class should only be instantiated the web worker
- * to serve as a helper and placeholoder for the translation related
- * objects like the underlying wasm module, the language models etc... and
- * their states of operation
+/**
+ * Converts the hexadecimal hashes from the registry to something we can use with
+ * the fetch() method.
  */
-class TranslationHelper {
-
-        constructor(postMessage) {
-            // all variables specific to translation service
-            this.translationService = null;
-            this.responseOptions = null;
-
-            // a map of language-pair to TranslationModel object
-            this.translationModels = new Map();
-            this.CACHE_NAME = "fxtranslations";
-            this.postMessage = postMessage;
-            this.wasmModuleStartTimestamp = null;
-            this.WasmEngineModule = null;
-            this.engineState = this.ENGINE_STATE.LOAD_PENDING;
-        }
-
-
-        get ENGINE_STATE () {
-            return {
-                LOAD_PENDING: 0,
-                LOADING: 1,
-                LOADED: 2
-              };
-        }
-
-        async loadTranslationEngine(sourceLanguage, targetLanguage) {
-            postMessage([
-                "updateProgress",
-                "Loading Translation Engine"
-            ]);
-            /*
-            const itemURL = `${engineRegistryRootURL}${engineRegistry.bergamotTranslatorWasm.fileName}`;
-            // first we load the wasm engine
-            const wasmArrayBuffer = await this.getItemFromCacheOrWeb(
-                itemURL,
-                engineRegistry.bergamotTranslatorWasm.fileSize,
-                engineRegistry.bergamotTranslatorWasm.sha256
-            );
-            */
-
-            const wasmArrayBuffer = await fetch("bergamot-translator-worker.wasm").then(response => response.arrayBuffer());
-
-            if (!wasmArrayBuffer) {
-                console.log("Error loading engine from cache or web.");
-                return;
-            }
-            const initialModule = {
-                preRun: [
-                    function() {
-                        this.wasmModuleStartTimestamp = Date.now();
-                    }.bind(this)
-                ],
-                onRuntimeInitialized: function() {
-
-                    /*
-                     * once we have the wasm engine module successfully
-                     * initialized, we then load the language models
-                     */
-                    console.log(`Wasm Runtime initialized Successfully (preRun -> onRuntimeInitialized) in ${(Date.now() - this.wasmModuleStartTimestamp) / 1000} secs`);
-                    this.loadLanguageModel(sourceLanguage, targetLanguage);
-                }.bind(this),
-                wasmBinary: wasmArrayBuffer,
-            };
-            try {
-                // eslint-disable-next-line no-unused-vars
-                const { addOnPreMain, Module } = loadEmscriptenGlueCode(initialModule);
-                this.WasmEngineModule = Module;
-            } catch (e) {
-                console.log("Error loading wasm module:", e);
-                postMessage([
-                    "updateProgress",
-                    "Error loading translation module (wasm)"
-                ]);
-            }
-        }
-
-        consumeTranslationQueue() {
-
-            while (this.translationQueue.length() > 0) {
-                const translationMessagesBatch = this.translationQueue.dequeue();
-                Promise.resolve().then(function () {
-                    if (translationMessagesBatch) {
-                        try {
-                            let total_words = 0;
-                            translationMessagesBatch.forEach(message => {
-                                total_words += message.sourceParagraph.trim().split(" ").length;
-                            });
-
-                            console.log(" twarray to translate:", translationMessagesBatch);
-                            const t0 = performance.now();
-
-                            const translationResultBatch = this.translate(translationMessagesBatch);
-                            const timeElapsed = [total_words, performance.now() - t0];
-                            console.log(" twarray translated:", translationResultBatch);
-
-                            /*
-                             * now that we have the paragraphs back, let's reconstruct them.
-                             * we trust the engine will return the paragraphs always in the same order
-                             * we requested
-                             */
-                            translationResultBatch.forEach((result, index) => {
-                                translationMessagesBatch[index].translatedParagraph = result;
-                            });
-                            // and then report to the mediator
-                            postMessage([
-                                "translationComplete",
-                                translationMessagesBatch,
-                                timeElapsed
-                            ]);
-                        } catch (e) {
-                            postMessage(["onError", "translation"]);
-                            console.error("Translation error: ", e)
-                            throw e;
-                        }
-                    }
-                  }.bind(this));
-            }
-        }
-
-        requestTranslation(message) {
-
-            /*
-             * there are three possible states to the engine:
-             * INIT, LOADING, LOADED
-             * the engine is put on LOAD_PENDING mode when the worker is constructed, on
-             * LOADING when the first request is made and the engine is still on
-             * LOAD_PENDING, and on LOADED when the langauge model is loaded
-             */
-
-            switch (this.engineState) {
-                // if the engine hasn't loaded yet.
-                case this.ENGINE_STATE.LOAD_PENDING:
-                    this.translationQueue = new Queue();
-                    // let's change the state to loading
-                    this.engineState = this.ENGINE_STATE.LOADING;
-                    // and load the module
-                    this.loadTranslationEngine(
-                        message[0].sourceLanguage,
-                        message[0].targetLanguage
-                    );
-                    this.translationQueue.enqueue(message);
-                    break;
-                case this.ENGINE_STATE.LOADING:
-
-                    /*
-                     * if we get a translation request while the engine is
-                     * being loaded, we just wait for it, so we break
-                     */
-                    this.translationQueue.enqueue(message);
-                    break;
-
-                case this.ENGINE_STATE.LOADED:
-
-                    this.translationQueue.enqueue(message);
-                    // engine and model are loaded, so let's consume
-                    this.consumeTranslationQueue()
-                    break;
-                default:
-            }
-        }
-
-        async loadOutboundTranslation(message) {
-
-            /*
-             * load the outbound translation model
-             */
-            let start = Date.now();
-            try {
-                await this.constructTranslationModel(message.from, message.to);
-                console.log(`Outbound Model '${message.from}${message.to}' successfully constructed. Time taken: ${(Date.now() - start) / 1000} secs`);
-                // model was lodaded properly, let's communicate the mediator and the UI
-                postMessage([
-                    "updateProgress",
-                    "Automatic page and form translations loaded."
-                ]);
-                postMessage([
-                    "displayOutboundTranslation",
-                    null
-                ]);
-            } catch (error) {
-              console.log(`Outbound Model '${message.from}${message.to}' construction failed: '${error.message} - ${error.stack}'`);
-            }
-        }
-
-        async loadLanguageModel(sourceLanguage, targetLanguage) {
-
-            /*
-             * let's load the models and communicate to the caller (translation)
-             * when we are finished
-             */
-            let start = Date.now();
-            try {
-              await this.constructTranslationService();
-              await this.constructTranslationModel(sourceLanguage, targetLanguage);
-              let finish = Date.now();
-              console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
-              postMessage([
-                "onModelEvent",
-                "loaded",
-                finish-start
-              ]);
-
-
-            } catch (error) {
-              console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
-              postMessage([
-                "updateProgress",
-                error.message
-            ]);
-              return;
-            }
-            this.engineState = this.ENGINE_STATE.LOADED;
-            postMessage([
-                "updateProgress",
-                "Automatic Translation enabled"
-            ]);
-            this.consumeTranslationQueue();
-            console.log("loadLanguageModel function complete");
-        }
-
-        // instantiate the Translation Service
-        constructTranslationService() {
-            if (!this.translationService) {
-                let translationServiceConfig = {};
-                console.log(`Creating Translation Service with config: ${translationServiceConfig}`);
-                this.translationService = new this.WasmEngineModule.BlockingService(translationServiceConfig);
-                console.log("Translation Service created successfully");
-            }
-        }
-
-        deleteModels() {
-            // delete all previously constructed translation models and clear the map
-            this.translationModels.forEach((value, key) => {
-                console.log(`Destructing model '${key}'`);
-                value.delete();
-            });
-            this.translationModels.clear();
-        }
-
-        async constructTranslationModel(from, to) {
-
-            /*
-             * if none of the languages is English then construct multiple models with
-             * English as a pivot language.
-             */
-            if (from !== "en" && to !== "en") {
-                console.log(`Constructing model '${from}${to}' via pivoting: '${from}en' and 'en${to}'`);
-                await Promise.all([
-                    this.constructTranslationModelInvolvingEnglish(from, "en"),
-                    this.constructTranslationModelInvolvingEnglish("en", to)
-                ]);
-            } else {
-                console.log(`Constructing model '${from}${to}'`);
-                await this.constructTranslationModelInvolvingEnglish(from, to);
-            }
-        }
-
-        // eslint-disable-next-line max-lines-per-function
-        async constructTranslationModelInvolvingEnglish(from, to) {
-            const languagePair = `${from}${to}`;
-
-            /*
-             * for available configuration options,
-             * please check: https://marian-nmt.github.io/docs/cmd/marian-decoder/
-             * DONOT CHANGE THE SPACES BETWEEN EACH ENTRY OF CONFIG
-             */
-            const modelConfig = `
-            beam-size: 1
-            normalize: 1.0
-            word-penalty: 0
-            max-length-break: 128
-            mini-batch-words: 1024
-            workspace: 128
-            max-length-factor: 2.0
-            skip-cost: true
-            cpu-threads: 0
-            quiet: true
-            quiet-translation: true
-            gemm-precision: int8shiftAlphaAll
-            alignment: soft
-            `;
-
-            const modelFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].model.name}`;
-            const modelSize = modelRegistry[languagePair].model.size;
-            const modelChecksum = modelRegistry[languagePair].model.expectedSha256Hash;
-
-            const shortlistFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].lex.name}`;
-            const shortlistSize = modelRegistry[languagePair].lex.size;
-            const shortlistChecksum = modelRegistry[languagePair].lex.expectedSha256Hash;
-
-            const vocabFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].vocab.name}`;
-            const vocabFileSize = modelRegistry[languagePair].vocab.size;
-            const vocabFileChecksum = modelRegistry[languagePair].vocab.expectedSha256Hash;
-
-            // download the files as buffers from the given urls
-            let start = Date.now();
-            const downloadedBuffers = await Promise.all([
-                this.getItemFromCacheOrWeb(modelFile, modelSize, modelChecksum),
-                this.getItemFromCacheOrWeb(shortlistFile, shortlistSize, shortlistChecksum)
-            ]);
-            const modelBuffer = downloadedBuffers[0];
-            const shortListBuffer = downloadedBuffers[1];
-            if (!modelBuffer || !shortListBuffer) {
-                console.log("Error loading models from cache or web (models)");
-                throw new Error("Error loading models from cache or web (models)");
-            }
-            const vocabAsArrayBuffer = await this.getItemFromCacheOrWeb(vocabFile, vocabFileSize, vocabFileChecksum);
-            if (!vocabAsArrayBuffer) {
-                console.log("Error loading models from cache or web (vocab)");
-                throw new Error("Error loading models from cache or web (vocab)");
-            }
-            const downloadedVocabBuffers = [];
-            downloadedVocabBuffers.push(vocabAsArrayBuffer);
-
-            let finish = Date.now();
-            console.log(`Total Download time for all files of '${languagePair}': ${(finish - start) / 1000} secs`);
-              postMessage([
-                "onModelEvent",
-                "downloaded",
-                finish-start
-              ]);
-
-
-            // cnstruct AlignedMemory objects with downloaded buffers
-            let constructedAlignedMemories = await Promise.all([
-                this.prepareAlignedMemoryFromBuffer(modelBuffer, 256),
-                this.prepareAlignedMemoryFromBuffer(shortListBuffer, 64)
-            ]);
-            let alignedModelMemory = constructedAlignedMemories[0];
-            let alignedShortlistMemory = constructedAlignedMemories[1];
-            let alignedVocabsMemoryList = new this.WasmEngineModule.AlignedMemoryList();
-            for (let item of downloadedVocabBuffers) {
-              // eslint-disable-next-line no-await-in-loop
-              let alignedMemory = await this.prepareAlignedMemoryFromBuffer(item, 64);
-              alignedVocabsMemoryList.push_back(alignedMemory);
-            }
-            for (let vocabs=0; vocabs < alignedVocabsMemoryList.size(); vocabs+=1) {
-              console.log(`Aligned vocab memory${vocabs+1} size: ${alignedVocabsMemoryList.get(vocabs).size()}`);
-            }
-            console.log(`Aligned model memory size: ${alignedModelMemory.size()}`);
-            console.log(`Aligned shortlist memory size: ${alignedShortlistMemory.size()}`);
-            console.log(`Translation Model config: ${modelConfig}`);
-            let translationModel;
-
-            translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabsMemoryList);
-            if (translationModel) {
-                this.translationModels.set(languagePair, translationModel);
-            }
-        }
-
-        // eslint-disable-next-line max-lines-per-function
-        async getItemFromCacheOrWeb(itemURL, fileSize, fileChecksum) {
-
-            /*
-             * there are two possible sources for the wasm modules: the Cache
-             * API or the the network, so we check for their existence in the
-             * former, and if it's not there, we download from the network and
-             * save it in the cache
-             */
-            const cache = await caches.open(this.CACHE_NAME);
-            let cache_match = await cache.match(itemURL);
-            const MAX_DOWNLOAD_TIME = 60000;
-            if (!cache_match) {
-
-                /*
-                 * no match for this object was found in the cache.
-                 * we'll need to download it and inform the progress to the
-                 * sender UI so it could display it to the user
-                 */
-                console.log("no cache match. downloading");
-                let response = null;
-                try {
-                    response = await fetch(itemURL);
-                } catch (exception) {
-                    console.log("Error downloading translation modules. (not found)");
-                    postMessage([
-                        "updateProgress",
-                        "Error downloading translation modules. (not found)"
-                    ]);
-                    return null;
-                }
-
-                if (response.status >= 200 && response.status < 300) {
-                    await cache.put(itemURL, response.clone());
-                    const reader = response.body.getReader();
-                    const contentLength = fileSize;
-                    let receivedLength = 0;
-                    let chunks = [];
-                    let doneReading = false;
-                    let value = null;
-                    const tDownloadStart = performance.now();
-                    let elapsedTime = 0;
-                    while (!doneReading) {
-                        console.log(`elapsedTime after doneReading ${elapsedTime}`);
-                        if (elapsedTime > MAX_DOWNLOAD_TIME) {
-                            console.log("timeout");
-                            cache.delete(itemURL);
-                            postMessage([
-                                "updateProgress",
-                                "Error downloading translation engine. (timeout)"
-                            ]);
-                            postMessage(["onError", "model_download"]);
-                            return null;
-                        }
-                        // eslint-disable-next-line no-await-in-loop
-                        const response = await reader.read();
-                        doneReading = response.done;
-                        value = response.value;
-                        console.log(`elapsedTime after reader.read ${elapsedTime} - doneReading ${doneReading}`);
-                        elapsedTime = performance.now() - tDownloadStart;
-
-                        if (doneReading) {
-                            break;
-                        }
-
-                        if (value) {
-                            chunks.push(value);
-                            receivedLength += value.length;
-                            console.log(`Received ${receivedLength} of ${contentLength} ${itemURL}.`);
-                            postMessage([
-                                "updateProgress",
-                                `Downloaded ${receivedLength} of ${contentLength}`
-                            ]);
-                        } else {
-                            cache.delete(itemURL);
-                            postMessage([
-                                "updateProgress",
-                                "Error downloading translation engine. (no data)"
-                            ]);
-                            postMessage(["onError", "model_download"]);
-                            return null;
-                        }
-
-                        if (receivedLength === contentLength) {
-                            doneReading = true;
-                        }
-                    }
-                    console.log("wasm saved to cache");
-                    cache_match = await cache.match(itemURL);
-                } else {
-                    cache.delete(itemURL);
-                    postMessage([
-                        "updateProgress",
-                        "Error downloading translation engine. (not found)"
-                    ]);
-                    postMessage(["onError", "model_download"]);
-                    return null;
-                }
-            }
-            const arraybuffer = await cache_match.arrayBuffer();
-            const sha256 = await this.digestSha256(arraybuffer);
-            if (sha256 !== fileChecksum) {
-                cache.delete(itemURL);
-                postMessage([
-                    "updateProgress",
-                    "Error downloading translation engine. (checksum)"
-                ]);
-                postMessage(["onError", "model_download"]);
-                return null;
-            }
-            return arraybuffer;
-        }
-
-        async digestSha256 (buffer) {
-            // hash the message
-            const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-            // convert buffer to byte array
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            // convert bytes to hex string
-            return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-        }
-
-        // this function constructs and initializes the AlignedMemory from the array buffer and alignment size
-        prepareAlignedMemoryFromBuffer (buffer, alignmentSize) {
-            var byteArray = new Int8Array(buffer);
-            console.log(`Constructing Aligned memory. Size: ${byteArray.byteLength} bytes, Alignment: ${alignmentSize}`);
-            var alignedMemory = new this.WasmEngineModule.AlignedMemory(byteArray.byteLength, alignmentSize);
-            console.log("Aligned memory construction done");
-            const alignedByteArrayView = alignedMemory.getByteArrayView();
-            alignedByteArrayView.set(byteArray);
-            console.log("Aligned memory initialized");
-            return alignedMemory;
-        }
-
-        translate (messages) {
-
-            /*
-             * if none of the languages is English then perform translation with
-             * english as a pivot language.
-             */
-            const from = messages[0].sourceLanguage;
-            const to = messages[0].targetLanguage;
-
-            if (from !== "en" && to !== "en") {
-                let translatedParagraphsInEnglish = this.translateInvolvingEnglish(from, "en", messages);
-                return this.translateInvolvingEnglish("en", to, translatedParagraphsInEnglish, true);
-            }
-            return this.translateInvolvingEnglish(from, to, messages);
-        }
-
-        // eslint-disable-next-line max-params
-        translateInvolvingEnglish (from, to, messages, pivoting) {
-            const languagePair = `${from}${to}`;
-            if (!this.translationModels.has(languagePair)) {
-                throw Error(`Please load translation model '${languagePair}' before translating`);
-            }
-            const translationModel = this.translationModels.get(languagePair);
-
-            /*
-             * instantiate the arguments of translate() API i.e. ResponseOptions and input (vector<string>)
-             */
-            const htmlOptions = new this.WasmEngineModule.HTMLOptions();
-            htmlOptions.setContinuationDelimiters("\n ,.(){}[]0123456789");
-            htmlOptions.setSubstituteInlineTagsWithSpaces(true);
-
-            const responseOptions = {
-                qualityScores: true,
-                alignment: false,
-                html: true,
-                htmlOptions
-            };
-            let input = new this.WasmEngineModule.VectorString();
-
-            messages.forEach(message => {
-
-                /*
-                 * if we are not pivoting we read from a batch of messages. if we are
-                 * we then read from a batch of paragraphs
-                 */
-                const sourceParagraph = pivoting
-                ? message
-                : message.sourceParagraph;
-
-                // prevent empty paragraph - it breaks the translation
-                if (sourceParagraph.trim() === "") {
-                    return;
-                }
-                input.push_back(sourceParagraph);
-            });
-
-            // translate the input, which is a vector<String>; the result is a vector<Response>
-            let result = this.translationService.translate(translationModel, input, responseOptions);
-
-            const translatedParagraphs = [];
-            for (let i = 0; i < result.size(); i+=1) {
-                translatedParagraphs.push(result.get(i).getTranslatedText());
-            }
-
-            input.delete();
-            return translatedParagraphs;
-        }
-
-        // this function extracts all the translated sentences from the Response and returns them.
-        getAllTranslatedSentencesOfParagraph (response) {
-            const sentences = [];
-            const text = response.getTranslatedText();
-            for (let sentenceIndex = 0; sentenceIndex < response.size(); sentenceIndex+=1) {
-                const utf8SentenceByteRange = response.getTranslatedSentence(sentenceIndex);
-                sentences.push(this._getSentenceFromByteRange(text, utf8SentenceByteRange));
-            }
-            return sentences;
-        }
-
-        // this function extracts all the source sentences from the Response and returns them.
-        getAllSourceSentencesOfParagraph (response) {
-            const sentences = [];
-            const text = response.getOriginalText();
-            for (let sentenceIndex = 0; sentenceIndex < response.size(); sentenceIndex+=1) {
-                const utf8SentenceByteRange = response.getSourceSentence(sentenceIndex);
-                sentences.push(this._getSentenceFromByteRange(text, utf8SentenceByteRange));
-            }
-            return sentences;
-        }
-
-        /*
-         * this function returns a substring of text (a string). The substring is represented by
-         * byteRange (begin and end endices) within the utf-8 encoded version of the text.
-         */
-        _getSentenceFromByteRange (text, byteRange) {
-            const encoder = new TextEncoder(); // string to utf-8 converter
-            const decoder = new TextDecoder(); // utf-8 to string converter
-            const utf8BytesView = encoder.encode(text);
-            const utf8SentenceBytes = utf8BytesView.subarray(byteRange.begin, byteRange.end);
-            return decoder.decode(utf8SentenceBytes);
-        }
+function hexToBase64(hexstring) {
+    return btoa(hexstring.match(/\w{2}/g).map(function(a) {
+        return String.fromCharCode(parseInt(a, 16));
+    }).join(""));
 }
 
-const translationHelper = new TranslationHelper(postMessage);
-onmessage = function(message) {
-    switch (message.data[0]) {
-        case "configEngine":
-            importScripts("/model/Queue.js");
-            importScripts(message.data[1].engineLocalPath);
-            importScripts(message.data[1].engineRemoteRegistry);
-            importScripts(message.data[1].modelRegistry);
-            if (message.data[1].isMochitest){
-                // running tests. let's setup the proper tests endpoints
-                // eslint-disable-next-line no-global-assign
-                engineRegistryRootURL = engineRegistryRootURLTest;
-                // eslint-disable-next-line no-global-assign
-                modelRegistryRootURL = modelRegistryRootURLTest;
+/**
+ * Little wrapper to delay a promise to be made only once it is first awaited on
+ */
+function lazy(factory) {
+    return {
+        then(...args) {
+            // Ask for the actual promise
+            const promise = factory();
+            // Replace ourselves with the actual promise for next calls
+            this.then = promise.then.bind(promise);
+            // Forward the current call to the promise
+            return this.then(...args);
+        }
+    };
+}
+
+/**
+ * Returns a set that is the intersection of two iterables
+ */
+function intersect(a, b) {
+    const bSet = new Set(b);
+    return new Set(a.filter(item => bSet.has(item)));
+}
+
+class PerformanceDummy {
+    constructor(performance) {
+        this.performance = performance;
+        this.marks = {};
+    }
+
+    mark(name) {
+        this.marks[name] = this.performance.now();
+    }
+
+    measure(name, startMark, endMark) {
+        const end = endMark ? this.marks[endMark] : this.performance.now();
+        const start = startMark ? this.marks[startMark] : 0;
+        console.log('%c[measure] %s:%c %ims', 'background-color: orange', name, 'background-color: green; color:white', end - start);
+    }
+} 
+
+// const performance = new PerformanceDummy(window.performance);
+
+const BATCH_SIZE = 4; // number of requested translations
+
+const CACHE_NAME = "bergamot-translations";
+
+const MAX_DOWNLOAD_TIME = 60000; // TODO move this
+
+
+/**
+ * Wrapper around bergamot-translator and model management. You only need
+ * to call translate() which is async, the helper will manage execution by
+ * itself.
+ */
+ class TranslationHelper {
+    
+    constructor(wasmURL) {
+        // all variables specific to translation service
+        this.registry = lazy(this.loadModelRegistery.bind(this));
+        this.module = lazy(this.loadTranslationModule.bind(this));
+        this.service = lazy(this.loadTranslationService.bind(this));
+
+        // a map of language-pair to Array<TranslationModel> object
+        this.models = new Map();
+
+        // List of batches we push() to & shift() from
+        this.queue = [];
+
+        // IdleCallback id when idle callback is scheduled.
+        this.callbackId = null;
+
+        this.batchSerial = 0;
+    }
+
+    async loadTranslationModule() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                performance.mark('loadTranslationModule.start')
+                const response = await fetch("controller/translation/bergamot-translator-worker.wasm");
+                const wasmBinary = await response.arrayBuffer();
+
+                const { addOnPreMain, Module } = loadEmscriptenGlueCode({
+                    wasmBinary,
+                    preRun: [
+                        () => {
+                            // this.wasmModuleStartTimestamp = Date.now();
+                        }
+                    ],
+                    onRuntimeInitialized: () => {
+                        performance.measure('loadTranslationModule', 'loadTranslationModule.start');
+                        resolve(Module);
+                    }
+                });
+            } catch (e) {
+                reject(e);
             }
+        });
+    }
+
+    async loadTranslationService() {
+        const Module = await this.module;
+        return new Module.BlockingService({});
+    }
+
+    async loadModelRegistery() {
+        // I know doesn't need to be async but at some point we might want to use fetch() here.
+        return new Promise((resolve, reject) => {
+            // I don't like the format of this JSON but for now want to be able to
+            // sync it upstream. At some point I'd rather have the format of
+            // TranslateLocally and ideally be able to consume its tar.gz files
+            // directly.
+
+            const registry = Object.entries(modelRegistry).map(([languagePair, files]) => ({
+                from: languagePair.substr(0, 2),
+                to: languagePair.substr(2, 2),
+                files: Object.fromEntries(Object.entries(files).map(([filename, properties]) => (
+                    [
+                        filename,
+                        {
+                            ...properties,
+                            url: `${modelRegistryRootURL}/${languagePair}/${properties.name}`
+                        }
+                    ]
+                )))
+            }));
+
+            resolve(registry);
+        });
+    }
+
+    async loadLanguageModel({files: {vocab, model, lex}}) {
+        const Module = await this.module;
+
+        const modelConfig = `
+        beam-size: 1
+        normalize: 1.0
+        word-penalty: 0
+        max-length-break: 128
+        mini-batch-words: 1024
+        workspace: 128
+        max-length-factor: 2.0
+        skip-cost: true
+        cpu-threads: 0
+        quiet: true
+        quiet-translation: true
+        gemm-precision: int8shiftAlphaAll
+        alignment: soft
+        `;
+        
+        // download the files as buffers from the given urls
+        const [modelMemory, vocabMemory, shortlistMemory] = await Promise.all([
+            this.prepareAlignedMemoryFromBuffer(
+                await this.getItemFromCacheOrWeb(model.url, model.size, model.expectedSha256Hash),
+                256
+            ),
+            this.prepareAlignedMemoryFromBuffer(
+                await this.getItemFromCacheOrWeb(vocab.url, vocab.size, vocab.expectedSha256Hash),
+                64
+            ),
+            this.prepareAlignedMemoryFromBuffer(
+                await this.getItemFromCacheOrWeb(lex.url, lex.size, lex.expectedSha256Hash),
+                64
+            ),
+        ]);
+
+        let vocabs = new Module.AlignedMemoryList();
+        vocabs.push_back(vocabMemory);
+
+        return new Module.TranslationModel(modelConfig, modelMemory, shortlistMemory, vocabs);
+    }
+
+    async getItemFromCacheOrWeb(url, size, checksum) {
+        const cache = await caches.open(CACHE_NAME);
+        const match = await cache.match(url);
+
+        if (!match)
+            return this.getItemFromWeb(url, size, checksum, cache); // also puts it in the cache
+
+        const buffer = await match.arrayBuffer();
+        if (await this.digestSha256AsHex(buffer) !== checksum) {
+            cache.delete(url);
+            throw new Error("Error downloading translation engine. (checksum)")
+        }
+
+        return buffer;
+    }
+
+    async getItemFromWeb(url, size, checksum, cache) {
+        try {
+            // Rig up a timeout cancel signal for our fetch
+            const abort = new AbortController();
+            const timeout = setTimeout(() => abort.abort(), MAX_DOWNLOAD_TIME);
+
+            // Start downloading the url
+            const response = await fetch(url, {
+                integrity: `sha256-${hexToBase64(checksum)}`,
+                signal: abort.signal
+            });
+
+            // Also stream it to cache
+            if (cache)
+                await cache.put(url, response.clone());
+
+            // Finish downloading (or crash due to timeout)
+            const buffer = await response.arrayBuffer();
+
+            // Download finished, remove the abort timer
+            clearTimeout(timeout);
+
+            return buffer;
+        } catch (e) {
+            if (cache)
+                cache.delete(url);
+            throw e;
+        }
+    }
+
+    async digestSha256AsHex(buffer) {
+        // hash the message
+        const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+        // convert buffer to byte array
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        // convert bytes to hex string
+        return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async prepareAlignedMemoryFromBuffer(buffer, alignmentSize) {
+        const Module = await this.module;
+        const bytes = new Int8Array(buffer);
+        const memory = new Module.AlignedMemory(bytes.byteLength, alignmentSize);
+        memory.getByteArrayView().set(bytes);
+        return memory;
+    }
+
+    async getModels(from, to) {
+        const key = JSON.stringify({from, to});
+
+        if (!this.models.has(key)) {
+            this.models.set(key, new Promise(async (resolve, reject) => {
+                console.debug('Searching for models for', {from, to});
+
+                const registry = await this.registry;
+
+                // TODO: This all scales really badly.
+
+                let direct = [], outbound = [], inbound = [];
+
+                registry.forEach(model => {
+                    if (model.from === from && model.to === to)
+                        direct.push(model);
+                    else if (model.from === from)
+                        outbound.push(model);
+                    else if (model.to === to)
+                        inbound.push(model);
+                });
+
+                if (direct.length)
+                    return resolve([await this.loadLanguageModel(direct[0])]);
+
+                // Find the pivot language
+                const shared = intersect(
+                    ...outbound.map(model => model.to),
+                    ...inbound.map(model => model.from)
+                );
+
+                if (!shared.length)
+                    throw new Error(`No model available to translate from ${from} to ${to}`);
+
+                resolve([
+                    await this.loadLanguageModel(outbound.find(model => shared.has(model.to))),
+                    await this.loadLanguageModel(inbound.find(model => shared.has(model.from)))
+                ]);
+            }));
+        }
+
+        return await this.models.get(key);
+    }
+
+    run() {
+        if (this.callbackId) {
+            console.debug("Already scheduled to run");
+            return;
+        }
+
+        this.callbackId = setTimeout(async () => {
+            console.log("timed callback called");
+
+            // This callback has been called, so remove its id
+            this.callbackId = null;
+
+            // This will block this thread entirely
+            await this.consumeBatch();
+
+            // If that didn't do it, ask for another call
+            if (this.queue.length)
+                this.run();
+        }, 100);
+    }
+
+    translate(request) {
+        const {from, to, text, qualityScore, alignment, html} = request;
+        console.debug("Requested to translate", text, "from", from, "to", to);
+        
+        return new Promise(async (resolve, reject) => {
+            // Batching key: only requests with the same key can be batched
+            // together. Think same translation model, same options.
+            const key = JSON.stringify({from, to, qualityScore, alignment, html});
+
+            // (Fetching models first because if we would do it between looking
+            // for a batch and making a new one, we end up with a race condition.)
+            const models = await this.getModels(from, to);
+            
+            this.enqueue({key, models, request, resolve, reject});
+
+            this.run();
+        });
+    }
+
+    enqueue({key, models, request, resolve, reject}) {
+         // Find a batch in the queue that we can add to
+         // (TODO: can we search backwards? that would speed things up)
+        let batch = this.queue.find(batch => batch.key === key && batch.requests.length < BATCH_SIZE);
+
+        // No batch or full batch? Queue up a new one
+        if (!batch) {
+            batch = {id: ++this.batchSerial, key, models, requests: []};
+            this.queue.push(batch);
+        }
+
+        batch.requests.push({request, resolve, reject});
+    }
+
+    remove(filter) {
+        const queue = this.queue;
+
+        this.queue = [];
+
+        queue.forEach(batch => {
+            batch.forEach(task => {
+                if (filter(task.request)) {
+                    task.reject(new Error('removed by filter'));
+                    return;
+                }
+
+                this.enqueue({
+                    key: batch.key,
+                    models: batch.models,
+                    request: task.request,
+                    resolve: task.resolve,
+                    reject: task.reject
+                });
+            });
+        });
+
+        console.debug("After pruning closed tab, ", this.queue.length, "of", queue.length, "batches left");
+    }
+
+    async consumeBatch() {
+        performance.mark('BTConsumeBatch.start');
+
+        const Module = await this.module;
+        const service = await this.service;
+
+        console.debug('Total number of batches in queue', this.queue.length);
+        const batch = this.queue.shift();
+        if (batch === undefined)
+            return;
+
+        console.debug("Translating batch", batch);
+
+        const htmlOptions = new Module.HTMLOptions();
+        htmlOptions.setContinuationDelimiters("\n ,.(){}[]0123456789");
+        htmlOptions.setSubstituteInlineTagsWithSpaces(true);
+
+        // TODO: now getting that data from the first request. translate() will
+        // have made sure we only get requests with the same options in this
+        // batch. But in the future I would like to pass on options per request
+        // to bergamot-translator.
+        const responseOptions = {
+            qualityScores: batch.requests[0].request.qualityScore,
+            alignment: batch.requests[0].request.alignment,
+            html: batch.requests[0].request.html,
+            htmlOptions
+        };
+
+        let input = new Module.VectorString();
+
+        batch.requests.forEach(({request: {text}}) => input.push_back(text));
+
+        // translate the input, which is a vector<String>; the result is a vector<Response>
+        performance.mark('BTBlockingService.translate.start');
+        const responses = batch.models.length > 1
+            ? service.translateViaPivoting(...batch.models, input, responseOptions)
+            : service.translate(...batch.models, input, responseOptions);
+        performance.measure('BTBlockingService.translate', 'BTBlockingService.translate.start');
+
+        input.delete();
+
+        performance.mark('BTResolveRequests.start')
+        batch.requests.forEach(({request, resolve, reject}, i) => {
+            const response = responses.get(i);
+            // TODO: look at response.ok and reject() if it is false
+            resolve({
+                request, // Include request for easy reference? Will allow you
+                         // to specify custom properties and use that to link
+                         // request & response back to each other.
+                translation: response.getTranslatedText()
+            });
+        });
+        performance.measure('BTResolveRequests', 'BTResolveRequests.start');
+
+        responses.delete(); // Is this necessary?
+
+        performance.measure('BTConsumeBatch', 'BTConsumeBatch.start');
+    }
+}
+
+const translationHelper = new TranslationHelper();
+
+browser.runtime.onMessage.addListener((message, sender) => {
+    // console.log("Received message", message, "from sender", sender);
+
+    switch (message.command) {
+        case "AvailableModelRequest":
+            translationHelper.registry.then(registry => {
+                browser.tabs.sendMessage(sender.tab.id, {
+                    command: "AvailableModelResponse",
+                    models: registry.map(({from, to}) => ({from, to}))
+                });
+            });
             break;
-        case "translate":
-            translationHelper.requestTranslation(message.data[1]);
+
+        case "TranslateRequest":
+            // safe sender id for "TranslateAbort" requests
+            translationHelper.translate({...message.data, _senderTabId: sender.tab.id}).then(response => {
+                browser.tabs.sendMessage(sender.tab.id, {
+                    command: "TranslateResponse",
+                    data: response 
+                });
+            });
             break;
-        case "loadOutboundTranslation":
-            translationHelper.loadOutboundTranslation(message.data[1]);
+
+        case "TranslateAbort":
+            translationHelper.remove((request) => {
+                return request._senderTabId === sender.tab.id;
+            });
             break;
-        default:
-            // ignore
-      }
+    }
+});
+
+async function test() {
+    console.log(await Promise.all([
+        translationHelper.translate({
+            from: 'de',
+            to: 'en',
+            text: 'Hallo Welt. Wie geht es dir?'
+        }),
+        translationHelper.translate({
+            from: 'de',
+            to: 'en',
+            text: 'Mein Name ist Jelmer.'
+        })
+    ]));
 }

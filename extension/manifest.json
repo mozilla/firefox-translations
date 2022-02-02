@@ -22,7 +22,9 @@
     "background": {
       "scripts": [
         "controller/LanguageDetection.js",
-        "view/js/TranslationNotificationManager.js",
+        "model/modelRegistry.js",
+        "controller/translation/bergamot-translator-worker.js",
+        "controller/translation/translationWorker.js",
         "controller/backgroundScript.js"
       ]
     },
@@ -34,7 +36,6 @@
             "model/Queue.js",
             "controller/translation/Translation.js",
             "controller/translation/TranslationMessage.js",
-            "controller/translation/translationWorker.js",
             "view/js/OutboundTranslation.js",
             "view/js/InPageTranslation.js",
             "model/modelRegistry.js",

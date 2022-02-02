@@ -17,7 +17,7 @@ class Translation {
         const engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
         const engineRemoteRegistry = browser.runtime.getURL("model/engineRegistry.js");
         const modelRegistry = browser.runtime.getURL("model/modelRegistry.js");
-        if (window.Worker) {
+        if (false && window.Worker) {
             this.translationWorker = new Worker(browser.runtime.getURL("controller/translation/translationWorker.js"));
             this.translationWorker.addEventListener(
                 "message",

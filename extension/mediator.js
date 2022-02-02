@@ -14,7 +14,39 @@ class Mediator {
         this.translationsCounter = 0;
         this.languageDetection = new LanguageDetection();
         this.outboundTranslation = new OutboundTranslation(this);
-        this.inPageTranslation = new InPageTranslation(this);
+
+        this.inPageTranslation = new InPageTranslation({
+            contentScriptsMessageListener: (sender, {command, payload}) => {
+                console.assert(command == 'translate');
+
+                browser.runtime.sendMessage({
+                    tabId: this.tabId,
+                    command: "TranslateRequest",
+                    data: {
+                        // translation request
+                        text: payload.text,
+                        from: this.from,
+                        to: this.to,
+                        html: true,
+
+                        // data useful for the response
+                        user: {
+                            type: payload.type,
+                            attrId: payload.attrId
+                        }
+                    }
+                });
+            }
+        });
+
+        browser.runtime.onMessage.addListener(({command, data}) => {
+            if (command == "TranslateResponse") {
+                this.inPageTranslation.mediatorNotification({
+                    ...data.request.user,
+                    translatedParagraph: data.translation
+                });
+            }
+        });
 
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
@@ -46,6 +78,12 @@ class Mediator {
         })
     }
 
+    closeSession() {
+        browser.runtime.sendMessage({
+            command: "TranslateAbort"
+        });
+    }
+
     determineIfTranslationisRequired() {
 
         /*
@@ -68,7 +106,7 @@ class Mediator {
 
             const pageLang = this.languageDetection.pageLanguage.language;
             const navLang = this.languageDetection.navigatorLanguage;
-            window.onbeforeunload = () => this.closeSession();
+            window.addEventListener("beforeunload", this.closeSession.bind(this));
 
             if (this.languageDetection.shouldDisplayTranslation()) {
                 // request the backgroundscript to display the translationbar
@@ -90,36 +128,6 @@ class Mediator {
     // eslint-disable-next-line max-lines-per-function
     contentScriptsMessageListener(sender, message) {
         switch (message.command) {
-            case "translate":
-                // eslint-disable-next-line no-case-declarations
-                const translationMessage = this.translation.constructTranslationMessage(
-                    message.payload.text,
-                    message.payload.type,
-                    message.tabId,
-                    this.languageDetection.navigatorLanguage,
-                    this.languageDetection.pageLanguage.language,
-                    message.payload.attrId
-                );
-                this.messagesSenderLookupTable.set(translationMessage.messageID, sender);
-                this.translation.translate(translationMessage);
-                // console.log("new translation message sent:", translationMessage, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
-                break;
-            case "translationComplete":
-
-                /*
-                 * received the translation complete signal
-                 * from the translation object. so we lookup the sender
-                 * in order to route the response back, which can be
-                 * OutbountTranslation, InPageTranslation etc....
-                 */
-                message.payload[1].forEach(translationMessage => {
-                    this.messagesSenderLookupTable.get(translationMessage.messageID)
-                    .mediatorNotification(translationMessage);
-                    this.messagesSenderLookupTable.delete(translationMessage.messageID);
-                });
-
-                // console.log("translation complete rcvd:", message, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
-                break;
             case "updateProgress":
 
                 /*
@@ -167,6 +175,9 @@ class Mediator {
                 // here we handle when the user's translation request in the infobar
                 // eslint-disable-next-line no-case-declarations
                 // let's start the in-page translation widget
+                // TODO: Temporarily hard-coded these to make testing easier
+                this.from = 'es';
+                this.to = 'en';
                 if (!this.inPageTranslation.started){
                     this.inPageTranslation.start();
                 }
