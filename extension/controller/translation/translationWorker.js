@@ -74,13 +74,19 @@ class PerformanceDummy {
 
 // const performance = new PerformanceDummy(window.performance);
 
-const BATCH_SIZE = 4; // number of requested translations
+const BATCH_SIZE = 8; // number of requested translations
 
 const CACHE_NAME = "bergamot-translations";
 
 const MAX_DOWNLOAD_TIME = 60000; // TODO move this
 
+const MAX_WORKERS = 4;
 
+/**
+ * Little wrapper around the message passing API to keep track of messages and
+ * their responses in such a way that you can just wait for them by awaiting
+ * the promise returned by `request()`.
+ */
 class Channel {
     constructor(worker) {
         this.worker = worker;
@@ -122,28 +128,41 @@ class Channel {
  class TranslationHelper {
     
     constructor() {
-        // all variables specific to translation service
+        // registry of all available models and their urls: Promise<List<Model>>
         this.registry = lazy(this.loadModelRegistery.bind(this));
         
-        // a map of language-pair to Map<{from:str,to:str}, List<{from:str,to:str}>> object
+        // a map of language-pairs to a list of models you need for it: Map<{from:str,to:str}, Promise<List<{from:str,to:str}>>>
         this.models = new Map();
 
+        // List of active workers (and a flag to mark them idle or not)
         this.workers = [];
 
         // List of batches we push() to & shift() from
         this.queue = [];
 
-        // IdleCallback id when idle callback is scheduled.
-        this.callbackId = null;
-
+        // batch serial to help keep track of batches when debugging
         this.batchSerial = 0;
     }
 
+    /**
+     * Loads a worker thread, and wraps it in a message passing proxy. I.e. it
+     * exposes the entire interface of TranslationWorker here, and all calls
+     * to it are async. Do note that you can only pass arguments that survive
+     * being copied into a message. Returns Proxy<TranslationWorker>.
+     */
     loadWorker() {
+        // TODO is this really not async? Can I just send messages to it from
+        // the start and will they be queued or something?
         const worker = new Worker('controller/translation/translationWorkerThread.js');
 
+        // Little wrapper around the message passing api of Worker to make it
+        // easy to await a response to a sent message.
         const channel = new Channel(worker);
 
+        // Wrap the worker in a Proxy so you can treat it as if it is an
+        // instance of the TranslationWorker class that lives inside the worker.
+        // All function calls to it are transparently passed through the message
+        // passing channel.
         return new Proxy(worker, {
             get(target, name, receiver) {
                 return (...args) => {
@@ -153,6 +172,11 @@ class Channel {
         });
     }
 
+    /**
+     * Loads the model registry. Uses the registry shipped with this extension,
+     * but formatted a bit easier to use, and future-proofed to be swapped out
+     * with a TranslateLocally type registry. Returns Promise<List<Model>>
+     */
     async loadModelRegistery() {
         // I know doesn't need to be async but at some point we might want to use fetch() here.
         return new Promise((resolve, reject) => {
@@ -179,29 +203,46 @@ class Channel {
         });
     }
 
-    async loadTranslationModel(key) {
-        performance.mark(`loadTranslationModule.${JSON.stringify(key)}`);
+    /**
+     * Downloads (or from cache) a translation model and returns a set of
+     * ArrayBuffers. These can then be passed to a TranslationWorker thread
+     * to instantiate a TranslationModel inside the WASM vm.
+     * Returns Promise<Map<str,ArrayBuffer>>.
+     */
+    async loadTranslationModel({from, to}) {
+        performance.mark(`loadTranslationModule.${JSON.stringify({from, to})}`);
 
-        const files = (await this.registry).find(model => model.from == key.from && model.to == key.to).files;
+        // Find that model in the registry which will tell us about its files
+        const files = (await this.registry).find(model => model.from == from && model.to == to).files;
 
+        // Download the files in parallel (checking checksums in the process)
         const [model, vocab, shortlist] = await Promise.all([
             this.getItemFromCacheOrWeb(files.model.url, files.model.size, files.model.expectedSha256Hash),
             this.getItemFromCacheOrWeb(files.vocab.url, files.vocab.size, files.vocab.expectedSha256Hash),
             this.getItemFromCacheOrWeb(files.lex.url, files.lex.size, files.lex.expectedSha256Hash),
         ]);
 
-        performance.measure('loadTranslationModel', `loadTranslationModule.${JSON.stringify(key)}`);
+        performance.measure('loadTranslationModel', `loadTranslationModule.${JSON.stringify({from, to})}`);
 
+        // Return the buffers
         return {model, vocab, shortlist};
     }
 
+    /**
+     * Helper to either get a URL remote or from cache. Downloaded file is
+     * always checked against checksum. Returns Promise<ArrayBuffer>.
+     */
     async getItemFromCacheOrWeb(url, size, checksum) {
         const cache = await caches.open(CACHE_NAME);
         const match = await cache.match(url);
 
+        // It's not already in the cache? Then return the downloaded version
+        // (but also put it in the cache)
         if (!match)
-            return this.getItemFromWeb(url, size, checksum, cache); // also puts it in the cache
+            return this.getItemFromWeb(url, size, checksum, cache);
 
+        // Found it in the cache, let's check whether it (still) matches the
+        // checksum.
         const buffer = await match.arrayBuffer();
         if (await this.digestSha256AsHex(buffer) !== checksum) {
             cache.delete(url);
@@ -211,13 +252,19 @@ class Channel {
         return buffer;
     }
 
+    /**
+     * Helper to download file from the web (and store it in the cache if that
+     * is passed in as well). Verifies the checksum.
+     * Returns Promise<ArrayBuffer>.
+     */
     async getItemFromWeb(url, size, checksum, cache) {
         try {
             // Rig up a timeout cancel signal for our fetch
             const abort = new AbortController();
             const timeout = setTimeout(() => abort.abort(), MAX_DOWNLOAD_TIME);
 
-            // Start downloading the url
+            // Start downloading the url, using the hex checksum to ask
+            // `fetch()` to verify the download using subresource integrity 
             const response = await fetch(url, {
                 integrity: `sha256-${hexToBase64(checksum)}`,
                 signal: abort.signal
@@ -235,12 +282,17 @@ class Channel {
 
             return buffer;
         } catch (e) {
+            // If the download timed out or didn't pass muster, make sure it
+            // doesn't end up in the cache in a bad way.
             if (cache)
                 cache.delete(url);
             throw e;
         }
     }
 
+    /**
+     * Expects ArrayBuffer, returns String.
+     */
     async digestSha256AsHex(buffer) {
         // hash the message
         const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
@@ -250,13 +302,29 @@ class Channel {
         return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
+    /**
+     * Crappy named method that gives you a list of models to translate from
+     * one language into the other. Generally this will be the same as you
+     * just put in if there is a direct model, but it could return a list of
+     * two models if you need to pivot through a third language.
+     * Returns just [{from:str,to:str}...]. To be used something like this:
+     * ```
+     * const models = await this.getModels(from, to);
+     * models.forEach(({from, to}) => {
+     *   const buffers = await this.loadTranslationModel({from,to});
+     *   [TranslationWorker].loadTranslationModel({from,to}, buffers)
+     * });
+     * ```
+     */
     async getModels(from, to) {
         const key = JSON.stringify({from, to});
 
+        // Note that the `this.models` map stores Promises. This so that
+        // multiple calls to `getModels` that ask for the same model will
+        // return the same promise, and the actual lookup is only done once.
+        // The lookup is async because we need to await `this.registry`
         if (!this.models.has(key)) {
             this.models.set(key, new Promise(async (resolve, reject) => {
-                console.debug('Searching for models for', {from, to});
-
                 const registry = await this.registry;
 
                 // TODO: This all scales really badly.
@@ -294,7 +362,13 @@ class Channel {
         return await this.models.get(key);
     }
 
-    run() {
+    /**
+     * Makes sure queued work gets send to a worker. Will delay it till `idle`
+     * to make sure the batches have been filled to some degree. Will keep
+     * calling itself as long as there is work in the queue, but it does not
+     * hurt to call it multiple times. This function always returns immediately.
+     */
+    notify() {
         requestIdleCallback(async () => {
             // Is there work to be done?
             if (!this.queue.length)
@@ -304,7 +378,7 @@ class Channel {
             let worker = this.workers.find(worker => worker.idle);
 
             // No worker free, but space for more?
-            if (!worker && this.workers.length < 4) {
+            if (!worker && this.workers.length < MAX_WORKERS) {
                 worker = {
                     idle: true,
                     worker: this.loadWorker()
@@ -316,21 +390,35 @@ class Channel {
             if (!worker)
                 return;
 
-            // Put this worker to work, marking as busy
-            // (Up to this point, this function has not used await, so no
+            // Up to this point, this function has not used await, so no
             // chance that another call stole our batch since we did the check
-            // at the beginning of this function. consumeBatch() will also
-            // first shift a batch from the queue before awaiting on anything.)
+            // at the beginning of this function and JavaScript is only
+            // cooperatively parallel.
+            const batch = this.queue.shift();
+
+            // Put this worker to work, marking as busy
             worker.idle = false;
-            await this.consumeBatch(worker.worker);
+            await this.consumeBatch(batch, worker.worker);
             worker.idle = true;
 
             // Is there more work to be done? Do another idleRequest
             if (this.queue.length)
-                this.run();
+                this.notify();
         }, {timeout: 1000}); // Start after 1000ms even if not idle
     }
 
+    /**
+     * The only real public call you need!
+     * ```
+     * const {translation:str} = await this.translate({
+     *   from: 'de',
+     *   to: 'en',
+     *   text: 'Hallo Welt!',
+     *   html: false, // optional
+     *   priority: 0 // optional, like `nice` lower numbers are translated first
+     * })
+     * ```
+     */
     translate(request) {
         const {from, to, text, html, priority} = request;
         
@@ -343,33 +431,19 @@ class Channel {
             // for a batch and making a new one, we end up with a race condition.)
             const models = await this.getModels(from, to);
             
+            // Put the request and its callbacks into a fitting batch
             this.enqueue({key, models, request, resolve, reject, priority});
 
-            this.run();
+            // Tell a worker to pick up the work at some point.
+            this.notify();
         });
     }
 
-    enqueue({key, models, request, resolve, reject, priority}) {
-        if (priority === undefined)
-            priority = 0;
-         // Find a batch in the queue that we can add to
-         // (TODO: can we search backwards? that would speed things up)
-        let batch = this.queue.find(batch => {
-            return batch.key === key
-                && batch.priority === priority
-                && batch.requests.length < BATCH_SIZE
-        });
-
-        // No batch or full batch? Queue up a new one
-        if (!batch) {
-            batch = {id: ++this.batchSerial, key, priority, models, requests: []};
-            this.queue.push(batch);
-            this.queue.sort((a, b) => a.priority - b.priority);
-        }
-
-        batch.requests.push({request, resolve, reject});
-    }
-
+    /**
+     * Prune pending requests by testing each one of them to whether they're
+     * still relevant. Used to prune translation requests from tabs that got
+     * closed.
+     */
     remove(filter) {
         const queue = this.queue;
 
@@ -396,13 +470,39 @@ class Channel {
         console.debug("After pruning closed tab, ", this.queue.length, "of", queue.length, "batches left");
     }
 
-    async consumeBatch(worker) {
-        performance.mark('BTConsumeBatch.start');
+    /**
+     * Internal function used to put a request in a batch that still has space.
+     * Also responsible for keeping the batches in order of priority. Called by
+     * `translate()` but also used when filtering pending requests.
+     */
+    enqueue({key, models, request, resolve, reject, priority}) {
+        if (priority === undefined)
+            priority = 0;
+         // Find a batch in the queue that we can add to
+         // (TODO: can we search backwards? that would speed things up)
+        let batch = this.queue.find(batch => {
+            return batch.key === key
+                && batch.priority === priority
+                && batch.requests.length < BATCH_SIZE
+        });
 
-        console.debug('Total number of batches in queue', this.queue.length);
-        const batch = this.queue.shift();
-        if (batch === undefined)
-            return;
+        // No batch or full batch? Queue up a new one
+        if (!batch) {
+            batch = {id: ++this.batchSerial, key, priority, models, requests: []};
+            this.queue.push(batch);
+            this.queue.sort((a, b) => a.priority - b.priority);
+        }
+
+        batch.requests.push({request, resolve, reject});
+    }
+
+    /**
+     * Internal method that uses a worker thread to process a batch. You can
+     * wait for the batch to be done by awaiting this call. You should only
+     * then reuse the worker otherwise you'll just clog up its message queue.
+     */
+    async consumeBatch(batch, worker) {
+        performance.mark('BTConsumeBatch.start');
 
         console.debug("Translating batch", batch);
 
@@ -415,12 +515,17 @@ class Channel {
             }
         }));
 
+        // Call the worker to translate. Only sending the actually necessary
+        // parts of the batch to avoid trying to send things that don't survive
+        // the message passing API between this thread and the worker thread.
         const responses = await worker.translate({
             models: batch.models.map(({from, to}) => ({from, to})),
             texts: batch.requests.map(({request: {text}}) => text),
             options: {html: batch.requests[0].request.html}
         });
 
+        // Responses are in! Connect them back to their requests and call their
+        // callbacks.
         batch.requests.forEach(({request, resolve, reject}, i) => {
             // TODO: look at response.ok and reject() if it is false
             resolve({
@@ -435,8 +540,10 @@ class Channel {
     }
 }
 
+// Main function of this background script
 const translationHelper = new TranslationHelper();
 
+// Listen to translation requests from the extension's content_scripts.
 browser.runtime.onMessage.addListener((message, sender) => {
     // console.log("Received message", message, "from sender", sender);
 
@@ -468,6 +575,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
     }
 });
 
+// Just a little test to run in the web inspector for debugging
 async function test() {
     console.log(await Promise.all([
         translationHelper.translate({

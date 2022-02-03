@@ -1,7 +1,9 @@
+// Emscripten glue code
 importScripts('bergamot-translator-worker.js');
 
-
-
+/**
+ * Wrapper around the dirty bits of Bergamot's WASM bindings.
+ */
 class TranslationWorker {
     constructor() {
         this.module = this.loadModule();
@@ -11,6 +13,9 @@ class TranslationWorker {
         this.models = new Map(); // Map<str,Promise<TranslationModel>>
     }
 
+    /**
+     * Internal method. Reads and instantiates the WASM binary.
+     */
     loadModule() {
         return new Promise(async (resolve, reject) => {
             const response = await fetch("bergamot-translator-worker.wasm");
@@ -30,16 +35,28 @@ class TranslationWorker {
         })
     }
 
+    /**
+     * Internal method. Instantiates a BlockingService()
+     */
     async loadTranslationService() {
         const Module = await this.module;
         return new Module.BlockingService({});
     }
 
+    /**
+     * Returns whether a model has already been loaded in this worker. Marked
+     * async because the message passing interface we use expects async methods.
+     */ 
     async hasTranslationModel({from,to}) {
         const key = JSON.stringify({from,to});
         return this.models.has(key);
     }
 
+    /**
+     * Loads a translation model from a set of file buffers. After this, the
+     * model is available to translate with and `hasTranslationModel()` will
+     * return true for this pair.
+     */ 
     async loadTranslationModel({from, to}, buffers) {
         const Module = await this.module;
         
@@ -72,6 +89,10 @@ class TranslationWorker {
         this.models.set(key, new Module.TranslationModel(modelConfig, modelMemory, shortlistMemory, vocabs));
     }
 
+    /**
+     * Internal function. Copies the data from an ArrayBuffer into memory that
+     * can be used inside the WASM vm by Marian.
+     */
     async prepareAlignedMemoryFromBuffer(buffer, alignmentSize) {
         const Module = await this.module;
         const bytes = new Int8Array(buffer);
@@ -80,6 +101,11 @@ class TranslationWorker {
         return memory;
     }
 
+    /**
+     * Public. Does actual translation work. You have to make sure that the
+     * models necessary for translating text are already loaded before calling
+     * this method.
+     */
     async translate({models, texts, options}) {
         console.log('Worker translate called with', {models, texts, options});
 
@@ -97,10 +123,11 @@ class TranslationWorker {
             htmlOptions
         };
 
+        // Convert texts array into a std::vector<std::string>.
         let input = new Module.VectorString();
-
         texts.forEach(text => input.push_back(text));
 
+        // Turn our model names into a list of TranslationModel pointers
         const translationModels = models.map(({from,to}) => {
             const key = JSON.stringify({from,to});
             return this.models.get(key);
@@ -114,19 +141,21 @@ class TranslationWorker {
         input.delete();
         htmlOptions.delete();
 
-        const retval = texts.map((_, i) => ({
+        // Convert the Response WASM wrappers into native JavaScript types we
+        // can send over the 'wire' (message passing)
+        const translations = texts.map((_, i) => ({
             translation: responses.get(i).getTranslatedText()
         }));
 
         responses.delete();
 
-        return retval;
+        return translations;
     }
 }
 
 const worker = new TranslationWorker();
 
-// Responder for Proxy<Channel>
+// Responder for Proxy<Channel> created in TranslationHelper.loadWorker()
 onmessage = async ({data: {id, message}}) => {
     try {
         const result = await worker[message.name].apply(worker, message.args);
