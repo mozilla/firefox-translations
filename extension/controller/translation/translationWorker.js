@@ -81,6 +81,39 @@ const CACHE_NAME = "bergamot-translations";
 const MAX_DOWNLOAD_TIME = 60000; // TODO move this
 
 
+class Channel {
+    constructor(worker) {
+        this.worker = worker;
+        this.worker.onmessage = this.onmessage.bind(this);
+        this.serial = 0;
+        this.pending = new Map();
+    }
+
+    request(message) {
+        return new Promise((resolve, reject) => {
+            const id = ++this.serial;
+            this.pending.set(id, {resolve, reject});
+            console.log('Sending', {id, message});
+            this.worker.postMessage({id, message});
+        })
+    }
+
+    onmessage({data: {id, message, error}}) {
+        if (id === undefined)
+            return;
+
+        console.log('Receiving', {id, message, error});
+
+        const {resolve, reject} = this.pending.get(id);
+        this.pending.delete(id);
+
+        if (error !== undefined)
+            reject(error);
+        else
+            resolve(message); // Note: message can be undefined
+    }
+}
+
 /**
  * Wrapper around bergamot-translator and model management. You only need
  * to call translate() which is async, the helper will manage execution by
@@ -88,14 +121,14 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
  */
  class TranslationHelper {
     
-    constructor(wasmURL) {
+    constructor() {
         // all variables specific to translation service
         this.registry = lazy(this.loadModelRegistery.bind(this));
-        this.module = lazy(this.loadTranslationModule.bind(this));
-        this.service = lazy(this.loadTranslationService.bind(this));
-
-        // a map of language-pair to Array<TranslationModel> object
+        
+        // a map of language-pair to Map<{from:str,to:str}, List<{from:str,to:str}>> object
         this.models = new Map();
+
+        this.workers = [];
 
         // List of batches we push() to & shift() from
         this.queue = [];
@@ -106,34 +139,18 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
         this.batchSerial = 0;
     }
 
-    async loadTranslationModule() {
-        return new Promise(async (resolve, reject) => {
-            try {
-                performance.mark('loadTranslationModule.start')
-                const response = await fetch("controller/translation/bergamot-translator-worker.wasm");
-                const wasmBinary = await response.arrayBuffer();
+    loadWorker() {
+        const worker = new Worker('controller/translation/translationWorkerThread.js');
 
-                const { addOnPreMain, Module } = loadEmscriptenGlueCode({
-                    wasmBinary,
-                    preRun: [
-                        () => {
-                            // this.wasmModuleStartTimestamp = Date.now();
-                        }
-                    ],
-                    onRuntimeInitialized: () => {
-                        performance.measure('loadTranslationModule', 'loadTranslationModule.start');
-                        resolve(Module);
-                    }
-                });
-            } catch (e) {
-                reject(e);
+        const channel = new Channel(worker);
+
+        return new Proxy(worker, {
+            get(target, name, receiver) {
+                return (...args) => {
+                    return channel.request({name, args: Array.from(args)}) // returns a Promise
+                }
             }
         });
-    }
-
-    async loadTranslationService() {
-        const Module = await this.module;
-        return new Module.BlockingService({});
     }
 
     async loadModelRegistery() {
@@ -162,52 +179,20 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
         });
     }
 
-    async loadLanguageModel({files: {vocab, model, lex}}) {
-        const key = cyrb53(JSON.stringify({vocab,model,lex}));
-        performance.mark(`loadTranslationModule.${key}`);
+    async loadTranslationModel(key) {
+        performance.mark(`loadTranslationModule.${JSON.stringify(key)}`);
 
-        const Module = await this.module;
+        const files = (await this.registry).find(model => model.from == key.from && model.to == key.to).files;
 
-        const modelConfig = `
-        beam-size: 1
-        normalize: 1.0
-        word-penalty: 0
-        max-length-break: 128
-        mini-batch-words: 1024
-        workspace: 128
-        max-length-factor: 2.0
-        skip-cost: true
-        cpu-threads: 0
-        quiet: true
-        quiet-translation: true
-        gemm-precision: int8shiftAlphaAll
-        alignment: soft
-        `;
-        
-        // download the files as buffers from the given urls
-        const [modelMemory, vocabMemory, shortlistMemory] = await Promise.all([
-            this.prepareAlignedMemoryFromBuffer(
-                await this.getItemFromCacheOrWeb(model.url, model.size, model.expectedSha256Hash),
-                256
-            ),
-            this.prepareAlignedMemoryFromBuffer(
-                await this.getItemFromCacheOrWeb(vocab.url, vocab.size, vocab.expectedSha256Hash),
-                64
-            ),
-            this.prepareAlignedMemoryFromBuffer(
-                await this.getItemFromCacheOrWeb(lex.url, lex.size, lex.expectedSha256Hash),
-                64
-            ),
+        const [model, vocab, shortlist] = await Promise.all([
+            this.getItemFromCacheOrWeb(files.model.url, files.model.size, files.model.expectedSha256Hash),
+            this.getItemFromCacheOrWeb(files.vocab.url, files.vocab.size, files.vocab.expectedSha256Hash),
+            this.getItemFromCacheOrWeb(files.lex.url, files.lex.size, files.lex.expectedSha256Hash),
         ]);
 
-        let vocabs = new Module.AlignedMemoryList();
-        vocabs.push_back(vocabMemory);
+        performance.measure('loadTranslationModel', `loadTranslationModule.${JSON.stringify(key)}`);
 
-        const translationModel = new Module.TranslationModel(modelConfig, modelMemory, shortlistMemory, vocabs);
-
-        performance.measure('loadLanguageModel', `loadTranslationModule.${key}`);
-
-        return translationModel;
+        return {model, vocab, shortlist};
     }
 
     async getItemFromCacheOrWeb(url, size, checksum) {
@@ -265,14 +250,6 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
         return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
-    async prepareAlignedMemoryFromBuffer(buffer, alignmentSize) {
-        const Module = await this.module;
-        const bytes = new Int8Array(buffer);
-        const memory = new Module.AlignedMemory(bytes.byteLength, alignmentSize);
-        memory.getByteArrayView().set(bytes);
-        return memory;
-    }
-
     async getModels(from, to) {
         const key = JSON.stringify({from, to});
 
@@ -296,7 +273,7 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
                 });
 
                 if (direct.length)
-                    return resolve([await this.loadLanguageModel(direct[0])]);
+                    return resolve([direct[0]]);
 
                 // Find the pivot language
                 const shared = intersect(
@@ -308,8 +285,8 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
                     throw new Error(`No model available to translate from ${from} to ${to}`);
 
                 resolve([
-                    await this.loadLanguageModel(outbound.find(model => shared.has(model.to))),
-                    await this.loadLanguageModel(inbound.find(model => shared.has(model.from)))
+                    outbound.find(model => shared.has(model.to)),
+                    inbound.find(model => shared.has(model.from))
                 ]);
             }));
         }
@@ -324,12 +301,15 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
         }
 
         this.callbackId = requestIdleCallback(async () => {
-            // This callback has been called, so remove its id
-            this.callbackId = null;
+            if (!this.workers.length)
+                this.workers.push(this.loadWorker());
 
             // This will block this thread entirely
-            await this.consumeBatch();
+            await this.consumeBatch(this.workers[0]);
 
+            // Allow a next call
+            this.callbackId = null;
+            
             // If that didn't do it, ask for another call
             if (this.queue.length)
                 this.run();
@@ -337,12 +317,12 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
     }
 
     translate(request) {
-        const {from, to, text, qualityScore, alignment, html, priority} = request;
+        const {from, to, text, html, priority} = request;
         
         return new Promise(async (resolve, reject) => {
             // Batching key: only requests with the same key can be batched
             // together. Think same translation model, same options.
-            const key = JSON.stringify({from, to, qualityScore, alignment, html});
+            const key = JSON.stringify({from, to, html});
 
             // (Fetching models first because if we would do it between looking
             // for a batch and making a new one, we end up with a race condition.)
@@ -401,11 +381,8 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
         console.debug("After pruning closed tab, ", this.queue.length, "of", queue.length, "batches left");
     }
 
-    async consumeBatch() {
+    async consumeBatch(worker) {
         performance.mark('BTConsumeBatch.start');
-
-        const Module = await this.module;
-        const service = await this.service;
 
         console.debug('Total number of batches in queue', this.queue.length);
         const batch = this.queue.shift();
@@ -414,47 +391,31 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
 
         console.debug("Translating batch", batch);
 
-        const htmlOptions = new Module.HTMLOptions();
-        htmlOptions.setContinuationDelimiters("\n ,.(){}[]0123456789");
-        htmlOptions.setSubstituteInlineTagsWithSpaces(true);
+        // Make sure the worker has all necessary models loaded. If not, tell it
+        // first to load them.
+        await Promise.all(batch.models.map(async ({from, to}) => {
+            if (!await worker.hasTranslationModel({from, to})) {
+                const buffers = await this.loadTranslationModel({from, to});
+                await worker.loadTranslationModel({from, to}, buffers);
+            }
+        }));
 
-        // TODO: now getting that data from the first request. translate() will
-        // have made sure we only get requests with the same options in this
-        // batch. But in the future I would like to pass on options per request
-        // to bergamot-translator.
-        const responseOptions = {
-            qualityScores: batch.requests[0].request.qualityScore,
-            alignment: batch.requests[0].request.alignment,
-            html: batch.requests[0].request.html,
-            htmlOptions
-        };
-
-        let input = new Module.VectorString();
-
-        batch.requests.forEach(({request: {text}}) => input.push_back(text));
-
-        // translate the input, which is a vector<String>; the result is a vector<Response>
-        performance.mark('BTBlockingService.translate.start');
-        const responses = batch.models.length > 1
-            ? service.translateViaPivoting(...batch.models, input, responseOptions)
-            : service.translate(...batch.models, input, responseOptions);
-        performance.measure('BTBlockingService.translate', 'BTBlockingService.translate.start');
-
-        input.delete();
+        const responses = await worker.translate({
+            models: batch.models.map(({from, to}) => ({from, to})),
+            texts: batch.requests.map(({request: {text}}) => text),
+            options: {html: batch.requests[0].request.html}
+        });
 
         batch.requests.forEach(({request, resolve, reject}, i) => {
-            const response = responses.get(i);
             // TODO: look at response.ok and reject() if it is false
             resolve({
                 request, // Include request for easy reference? Will allow you
                          // to specify custom properties and use that to link
                          // request & response back to each other.
-                translation: response.getTranslatedText()
+                translation: responses[i].translation
             });
         });
         
-        responses.delete(); // Is this necessary?
-
         performance.measure('BTConsumeBatch', 'BTConsumeBatch.start');
     }
 }
