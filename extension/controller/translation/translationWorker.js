@@ -295,22 +295,37 @@ class Channel {
     }
 
     run() {
-        if (this.callbackId) {
-            console.debug("Already scheduled to run");
-            return;
-        }
+        requestIdleCallback(async () => {
+            // Is there work to be done?
+            if (!this.queue.length)
+                return;
 
-        this.callbackId = requestIdleCallback(async () => {
-            if (!this.workers.length)
-                this.workers.push(this.loadWorker());
+            // Find an idle worker
+            let worker = this.workers.find(worker => worker.idle);
 
-            // This will block this thread entirely
-            await this.consumeBatch(this.workers[0]);
+            // No worker free, but space for more?
+            if (!worker && this.workers.length < 4) {
+                worker = {
+                    idle: true,
+                    worker: this.loadWorker()
+                };
+                this.workers.push(worker);
+            }
 
-            // Allow a next call
-            this.callbackId = null;
-            
-            // If that didn't do it, ask for another call
+            // If no worker, that's the end of it.
+            if (!worker)
+                return;
+
+            // Put this worker to work, marking as busy
+            // (Up to this point, this function has not used await, so no
+            // chance that another call stole our batch since we did the check
+            // at the beginning of this function. consumeBatch() will also
+            // first shift a batch from the queue before awaiting on anything.)
+            worker.idle = false;
+            await this.consumeBatch(worker.worker);
+            worker.idle = true;
+
+            // Is there more work to be done? Do another idleRequest
             if (this.queue.length)
                 this.run();
         }, {timeout: 1000}); // Start after 1000ms even if not idle
