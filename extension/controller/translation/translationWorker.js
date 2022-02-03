@@ -537,8 +537,15 @@ class TranslationHelper {
                 input.push_back(sourceParagraph);
             });
 
-            // translate the input, which is a vector<String>; the result is a vector<Response>
-            let result = this.translationService.translate(translationModel, input, responseOptions);
+            let result = null;
+            try {
+                // translate the input, which is a vector<String>; the result is a vector<Response>
+                result = this.translationService.translate(translationModel, input, responseOptions);
+            } catch (e) {
+                console.error("Error in translation engine ", e)
+                postMessage(["onError", "marian"]);
+                throw e;
+            }
 
             const translatedParagraphs = [];
             for (let i = 0; i < result.size(); i+=1) {
