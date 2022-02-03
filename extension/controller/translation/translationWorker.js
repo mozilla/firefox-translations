@@ -39,6 +39,22 @@ function intersect(a, b) {
     return new Set(a.filter(item => bSet.has(item)));
 }
 
+/**
+ * Hash function for strings because sometimes you just need to have something
+ * unique but not immensely long.
+ */
+function cyrb53(str, seed = 0) {
+    let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+    for (let i = 0, ch; i < str.length; i++) {
+        ch = str.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1>>>16), 2246822507) ^ Math.imul(h2 ^ (h2>>>13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2>>>16), 2246822507) ^ Math.imul(h1 ^ (h1>>>13), 3266489909);
+    return 4294967296 * (2097151 & h2) + (h1>>>0);
+}
+
 class PerformanceDummy {
     constructor(performance) {
         this.performance = performance;
@@ -147,6 +163,9 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
     }
 
     async loadLanguageModel({files: {vocab, model, lex}}) {
+        const key = cyrb53(JSON.stringify({vocab,model,lex}));
+        performance.mark(`loadTranslationModule.${key}`);
+
         const Module = await this.module;
 
         const modelConfig = `
@@ -184,7 +203,11 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
         let vocabs = new Module.AlignedMemoryList();
         vocabs.push_back(vocabMemory);
 
-        return new Module.TranslationModel(modelConfig, modelMemory, shortlistMemory, vocabs);
+        const translationModel = new Module.TranslationModel(modelConfig, modelMemory, shortlistMemory, vocabs);
+
+        performance.measure('loadLanguageModel', `loadTranslationModule.${key}`);
+
+        return translationModel;
     }
 
     async getItemFromCacheOrWeb(url, size, checksum) {
@@ -419,7 +442,6 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
 
         input.delete();
 
-        performance.mark('BTResolveRequests.start')
         batch.requests.forEach(({request, resolve, reject}, i) => {
             const response = responses.get(i);
             // TODO: look at response.ok and reject() if it is false
@@ -430,8 +452,7 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
                 translation: response.getTranslatedText()
             });
         });
-        performance.measure('BTResolveRequests', 'BTResolveRequests.start');
-
+        
         responses.delete(); // Is this necessary?
 
         performance.measure('BTConsumeBatch', 'BTConsumeBatch.start');
