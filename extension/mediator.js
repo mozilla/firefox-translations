@@ -175,6 +175,10 @@ class Mediator {
                 this.telemetry.submit("custom")
                 break;
 
+            case "viewPortWordsNum":
+                this.telemetry.quantity("performance", "word_count_visible_in_viewport", message.payload);
+                break;
+
             case "onModelEvent":
                 // eslint-disable-next-line no-case-declarations
                 let metric = null;
