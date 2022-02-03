@@ -171,8 +171,6 @@ class Mediator {
             case "onError":
                 // payload is a metric name from metrics.yaml
                 this.telemetry.increment("errors", message.payload);
-                // submit errors ping right away assuming the rest of experience is broken
-                this.telemetry.submit("custom")
                 break;
 
             case "viewPortWordsNum":
