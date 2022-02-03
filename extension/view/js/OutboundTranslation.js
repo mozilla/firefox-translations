@@ -43,20 +43,10 @@ class OutboundTranslation {
      * we scan all textareas and attach our listeners to display
      * the UI when the element receives focus
      */
-    const textareas = document.querySelectorAll("textarea");
-    for (const textarea of textareas) {
-      textarea.addEventListener("focus", () => {
-        this.attachOtToTextAreaListener();
-      });
-    }
+    this.addFormListeners(document.querySelectorAll("textarea"));
 
     // scan all text inputs
-    const textinputs = document.querySelectorAll("input[type='text']");
-    for (const input of textinputs) {
-      input.addEventListener("focus", () => {
-        this.attachOtToTextAreaListener();
-      });
-    }
+    this.addFormListeners(document.querySelectorAll("input[type='text']"));
 
     /*
      * we then add the typying listeners to the outbound translation main
@@ -72,7 +62,16 @@ class OutboundTranslation {
         this.TYPING_TIMEOUT
       );
     });
+    this.startMutationObserver();
 
+  }
+
+  addFormListeners(formElements) {
+    for (const formElement of formElements) {
+      formElement.addEventListener("focus", () => {
+        this.attachOtToTextAreaListener();
+      });
+    }
   }
 
   attachOtToTextAreaListener() {
@@ -214,5 +213,62 @@ class OutboundTranslation {
     }
 
     this.otDiv.style.zIndex = this.highestZIndex + 1;
+  }
+
+  /*
+   * although there's a mutation observer already in InPageTranslation.js,
+   * OutboundTranslation.js also deserves its own, so we could both reduce
+   * cpu time when Form Translation is not enabled, to not require one more
+   * message to go through mediator, and also to reduce complexity and increase
+   * modularity. If we notice that two mutation observers are hitting performance
+   * we should revisit this.
+   */
+  startMutationObserver() {
+    // select the node that will be observed for mutations
+    const targetNode = document;
+
+    // options for the observer (which mutations to observe)
+    const config = { attributes: true, childList: true, subtree: true };
+    // callback function to execute when mutations are observed
+    const callback = function(mutationsList) {
+        for (const mutation of mutationsList) {
+            if (mutation.type === "childList" &&
+                mutation.addedNodes[0].id !== "fxtranslations-ot") {
+              // we update the OT's widget zindex to keep it in front
+              this.updateZIndex(mutation.addedNodes);
+              // and then add listeners to occasionaly new form elements
+              mutation.addedNodes.forEach(node => this.startTreeWalker(node));
+            } else if (mutation.type === "attributes" &&
+                       mutation.attributeName === "style" &&
+                       mutation.target.id !== "fxtranslations-ot") {
+                this.updateZIndex(mutation.target);
+            }
+        }
+    }.bind(this);
+
+    // create an observer instance linked to the callback function
+    const observer = new MutationObserver(callback);
+
+    // start observing the target node for configured mutations
+    observer.observe(targetNode, config);
+  }
+
+  startTreeWalker(root) {
+    const acceptNode = node => {
+        return node.nodeName === "TEXTAREA" || (node.nodeName === "INPUT" && node.type === "text")
+    }
+
+    const nodeIterator = document.createNodeIterator(
+        root,
+        // eslint-disable-next-line no-bitwise
+        NodeFilter.ELEMENT,
+        acceptNode
+    );
+
+    let currentNode;
+    // eslint-disable-next-line no-cond-assign
+    while (currentNode = nodeIterator.nextNode()) {
+      this.addFormListeners([currentNode]);
+    }
   }
 }

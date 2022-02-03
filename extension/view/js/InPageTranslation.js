@@ -185,22 +185,12 @@ class InPageTranslation {
         const targetNode = document;
 
         // options for the observer (which mutations to observe)
-        const config = { attributes: true, childList: true, subtree: false };
+        const config = { attributes: true, childList: true, subtree: true };
         // callback function to execute when mutations are observed
         const callback = function(mutationsList) {
             for (const mutation of mutationsList) {
                 if (mutation.type === "childList") {
                     mutation.addedNodes.forEach(node => this.startTreeWalker(node));
-
-                    /*
-                     * let's send this mutation to the outbound translation view
-                     * so it could reposition its z-index
-                     */
-                    this.notifyMediator("domMutation", mutation.addedNodes);
-                } else if (mutation.type === "attributes" &&
-                           mutation.attributeName === "style" &&
-                           mutation.target.id !== "fxtranslations-ot") {
-                    this.notifyMediator("domMutation", mutation.target);
                 }
             }
         }.bind(this);
