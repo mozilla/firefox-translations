@@ -300,9 +300,7 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
             return;
         }
 
-        this.callbackId = setTimeout(async () => {
-            console.log("timed callback called");
-
+        this.callbackId = requestIdleCallback(async () => {
             // This callback has been called, so remove its id
             this.callbackId = null;
 
@@ -312,7 +310,7 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
             // If that didn't do it, ask for another call
             if (this.queue.length)
                 this.run();
-        }, 100);
+        }, {timeout: 1000}); // Start after 1000ms even if not idle
     }
 
     translate(request) {
