@@ -314,8 +314,7 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
     }
 
     translate(request) {
-        const {from, to, text, qualityScore, alignment, html} = request;
-        console.debug("Requested to translate", text, "from", from, "to", to);
+        const {from, to, text, qualityScore, alignment, html, priority} = request;
         
         return new Promise(async (resolve, reject) => {
             // Batching key: only requests with the same key can be batched
@@ -326,21 +325,28 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
             // for a batch and making a new one, we end up with a race condition.)
             const models = await this.getModels(from, to);
             
-            this.enqueue({key, models, request, resolve, reject});
+            this.enqueue({key, models, request, resolve, reject, priority});
 
             this.run();
         });
     }
 
-    enqueue({key, models, request, resolve, reject}) {
+    enqueue({key, models, request, resolve, reject, priority}) {
+        if (priority === undefined)
+            priority = 0;
          // Find a batch in the queue that we can add to
          // (TODO: can we search backwards? that would speed things up)
-        let batch = this.queue.find(batch => batch.key === key && batch.requests.length < BATCH_SIZE);
+        let batch = this.queue.find(batch => {
+            return batch.key === key
+                && batch.priority === priority
+                && batch.requests.length < BATCH_SIZE
+        });
 
         // No batch or full batch? Queue up a new one
         if (!batch) {
-            batch = {id: ++this.batchSerial, key, models, requests: []};
+            batch = {id: ++this.batchSerial, key, priority, models, requests: []};
             this.queue.push(batch);
+            this.queue.sort((a, b) => a.priority - b.priority);
         }
 
         batch.requests.push({request, resolve, reject});
@@ -360,6 +366,7 @@ const MAX_DOWNLOAD_TIME = 60000; // TODO move this
 
                 this.enqueue({
                     key: batch.key,
+                    priority: batch.priority,
                     models: batch.models,
                     request: task.request,
                     resolve: task.resolve,

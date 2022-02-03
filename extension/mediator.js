@@ -15,6 +15,12 @@ class Mediator {
         this.languageDetection = new LanguageDetection();
         this.outboundTranslation = new OutboundTranslation(this);
 
+        const PRIORITIES = {
+            'viewportNodeMap': 1,
+            'nonviewportNodeMap': 2,
+            'hiddenNodeMap': 3
+        };
+
         this.inPageTranslation = new InPageTranslation({
             contentScriptsMessageListener: (sender, {command, payload}) => {
                 console.assert(command == 'translate');
@@ -24,10 +30,13 @@ class Mediator {
                     command: "TranslateRequest",
                     data: {
                         // translation request
-                        text: payload.text,
                         from: this.from,
                         to: this.to,
                         html: true,
+                        text: payload.text,
+                        
+                        // data useful for the scheduling
+                        priority: PRIORITIES[payload.attrId[0]],
 
                         // data useful for the response
                         user: {
