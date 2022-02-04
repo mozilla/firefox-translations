@@ -38,10 +38,17 @@ function render(state) {
 	document.querySelector('#lang-from').value = state.from;
 
 	const toOptions = new Set(state.models
-		.filter(({from}) => (!state.from || state.from == from))
+		.filter(({from}) => (!state.from || state.from === from))
 		.map(({to}) => to));
 	renderSelect(document.querySelector('#lang-to'), toOptions);
 	document.querySelector('#lang-to').value = state.to;
+
+	const progress = state.totalTranslationRequests - state.pendingTranslationRequests;
+	if (progress)
+		document.querySelector('#progress-bar').value = progress;
+	else
+		document.querySelector('#progress-bar').removeAttribute('value'); // gives you a nice I DONT KNOW?! kind of style progress bar during model loading ;)
+	document.querySelector('#progress-bar').max = state.totalTranslationRequests;
 }
 
 browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
@@ -53,7 +60,9 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 		state: 'page-loading',
 		from: undefined,
 		to: undefined,
-		models: []
+		models: [],
+		pendingTranslationRequests: 0,
+		totalTranslationRequests: 0
 	};
 
 	backgroundScript.onMessage.addListener(({command, data}) => {

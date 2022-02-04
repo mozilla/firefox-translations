@@ -13,7 +13,7 @@ const translationHelper = new TranslationHelper();
  * from->to language pairs, based on the detected language, the preferred
  * target language, and what models are available.
  */
-async function detectLanguage(sample) {
+async function detectLanguage(sample, languageHelper) {
     const [detected, models] = await Promise.all([
         browser.i18n.detectLanguage(sample),
         translationHelper.registry
@@ -47,9 +47,11 @@ async function detectLanguage(sample) {
     // Sort our possible models, best one first
     pairs.sort((a, b) => score(b) - score(a));
 
+    // (Using pairs instead of confidence and preferred because we prefer a pair
+    // we can actually translate to above nothing every time right now.)
     return {
-        from: detected.languages[0].language,
-        to: Object.entries(preferred).reduce((best, pair) => pair[1] > best[1] ? pair : best)[0],
+        from: pairs.length ? pairs[0].from : undefined,
+        to: pairs.length ? pairs[0].to : undefined,
         models: pairs
     }
 }
@@ -69,16 +71,22 @@ class Tab extends EventTarget {
     constructor(id) {
         super();
         this.id = id;
-        this.state = State.PAGE_LOADING;
+        this.state = {
+            state: State.PAGE_LOADING,
+            pendingTranslationRequests: 0,
+            totalTranslationRequests: 0
+        };
         this.frames = new Map();
+
+        this._scheduledUpdateEvent = null;
     }
 
     translate({from, to}) {
-        this.update({
+        this.update(state => ({
             state: State.TRANSLATION_IN_PROGRESS,
             from,
             to
-        });
+        }));
 
         this.frames.forEach(frame => {
             frame.postMessage({
@@ -100,25 +108,46 @@ class Tab extends EventTarget {
         });
     }
 
-    update(update) {
-        const state = this.state;
-        Object.assign(this, update);
+    update(callback) {
+        const mutation = callback(this.state);
+        if (mutation === undefined)
+            throw new Error('state update callback function did not return a value');
+        
+        Object.assign(this.state, mutation);
+
+        // Delay the update notification to accumulate multiple changes in one
+        // notification.
+        if (!this._scheduledUpdateEvent) {
+            const callbackId = requestIdleCallback(this._dispatchUpdateEvent.bind(this));
+            this._scheduledUpdateEvent = {mutation, callbackId};
+        } else {
+            Object.assign(this._scheduledUpdateEvent.mutation, mutation);
+        }
+    }
+
+    _dispatchUpdateEvent() {
+        const {mutation} = this._scheduledUpdateEvent;
+        this._scheduledUpdateEvent = null;
 
         const updateEvent = new Event('update');
-        updateEvent.data = update;
+        updateEvent.data = mutation;
         this.dispatchEvent(updateEvent);
-
-        if (this.state !== state) {
-            this.dispatchEvent(new Event('statechange'));
-        }
     }
 }
 
 function showPopup(event) {
-    if (event.target.state === State.TRANSLATION_AVAILABLE) {
-        browser.pageAction.show(event.target.id);
+    switch (event.data.state) {
+        case State.TRANSLATION_AVAILABLE:
+            browser.pageAction.show(event.target.id);
+            break;
+        case State.TRANSLATION_NOT_AVAILABLE:
+            browser.pageAction.hide(event.target.id);
+            break;
     }
 }
+
+
+const translationHelper = new TranslationHelper();
 
 // State per tab
 const tabs = new Map();
@@ -127,7 +156,7 @@ function getTab(tabId) {
     if (!tabs.has(tabId)) {
         const tab = new Tab(tabId);
         tabs.set(tabId, tab);
-        tab.addEventListener('statechange', showPopup);
+        tab.addEventListener('update', showPopup);
     }
 
     return tabs.get(tabId);
@@ -164,25 +193,36 @@ function connectContentScript(contentScript) {
 
         switch (message.command) {
             case "DetectLanguage":
-                detectLanguage(message.data.sample).then(summary => {
-                    tab.update({
+                detectLanguage(message.data.sample, translationHelper).then(summary => {
+                    tab.update(state => ({
                         ...summary, // {from, to, models}
                         state: summary.models.length > 0
                             ? State.TRANSLATION_AVAILABLE
                             : State.TRANSLATION_NOT_AVAILABLE
-                    });
+                    }));
                 });
                 break;
 
             case "TranslateRequest":
-                translationHelper.translate({...message.data, _abortSignal}).then(response => {
-                    if (!response.request._abortSignal.aborted) {
-                        contentScript.postMessage({
-                            command: "TranslateResponse",
-                            data: response
-                        });
-                    }
-                });
+                tab.update(state => ({
+                    pendingTranslationRequests: state.pendingTranslationRequests + 1,
+                    totalTranslationRequests: state.totalTranslationRequests + 1
+                }));
+                translationHelper.translate({...message.data, _abortSignal})
+                    .then(response => {
+                        if (!response.request._abortSignal.aborted) {
+                            contentScript.postMessage({
+                                command: "TranslateResponse",
+                                data: response
+                            });
+                        }
+                    })
+                    .finally(() => {
+                        tab.update(state => ({
+                            pendingTranslationRequests: state.pendingTranslationRequests - 1,
+                            totalTranslationRequests: state.totalTranslationRequests + 1
+                        }));
+                    })
                 break;
 
             case "TranslateAbort":
@@ -231,12 +271,7 @@ function connectPopup(popup) {
 
     popup.postMessage({
         command: 'Update',
-        data: {
-            state: tab.state,
-            from: tab.from,
-            to: tab.to,
-            models: tab.models
-        }
+        data: tab.state
     });
 }
 
