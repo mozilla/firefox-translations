@@ -67,3 +67,17 @@ backgroundScript.postMessage({
         suggested
     }
 });
+
+// Quick hack to get debugging in here
+backgroundScript.onMessage.addListener(({command, data}) => {
+    switch (command) {
+        case "Update":
+            if ('debug' in data) {
+                if (data.debug)
+                    document.querySelector('html').setAttribute('x-bergamot-debug', true);
+                else
+                    document.querySelector('html').removeAttribute('x-bergamot-debug');
+            }
+            break;
+    }
+});

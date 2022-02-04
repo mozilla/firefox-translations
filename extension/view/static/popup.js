@@ -20,14 +20,13 @@ function addEventListeners(handlers) {
 
 function renderSelect(select, values) {
 	// Todo: we can be smarter about this!
-	console.log('renderSelect', select, values);
 	while (select.length)
 		select.remove(0);
 	values.forEach(value => select.add(new Option(value), null));
 }
 
 function render(state) {
-	console.log('render', state);
+	console.log('[popup] Render', state);
 
 	document.querySelectorAll('*[data-state]').forEach(el => {
 		el.hidden = el.dataset.state != state.state;
@@ -49,6 +48,10 @@ function render(state) {
 	else
 		document.querySelector('#progress-bar').removeAttribute('value'); // gives you a nice I DONT KNOW?! kind of style progress bar during model loading ;)
 	document.querySelector('#progress-bar').max = state.totalTranslationRequests;
+
+	document.querySelectorAll('input[type=checkbox][data-state-key]').forEach(el => {
+		el.checked = state[el.dataset.stateKey];
+	});
 }
 
 browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
@@ -61,6 +64,7 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 		from: undefined,
 		to: undefined,
 		models: [],
+		debug: false,
 		pendingTranslationRequests: 0,
 		totalTranslationRequests: 0
 	};
@@ -70,7 +74,6 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 
 		switch (command) {
 			case 'Update':
-				console.log('Update', data);
 				Object.assign(state, data);
 				render(state);
 				break;
@@ -86,6 +89,14 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 					to: document.querySelector('#lang-to').value
 				}
 			});
+		},
+		'change input[type=checkbox][data-state-key]': e => {
+			backgroundScript.postMessage({
+				command: 'UpdateRequest',
+				data: {
+					[e.target.dataset.stateKey]: e.target.checked
+				}
+			})
 		}
 	});
 });

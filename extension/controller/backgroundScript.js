@@ -96,7 +96,8 @@ class Tab extends EventTarget {
         this.state = {
             state: State.PAGE_LOADING,
             pendingTranslationRequests: 0,
-            totalTranslationRequests: 0
+            totalTranslationRequests: 0,
+            debug: false
         };
         this.frames = new Map();
 
@@ -184,6 +185,36 @@ function getTab(tabId) {
     return tabs.get(tabId);
 }
 
+function connectTab(tab, port) {
+    const updateListener = (event) => {
+        port.postMessage({
+            command: 'Update',
+            data: event.data
+        });
+    };
+
+    // Listen for state updates locally
+    tab.addEventListener('update', updateListener);
+
+    // If the port disconnect, stop listening
+    port.onDisconnect.addListener(event => {
+        tab.removeEventListener('update', updateListener);
+    });
+
+    // Allow the port to update the tab state with update requests
+    port.onMessage.addListener(({command, data}) => {
+        if (command === 'UpdateRequest') {
+            tab.update(state => data);
+        }
+    });
+
+    // Send an initial update to the port
+    port.postMessage({
+        command: 'Update',
+        data: tab.state
+    });
+}
+
 function connectContentScript(contentScript) {
     const tab = getTab(contentScript.sender.tab.id);
     tab.frames.set(contentScript.sender.frameId, contentScript);
@@ -201,6 +232,9 @@ function connectContentScript(contentScript) {
         // Create a new signal in case we want to start translating again.
         _abortSignal = {aborted: false};
     };
+
+    // Make the content-script receive state updates
+    connectTab(tab, contentScript);
 
     contentScript.onDisconnect.addListener(event => {
         tab.frames.delete(contentScript.sender.frameId);
@@ -261,18 +295,8 @@ function connectPopup(popup) {
 
     const tab = getTab(tabId);
 
-    const updateListener = (event) => {
-        popup.postMessage({
-            command: 'Update',
-            data: event.data
-        });
-    };
-
-    tab.addEventListener('update', updateListener);
-
-    popup.onDisconnect.addListener(event => {
-        tab.removeEventListener('update', updateListener);
-    })
+    // Make the popup receive state updates
+    connectTab(tab, popup);
 
     popup.onMessage.addListener(message => {
         console.log('popup.onMessage', message);
@@ -289,11 +313,6 @@ function connectPopup(popup) {
                 tab.abort();
                 break;
         }
-    });
-
-    popup.postMessage({
-        command: 'Update',
-        data: tab.state
     });
 }
 
