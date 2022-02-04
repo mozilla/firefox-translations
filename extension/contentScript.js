@@ -56,10 +56,14 @@ backgroundScript.onMessage.addListener(({command, data}) => {
 // request the language detection class to extract a page's snippet
 const languageDetection = new LanguageDetection();
 const sample = languageDetection.extractPageContent();
+const suggested = languageDetection.extractSuggestedLanguages();
 
 // Once we have the snippet, send it to background script for analysis
 // and possibly further action (like showing the popup)
 backgroundScript.postMessage({
     command: "DetectLanguage",
-    data: {sample}
+    data: {
+        sample,
+        suggested
+    }
 });

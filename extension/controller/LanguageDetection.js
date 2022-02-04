@@ -36,4 +36,17 @@ class LanguageDetection {
         }
         return wordsToDetect;
     }
+
+    extractSuggestedLanguages() {
+        const suggestions = {};
+
+        // If the root element has a lang attribute, that's a pretty solid hint
+        if (document.querySelector('html[lang]'))
+            suggestions[document.querySelector('html[lang]').lang] = 1.0;
+
+        // TODO: look at individual elements with lang attributes, and how much
+        // of the content they cover? Or should we handle those in a special
+        // way anyway! Would fix pretty much all issues of Wikipedia in one go.
+        return suggestions;
+    }
 }

@@ -18,7 +18,7 @@ const SimilarLanguages = [
  * from->to language pairs, based on the detected language, the preferred
  * target language, and what models are available.
  */
-async function detectLanguage(sample, languageHelper) {
+async function detectLanguage(sample, suggested, languageHelper) {
     const [detected, models] = await Promise.all([
         browser.i18n.detectLanguage(sample),
         translationHelper.registry
@@ -37,7 +37,12 @@ async function detectLanguage(sample, languageHelper) {
     ];
 
     // {[lang]: 0.0 .. 1.0} map of likeliness the page is in this language
-    const confidence = Object.fromEntries(detected.languages.map(({language, percentage}) => [language, percentage / 100]));
+    let confidence = Object.fromEntries(detected.languages.map(({language, percentage}) => [language, percentage / 100]));
+
+    // Take suggestions into account
+    Object.entries(suggested).forEach(([lang, score]) => {
+        confidence[lang] = Math.max(score, confidence[lang] || 0.0);
+    });
 
     // Work-around for language pairs that are close together
     Object.entries(confidence).forEach(([lang, score]) => {
@@ -210,7 +215,7 @@ function connectContentScript(contentScript) {
 
         switch (message.command) {
             case "DetectLanguage":
-                detectLanguage(message.data.sample, translationHelper).then(summary => {
+                detectLanguage(message.data.sample, message.data.suggested || {}, translationHelper).then(summary => {
                     tab.update(state => ({
                         ...summary, // {from, to, models}
                         state: summary.models.length > 0
