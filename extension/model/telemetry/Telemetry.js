@@ -67,7 +67,7 @@ class TranslationTelemetry {
 class Telemetry {
 
     constructor(sendPings= false, debug= true, enableLogging = false) {
-        this._telemetryId = "org-mozilla-bergamot";
+        this._telemetryId = "firefox-translations";
         this._sendPings = sendPings;
         this._debug = debug;
         this._enableLogging = enableLogging;
