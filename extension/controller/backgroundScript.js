@@ -185,6 +185,11 @@ function getTab(tabId) {
     return tabs.get(tabId);
 }
 
+/**
+ * Connects the port of a content-script or popup with the state management
+ * mechanism of the tab. This allows the content-script to make UpdateRequest
+ * calls to update the state, and receive state updates through Update messages.
+ */
 function connectTab(tab, port) {
     const updateListener = (event) => {
         port.postMessage({
@@ -217,6 +222,8 @@ function connectTab(tab, port) {
 
 function connectContentScript(contentScript) {
     const tab = getTab(contentScript.sender.tab.id);
+
+    // Register this content script with the tab
     tab.frames.set(contentScript.sender.frameId, contentScript);
 
     let _abortSignal = {aborted: false};
@@ -236,12 +243,13 @@ function connectContentScript(contentScript) {
     // Make the content-script receive state updates
     connectTab(tab, contentScript);
 
+    // If the content-script stops (i.e. user navigates away)
     contentScript.onDisconnect.addListener(event => {
+        // Disconnect it from this tab
         tab.frames.delete(contentScript.sender.frameId);
-        abort();
 
-        if (contentScript.sender.frameId === 0)
-            tabs.delete(tab.id);
+        // Abort all in-progress translations that belonged to this page
+        abort();
     });
 
     contentScript.onMessage.addListener(message => {
@@ -316,10 +324,26 @@ function connectPopup(popup) {
     });
 }
 
-// State per frame
+// Receive incoming connection requests from content-script and popup
 browser.runtime.onConnect.addListener((port) => {
     if (port.name == 'content-script')
         connectContentScript(port);   
     else if (port.name.startsWith('popup-'))
         connectPopup(port);
+});
+
+// Initialize or update the state of a tab when navigating
+browser.webNavigation.onCommitted.addListener(({tabId, frameId}) => {
+    // Right now we're only interested in top-level navigation changes
+    if (frameId !== 0)
+        return;
+
+    getTab(tabId).update(state => {
+        state: State.PAGE_LOADING
+    });
+});
+
+// Remove the tab state if a tab is removed
+browser.tabs.onRemoved.addListener(({tabId}) => {
+    tabs.delete(tabId);
 });
