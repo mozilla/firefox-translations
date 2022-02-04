@@ -14,6 +14,7 @@ class InPageTranslation {
         this.updateTimeout = null;
         this.UI_UPDATE_INTERVAL = 500;
         this.messagesSent = new Set();
+        this.initialWordsInViewportReported = false;
     }
 
     loadTagsSet() {
@@ -123,6 +124,7 @@ class InPageTranslation {
     }
 
     dispatchTranslations() {
+        this.reportWordsInViewport();
         // we then submit for translation the elements in order of priority
         this.processingNodeMap = "viewportNodeMap";
         this.viewportNodeMap.forEach(this.submitTranslation, this);
@@ -130,6 +132,19 @@ class InPageTranslation {
         this.nonviewportNodeMap.forEach(this.submitTranslation, this);
         this.processingNodeMap = "hiddenNodeMap";
         this.hiddenNodeMap.forEach(this.submitTranslation, this);
+    }
+
+    reportWordsInViewport() {
+        if (this.initialWordsInViewportReported || this.viewportNodeMap.size === 0) return;
+
+        let viewPortWordsNum = 0;
+        for (const [, value] of this.viewportNodeMap.entries()) {
+            viewPortWordsNum += value.textContent.trim().split(" ").length;
+        }
+
+        this.notifyMediator("viewPortWordsNum", viewPortWordsNum);
+        // report words in viewport only for initially loaded content
+        this.initialWordsInViewportReported = true;
     }
 
     submitTranslation(node, key) {
