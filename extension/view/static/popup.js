@@ -73,8 +73,8 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 			backgroundScript.postMessage({
 				command: 'TranslateStart',
 				data: {
-					from: 'es',
-					to: 'en'
+					from: document.querySelector('#lang-from').value,
+					to: document.querySelector('#lang-to').value
 				}
 			});
 		}
