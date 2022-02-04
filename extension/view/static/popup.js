@@ -1,5 +1,82 @@
-document.querySelector('#translate-btn').addEventListener('click', e => {
-	browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
-		browser.runtime.sendMessage({command: 'translationRequested', tabId: tabs[0].id});
+function addEventListeners(handlers) {
+	const handlersPerEventType = {};
+
+	Object.entries(handlers).forEach(([name, callback]) => {
+		const [event, selector] = name.split(' ', 2);
+		if (!(event in handlersPerEventType))
+			handlersPerEventType[event] = [];
+		handlersPerEventType[event].push({selector, callback});
 	});
-})
+
+	Object.entries(handlersPerEventType).forEach(([event, handlers]) => {
+		document.body.addEventListener(event, e => {
+			handlers.forEach(({selector, callback}) => {
+				if (e.target.matches(selector))
+					callback(e);
+			});
+		});
+	});
+}
+
+function renderSelect(select, values) {
+	// Todo: we can be smarter about this!
+	console.log('renderSelect', select, values);
+	while (select.length)
+		select.remove(0);
+	values.forEach(value => select.add(new Option(value), null));
+}
+
+function render(state) {
+	console.log('render', state);
+
+	document.querySelectorAll('*[data-state]').forEach(el => {
+		el.hidden = el.dataset.state != state.state;
+	});
+
+	const fromOptions = new Set(state.models.map(({from}) => from));
+	renderSelect(document.querySelector('#lang-from'), fromOptions);
+	document.querySelector('#lang-from').value = state.from;
+
+	const toOptions = new Set(state.models
+		.filter(({from}) => (!state.from || state.from == from))
+		.map(({to}) => to));
+	renderSelect(document.querySelector('#lang-to'), toOptions);
+	document.querySelector('#lang-to').value = state.to;
+}
+
+browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
+	const tabId = tabs[0].id;
+
+	const backgroundScript = browser.runtime.connect({name: `popup-${tabId}`});
+
+	const state = {
+		state: 'page-loading',
+		from: undefined,
+		to: undefined,
+		models: []
+	};
+
+	backgroundScript.onMessage.addListener(({command, data}) => {
+		console.log('[popup] backgroundScript.onMessage', {command, data});
+
+		switch (command) {
+			case 'Update':
+				console.log('Update', data);
+				Object.assign(state, data);
+				render(state);
+				break;
+		}
+	});
+
+	addEventListeners({
+		'click #translate-btn': e => {
+			backgroundScript.postMessage({
+				command: 'TranslateStart',
+				data: {
+					from: 'es',
+					to: 'en'
+				}
+			});
+		}
+	});
+});

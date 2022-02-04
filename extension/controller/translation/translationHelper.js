@@ -55,25 +55,6 @@ function cyrb53(str, seed = 0) {
     return 4294967296 * (2097151 & h2) + (h1>>>0);
 }
 
-class PerformanceDummy {
-    constructor(performance) {
-        this.performance = performance;
-        this.marks = {};
-    }
-
-    mark(name) {
-        this.marks[name] = this.performance.now();
-    }
-
-    measure(name, startMark, endMark) {
-        const end = endMark ? this.marks[endMark] : this.performance.now();
-        const start = startMark ? this.marks[startMark] : 0;
-        console.log('%c[measure] %s:%c %ims', 'background-color: orange', name, 'background-color: green; color:white', end - start);
-    }
-} 
-
-// const performance = new PerformanceDummy(window.performance);
-
 const BATCH_SIZE = 8; // number of requested translations
 
 const CACHE_NAME = "bergamot-translations";
@@ -90,6 +71,7 @@ const MAX_WORKERS = 4;
 class Channel {
     constructor(worker) {
         this.worker = worker;
+        this.worker.onerror = this.onerror.bind(this);
         this.worker.onmessage = this.onmessage.bind(this);
         this.serial = 0;
         this.pending = new Map();
@@ -102,6 +84,10 @@ class Channel {
             console.log('Sending', {id, message});
             this.worker.postMessage({id, message});
         })
+    }
+
+    onerror(error) {
+        throw new Error(`Error in worker: ${error.message}`);
     }
 
     onmessage({data: {id, message, error}}) {
@@ -153,7 +139,7 @@ class Channel {
     loadWorker() {
         // TODO is this really not async? Can I just send messages to it from
         // the start and will they be queued or something?
-        const worker = new Worker('controller/translation/translationWorkerThread.js');
+        const worker = new Worker('controller/translation/translationWorker.js');
 
         // Little wrapper around the message passing api of Worker to make it
         // easy to await a response to a sent message.
@@ -343,10 +329,12 @@ class Channel {
                 if (direct.length)
                     return resolve([direct[0]]);
 
+                console.log(outbound, inbound);
+
                 // Find the pivot language
                 const shared = intersect(
-                    ...outbound.map(model => model.to),
-                    ...inbound.map(model => model.from)
+                    outbound.map(model => model.to),
+                    inbound.map(model => model.from)
                 );
 
                 if (!shared.length)
@@ -539,41 +527,6 @@ class Channel {
         performance.measure('BTConsumeBatch', 'BTConsumeBatch.start');
     }
 }
-
-// Main function of this background script
-const translationHelper = new TranslationHelper();
-
-// Listen to translation requests from the extension's content_scripts.
-browser.runtime.onMessage.addListener((message, sender) => {
-    // console.log("Received message", message, "from sender", sender);
-
-    switch (message.command) {
-        case "AvailableModelRequest":
-            translationHelper.registry.then(registry => {
-                browser.tabs.sendMessage(sender.tab.id, {
-                    command: "AvailableModelResponse",
-                    models: registry.map(({from, to}) => ({from, to}))
-                });
-            });
-            break;
-
-        case "TranslateRequest":
-            // safe sender id for "TranslateAbort" requests
-            translationHelper.translate({...message.data, _senderTabId: sender.tab.id}).then(response => {
-                browser.tabs.sendMessage(sender.tab.id, {
-                    command: "TranslateResponse",
-                    data: response 
-                });
-            });
-            break;
-
-        case "TranslateAbort":
-            translationHelper.remove((request) => {
-                return request._senderTabId === sender.tab.id;
-            });
-            break;
-    }
-});
 
 // Just a little test to run in the web inspector for debugging
 async function test() {

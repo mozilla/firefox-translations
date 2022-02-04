@@ -4,7 +4,6 @@
 Entrypoint: mediator.js
 
 Responsibilities:
-- Maintaining the translation state (described below)
 - Text sample extraction
 - In-page translation processing
 
@@ -22,9 +21,28 @@ Notes:
 Entrypoint: controller/backgroundScript.js
 
 Responsibilities:
+- Maintaining the translation state per tab
 - Maintain one instance of the translation engine and manage its queues
 - Manage downloading & loading of translation models on demand
 - Language detection on given samples
+
+Tab state:
+```
+{
+	id: Number, // tab id
+	from: String, // BCP47
+	to: String, // BCP47
+	models: [
+		{
+			from: String, // BCP47
+			to: String // BCP47
+		}
+	], // All available from->to pairs, sorted by relevance
+	frames: {
+		[Number]: Port
+	}
+}
+```
 
 # States
 This is a list of all possible states a page (or the mediator) can be in.
@@ -40,35 +58,26 @@ Next state:
 ## PAGE_LOADED
 Page is loaded.
 
-Fields:
-- text-sample
+Actions:
+- content-script will connect with background-script
+- content-script will send sample to background-script
 
 Next state:
-- background-script will notice PAGE_LOADED and attempt language detection. Once it identified a language, it will switch state to LANGUAGE_DETECTED
-
-## LANGUAGE_DETECTED
-Language detector detected the language
-
-Fields:
-- languages (list of ISO codes and their probability)
-
-Next state:
-- background-script checks whether there is a translation path available from the detected language to the navigator's language. (or future: the last used target language)
-
-## TRANSLATION_NOT_AVAILABLE
-There is no translation model available to translate this page from the detected language to the navigator's language.
-
-Next state:
-- None
+- background-script will switch to TRANSLATION_AVAILABLE or TRANSLATION_NOT_AVAILABLE based on the languages detected in the sample and available translation models.
 
 ## TRANSLATION_AVAILABLE
-There is a translation path available.
+Language detector detected the language
 
-Fields:
-- language-from
-- language-to
-- available-languages-from
-- available-languages-to
+Fields: {
+	from: String, // BCP47, detected from language
+	to: String, // BCP47, navigator target language)
+	models: [
+		{
+			from: String, // BCP47
+			to: String // BCP47
+		}
+	] // All available from->to pairs, sorted by relevance
+}
 
 Actions:
 - background-script tells page action icon to show
@@ -76,26 +85,17 @@ Actions:
 Next state:
 - page-action popup can be opened to select language and trigger translation, which will switch to TRANSLATION_IN_PROGRESS
 
-## TRANSLATION_IN_PROGRESS
+## TRANSLATION_NOT_AVAILABLE
+There is no translation model available to translate this page from the detected language to the navigator's language.
 
-Fields:
-- language-from
-- language-to
-- chunks-queued
-- chunks-total
-- words-per-second
+Next state:
+- None
+
+## TRANSLATION_IN_PROGRESS
 
 Action:
 - popup will show progress bar based on chunks-queued and chunks-total. unless chunks-queued is 0, then it will show "done" or something?
 - content-script will start submitting chunks of HTML or text to background-script for translation
-
-Message format for these translation requests:
-- tab-id
-- request-id
-- lang-from: str
-- lang-to: str
-- html: bool
-- body: str (text or html)
 
 Next state:
 - background-script will switch to TRANSLATION_IN_PROGRESS (but with updated fields) while it is handling translation requests
@@ -103,15 +103,4 @@ Next state:
 
 ## Not used: TRANSLATION_ERROR
 
-Fields:
-- language-from
-- language-to
-- error-message (if available)
-
 ## Not used: TRANSLATION_FINISHED
-
-Fields:
-- language-from
-- language-to
-- total-chunks
-- words-per-second

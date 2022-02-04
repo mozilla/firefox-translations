@@ -21,7 +21,6 @@
     ],
     "background": {
       "scripts": [
-        "controller/LanguageDetection.js",
         "model/modelRegistry.js",
         "controller/translation/translationHelper.js",
         "controller/backgroundScript.js"

@@ -1,23 +1,25 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		
+		<meta charset="utf-8">
+		<style>
+			*[hidden] {
+				display: none;
+			}
+		</style>
 	</head>
 	<body>
 		<div class="states">
-			<div id="state-offer">
+			<div data-state="translation-available">
 				<p>Wanna translate this page?</p>
 				<select id="lang-from"></select>
 				<select id="lang-to"></select>
 				<button id="translate-btn">Translate page</button>
 			</div>
-			<div id="state-translating">
-				<p>Translating page…</p>
+			<div data-state="translation-in-progress">
+				<p id="progress-message">Translating page…</p>
 			</div>
-			<div id="state-translated">
-				<p>Page translated <button>Nooo</button></p>
-			</div>
-			<div id="state-error">
+			<div data-state="translation-error">
 				<p>Error during translation:</p>
 				<p><code id="error-message"></code></p>
 			</div>

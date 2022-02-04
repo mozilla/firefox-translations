@@ -316,7 +316,7 @@ class InPageTranslation {
                idCounter
               ] = translationMessage.attrId;
         const translatedText = translationMessage.translatedParagraph;
-        console.log("no enqueue", translatedText);
+        // console.log("no enqueue", translatedText);
         let targetNode = null;
         switch (hashMapName) {
             case "hiddenNodeMap":
