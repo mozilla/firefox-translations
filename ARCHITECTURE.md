@@ -104,3 +104,24 @@ Next state:
 ## Not used: TRANSLATION_ERROR
 
 ## Not used: TRANSLATION_FINISHED
+
+# TranslationHelper & Co
+
+Translations are done by Marian, wrapped in bergamot-translator, which is compiled to WASM. bergamot-translator exposes a `BlockingService` which you can give a bunch of sentences and a translation model, and it will start crunching.
+
+Couple of things to take into account:
+
+- BlockingService blocks while crunching, so it needs to be put in a WebWorker to not block up the current thread.
+- BlockingService needs a bunch of text to translate to reach peak performance. If you give it too little chunks, it will run slow.
+- It does not do threads (in WASM at least, yet?)
+
+TranslationHelper puts those limitations in a nice interface:
+
+- It provides a simple `translate()` method that you give some text, a source and target language, and it will give you a promise of a translation back.
+- It has the option to cancel and prioritize translation requests. You can use these features to optimise for latency like TranslateLocally does!
+- It does the grouping of translation requests for you
+- It handles downloading translation model data, initialisation, etc. You just need to worry about calling `translate()` and waiting a bit.
+- It can use multiple TranslationWorkers in parallel (threads!)
+
+TranslationWorker provides an interface for TranslationHelper to work with the bergamot-translator WASM binary through a message passing interface. It translates the weird emscripten pointer types in native JavaScript types that can be shared through message passing, and takes care of loading and initialisation of the bergamot-translator-native types.
+
