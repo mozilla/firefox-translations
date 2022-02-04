@@ -6,7 +6,12 @@ function* product(as, bs) {
             yield [a, b];
 }
 
-const translationHelper = new TranslationHelper();
+// Temporary fix around few models, bad classified, and similar looking languages.
+// From https://github.com/bitextor/bicleaner/blob/3df2b2e5e2044a27b4f95b83710be7c751267e5c/bicleaner/bicleaner_hardrules.py#L50
+const SimilarLanguages = [
+    new Set(['es', 'ca', 'gl', 'pt']),
+    new Set(['no', 'nn', 'da'])
+];
 
 /**
  * Language detection function that also provides a sorted list of
@@ -33,6 +38,18 @@ async function detectLanguage(sample, languageHelper) {
 
     // {[lang]: 0.0 .. 1.0} map of likeliness the page is in this language
     const confidence = Object.fromEntries(detected.languages.map(({language, percentage}) => [language, percentage / 100]));
+
+    // Work-around for language pairs that are close together
+    Object.entries(confidence).forEach(([lang, score]) => {
+        SimilarLanguages.forEach(group => {
+            if (group.has(lang)) {
+                group.forEach(other => {
+                    if (!(other in confidence))
+                        confidence[other] = score / 2; // little bit lower though
+                })
+            }
+        })
+    });
 
     // {[lang]: 0.0 .. 1.0} map of likeliness the user wants to translate to this language.
     const preferred = (await browser.i18n.getAcceptLanguages()).reduce((preferred, language, i, languages) => {
