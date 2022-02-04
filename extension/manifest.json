@@ -33,7 +33,7 @@
             "controller/LanguageDetection.js",
             "view/js/InPageTranslation.js",
             "model/modelRegistry.js",
-            "mediator.js"
+            "contentScript.js"
           ],
           "run_at": "document_idle"
         }

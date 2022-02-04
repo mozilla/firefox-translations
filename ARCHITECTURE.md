@@ -1,7 +1,7 @@
 # Components
 
 ## content-script
-Entrypoint: mediator.js
+Entrypoint: contentScript.js
 
 Responsibilities:
 - Text sample extraction
