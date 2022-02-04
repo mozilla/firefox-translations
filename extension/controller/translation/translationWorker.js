@@ -139,7 +139,7 @@ class TranslationWorker {
             : service.translate(...translationModels, input, responseOptions);
         
         input.delete();
-        htmlOptions.delete();
+        // htmlOptions.delete();
 
         // Convert the Response WASM wrappers into native JavaScript types we
         // can send over the 'wire' (message passing)

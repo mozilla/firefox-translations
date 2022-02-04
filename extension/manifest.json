@@ -31,22 +31,12 @@
           "matches": ["<all_urls>"],
           "js": [
             "controller/LanguageDetection.js",
-            "model/Queue.js",
-            "controller/translation/Translation.js",
-            "controller/translation/TranslationMessage.js",
-            "view/js/OutboundTranslation.js",
             "view/js/InPageTranslation.js",
             "model/modelRegistry.js",
             "mediator.js"
           ],
-          "css": ["view/static/ot.css"],
           "run_at": "document_idle"
         }
-    ],
-    "web_accessible_resources": [
-      "ot.html",
-      "model/Queue.js",
-      "controller/translation/translationWorker.js"
     ],
     "incognito": "spanning",
     "page_action": {
