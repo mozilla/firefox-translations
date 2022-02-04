@@ -15,6 +15,7 @@ custom:
   include_client_id: true
   send_if_empty: false
   bugs:
+    - https://github.com/mozilla-extensions/firefox-translations/issues/42
     - https://github.com/mozilla/firefox-translations/issues/27
   data_reviews:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813

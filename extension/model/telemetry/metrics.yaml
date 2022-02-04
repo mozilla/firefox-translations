@@ -22,6 +22,7 @@ metadata:
     description: |
       Translation source language.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -29,7 +30,7 @@ metadata:
       - interaction
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   to_lang:
     type: string
     lifetime: ping
@@ -38,6 +39,7 @@ metadata:
     description: |
       Translation target language.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -45,7 +47,7 @@ metadata:
       - interaction
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   firefox_client_id:
     type: string
     lifetime: ping
@@ -55,13 +57,14 @@ metadata:
       Firefox Telemetry client id.
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/92
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   extension_version:
     type: string
     lifetime: ping
@@ -71,13 +74,14 @@ metadata:
       Extension version
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/137
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   extension_build_id:
     type: string
     lifetime: ping
@@ -88,13 +92,14 @@ metadata:
       and build config was used to produce this build
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/137
+      - https://github.com/mozilla/firefox-translations/issues/42
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   bergamot_translator_version:
     type: string
     lifetime: ping
@@ -104,13 +109,14 @@ metadata:
       Bergamot translator engine version
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/137
+      - https://github.com/mozilla/firefox-translations/issues/42
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   system_memory:
     type: quantity
     unit: mb
@@ -121,13 +127,14 @@ metadata:
       Telemetry Environment `system.memoryMB` metric
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/147
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   cpu_count:
     type: quantity
     unit: cpus
@@ -138,13 +145,14 @@ metadata:
       Telemetry Environment `system.cpu.count` metric
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/147
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   cpu_cores_count:
     type: quantity
     unit: cores
@@ -155,13 +163,14 @@ metadata:
       Telemetry Environment `system.cpu.cores` metric
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/147
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   cpu_vendor:
     type: string
     lifetime: ping
@@ -171,13 +180,14 @@ metadata:
       Telemetry Environment `system.cpu.vendor` metric
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/147
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   cpu_family:
     type: quantity
     unit: enum
@@ -188,13 +198,14 @@ metadata:
       Telemetry Environment `system.cpu.family` metric
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/147
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   cpu_model:
     type: quantity
     unit: enum
@@ -205,13 +216,14 @@ metadata:
       Telemetry Environment `system.cpu.model` metric
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/147
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   cpu_stepping:
     type: quantity
     unit: enum
@@ -222,13 +234,14 @@ metadata:
       Telemetry Environment `system.cpu.stepping` metric
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/147
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   cpu_l2_cache:
     type: quantity
     unit: kb
@@ -239,13 +252,14 @@ metadata:
       Telemetry Environment `system.cpu.l2cacheKB` metric
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/147
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   cpu_l3_cache:
     type: quantity
     unit: kb
@@ -256,13 +270,14 @@ metadata:
       Telemetry Environment `system.cpu.l3cacheKB` metric
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/147
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   cpu_speed:
     type: quantity
     unit: mhz
@@ -273,13 +288,14 @@ metadata:
       Telemetry Environment `system.cpu.speedMHz` metric
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/147
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   cpu_extensions:
     type: string
     lifetime: ping
@@ -289,13 +305,14 @@ metadata:
       Telemetry Environment `system.cpu.extensions` metric
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/147
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
 
 performance:
   full_page_translated_time:
@@ -308,13 +325,14 @@ performance:
       to "full page is translated".
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/155
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   full_page_translated_wps:
     type: quantity
     unit: words per second
@@ -326,13 +344,14 @@ performance:
       pressed" to "full page is translated".
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/155
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   model_download_time_num:
     type: timespan
     lifetime: ping
@@ -343,15 +362,16 @@ performance:
       (Renamed from model_download_time to model_download_time_num as part of
       changing type from string to quantity)
     bugs:
-      - https://github.com/mozilla/firefox-translations/issues/27
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla-extensions/firefox-translations/issues/138
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   model_load_time_num:
     type: timespan
     lifetime: ping
@@ -362,15 +382,16 @@ performance:
       (Renamed from model_load_time to model_load_time_num as part of
       changing type from string to quantity)
     bugs:
-      - https://github.com/mozilla/firefox-translations/issues/27
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla-extensions/firefox-translations/issues/138
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   translation_engine_time:
     type: timespan
     lifetime: ping
@@ -379,15 +400,16 @@ performance:
     description: |
       Time spent on translation by the translation engine.
     bugs:
-      - https://github.com/mozilla/firefox-translations/issues/27
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla-extensions/firefox-translations/issues/155
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   translation_engine_wps:
     type: quantity
     unit: words per second
@@ -397,15 +419,16 @@ performance:
     description: |
       Speed of translation as measured by the translation engine.
     bugs:
-      - https://github.com/mozilla/firefox-translations/issues/27
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla-extensions/firefox-translations/issues/155
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   word_count:
     type: quantity
     unit: words
@@ -415,15 +438,16 @@ performance:
     description: |
       Total number of words on the original web page.
     bugs:
-      - https://github.com/mozilla/firefox-translations/issues/27
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla-extensions/firefox-translations/issues/166
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   word_count_visible_in_viewport:
     type: quantity
     unit: words
@@ -434,15 +458,16 @@ performance:
       Total number of visible words on the original web page that
       were visible in the viewport at the time of "translation button pressed".
     bugs:
-      - https://github.com/mozilla/firefox-translations/issues/27
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla-extensions/firefox-translations/issues/166
+      - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   translation_quality:
     type: string
     lifetime: ping
@@ -451,6 +476,7 @@ performance:
     description: |
       Quality estimation of translation.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -458,7 +484,7 @@ performance:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
 
 infobar:
   displayed:
@@ -469,6 +495,7 @@ infobar:
     description: |
       The translation infobar was automatically displayed in a browser.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -476,7 +503,7 @@ infobar:
       - interaction
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   closed:
     type: event
     lifetime: ping
@@ -485,6 +512,7 @@ infobar:
     description: |
       The translation infobar was closed.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -492,7 +520,7 @@ infobar:
       - interaction
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   translate:
     type: event
     lifetime: ping
@@ -501,6 +529,7 @@ infobar:
     description: |
       The "Translate" button was pressed on translation infobar.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -508,7 +537,7 @@ infobar:
       - interaction
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   never_translate_lang:
     type: event
     lifetime: ping
@@ -517,6 +546,7 @@ infobar:
     description: |
       "Never translate language" button in the infobar options was pressed.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -524,7 +554,7 @@ infobar:
       - interaction
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   never_translate_site:
     type: event
     lifetime: ping
@@ -533,6 +563,7 @@ infobar:
     description: |
       "Never translate site" button in the infobar options was pressed.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -540,7 +571,7 @@ infobar:
       - interaction
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   not_now:
     type: event
     lifetime: ping
@@ -549,6 +580,7 @@ infobar:
     description: |
       "Not now" button on the infobar was pressed.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -556,7 +588,7 @@ infobar:
       - interaction
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   change_lang:
     type: event
     lifetime: ping
@@ -565,6 +597,7 @@ infobar:
     description: |
       "This page is in" language was changed manually.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -572,7 +605,7 @@ infobar:
       - interaction
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   accept_outbound:
     type: event
     lifetime: ping
@@ -581,6 +614,7 @@ infobar:
     description: |
       User accepts translation of forms by clicking "yes" button.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -588,7 +622,7 @@ infobar:
       - interaction
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
 
 service:
   not_supported:
@@ -599,6 +633,7 @@ service:
     description: |
       Language pair of user and website languages is not supported.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -606,7 +641,7 @@ service:
       - interaction
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   lang_mismatch:
     type: counter
     lifetime: ping
@@ -615,6 +650,7 @@ service:
     description: |
       The user and website languages do not match.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -622,7 +658,7 @@ service:
       - interaction
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
 
 errors:
   translation:
@@ -633,6 +669,7 @@ errors:
     description: |
       The translation procedure has failed.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -640,7 +677,7 @@ errors:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   marian:
     type: counter
     lifetime: ping
@@ -649,6 +686,7 @@ errors:
     description: |
       Marian code related error.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -656,7 +694,7 @@ errors:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   memory:
     type: counter
     lifetime: ping
@@ -665,6 +703,7 @@ errors:
     description: |
       Memory allocation error.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -672,7 +711,7 @@ errors:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
   model_download:
     type: counter
     lifetime: ping
@@ -681,6 +720,7 @@ errors:
     description: |
       Failed to download a model for a supported language pair.
     bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
@@ -688,4 +728,4 @@ errors:
       - technical
     notification_emails:
       - anatal-all@mozilla.com
-    expires: 2022-02-10
+    expires: 2022-08-10
