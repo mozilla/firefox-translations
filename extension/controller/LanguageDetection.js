@@ -4,7 +4,6 @@
  * translation bar should be displayed
  */
 
-/* global modelRegistry*/
 // eslint-disable-next-line no-unused-vars
 class LanguageDetection {
     /*

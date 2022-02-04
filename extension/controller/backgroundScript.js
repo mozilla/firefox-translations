@@ -1,4 +1,4 @@
-/* global LanguageDetection, browser */
+/* global browser */
 
 function* product(as, bs) {
     for (let a of as)
@@ -19,8 +19,8 @@ async function detectLanguage(sample) {
         translationHelper.registry
     ]);
 
-    const modelsFromEng = models.filter(({from}) => from == 'en');
-    const modelsToEng = models.filter(({to}) => to == 'en');
+    const modelsFromEng = models.filter(({from}) => from === 'en');
+    const modelsToEng = models.filter(({to}) => to === 'en');
 
     // List of all available from->to translation pairs including ones that we
     // achieve by pivoting through English.
