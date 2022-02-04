@@ -460,7 +460,7 @@ performance:
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla-extensions/firefox-translations/issues/166
-      - https://github.com/mozilla/firefox-translations/issues/27
+      - https://github.com/mozilla/firefox-translations/issues/45
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
