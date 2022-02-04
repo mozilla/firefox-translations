@@ -36,10 +36,14 @@ class InPageTranslation {
             "body",
             "header",
             "footer",
+            "main",
+            "article",
+            "section", // too large?
             "nav",
-            // "li",
+            // "li", // moved to inline
             "ul",
             "ol",
+            "dl",
             "dt",
             "dd",
             "td",
@@ -48,6 +52,9 @@ class InPageTranslation {
             "button",
             "option",
             "legend",
+
+            "summary",
+            "details",
         ]);
 
         this.inlineTags = new Set([
@@ -57,6 +64,7 @@ class InPageTranslation {
             "em",
             "i",
             "kbd",
+            "code",
             "mark",
             "math",
             "output",
@@ -172,7 +180,7 @@ class InPageTranslation {
         return false;
     }
 
-    hasTextOfItsOwn(node) {
+    hasInlineContent(node) {
         let inlineElements = 0;
         let blockElements = 0;
 
@@ -185,7 +193,7 @@ class InPageTranslation {
 
                 case 1: // Element
                     if (this.inlineTags.has(child.nodeName.toLowerCase()) 
-                        || child.nodeName.toLowerCase() == 'span' && this.hasTextOfItsOwn(child))
+                        || child.nodeName.toLowerCase() == 'span' && this.hasInlineContent(child))
                         inlineElements++;
                     else
                         blockElements++;
@@ -196,16 +204,41 @@ class InPageTranslation {
         return inlineElements >= blockElements;
     }
 
+    hasTextNodes(node) {
+        // TODO There is probably a quicker way to do this
+        for (let child of node.childNodes) {
+            switch (child.nodeType) {
+                case 3: // TextNode
+                    if (child.textContent.trim() !== "")
+                        return true;
+                    break;
+            }
+        }
+
+        return false;
+    }
+
     isExcludedNode(node) {
-        return node.matches('[lang]:not([lang|="ru"])');
+        // Exclude elements that have a lang attribute that mismatches the
+        // language we're currently translating.
+        if (node.lang && node.lang.substr(0.2) !== this.language)
+            return true;
+
+        // Exclude CODE blocks
+        if (node.nodeName === 'CODE')
+            return true;
+
+        return false;
     }
 
     containsExcludedNode(node) {
-        return node.querySelector('[lang]:not([lang|="ru"])');
+        // TODO describe this in terms of the function above, but I assume
+        // using querySelector is faster for now.
+        return node.querySelector(`[lang]:not([lang|="${this.language}"]), code`);
     }
 
     validateNode(node) {
-        if (!this.selectedTags.has(node.nodeName.toLowerCase())) {
+        if (!this.selectedTags.has(node.nodeName.toLowerCase()) && !this.inlineTags.has(node.nodeName.toLowerCase())) {
             node.setAttribute('x-bergamot-translated', 'rejected not-in-selected-tags');
             return NodeFilter.FILTER_REJECT;
         }
@@ -225,12 +258,12 @@ class InPageTranslation {
             return NodeFilter.FILTER_REJECT;
         }
 
-        if (!this.hasTextOfItsOwn(node)) {
+        if (!this.hasInlineContent(node)) {
             node.setAttribute('x-bergamot-translated', 'skipped does-not-have-text-of-its-own');
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper
         } 
 
-        if (this.containsExcludedNode(node)) {
+        if (this.containsExcludedNode(node) && !this.hasTextNodes(node)) {
             node.setAttribute('x-bergamot-translated', 'skipped contains-excluded-node');
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper  
         }
