@@ -48,7 +48,7 @@ backgroundScript.onMessage.addListener(({command, data}) => {
         case "TranslateStart":
             model.from = data.from;
             model.to = data.to;
-            inPageTranslation.start();
+            inPageTranslation.start(data.from);
             break;
     }
 });

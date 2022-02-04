@@ -6,7 +6,7 @@ class InPageTranslation {
         this.translationsCounter = 0;
         this.mediator = mediator;
         this.started = false;
-        this.loadTagsSet()
+        this.language = null;
         this.viewportNodeMap = new Map();
         this.hiddenNodeMap = new Map();
         this.nonviewportNodeMap = new Map();
@@ -15,6 +15,41 @@ class InPageTranslation {
         this.UI_UPDATE_INTERVAL = 500;
         this.messagesSent = new Set();
         this.nodesSent = new Set();
+
+        this.selectedTags = new Set([
+            "div",
+            "p",
+            "span",
+            // "#text",
+            "i",
+            "a",
+            "b",
+            "strong",
+            "em",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "label",
+            "body",
+            "header",
+            "footer",
+            "nav",
+            // "li",
+            "ul",
+            "ol",
+            "dt",
+            "dd",
+            "td",
+            "th",
+            "caption",
+            "button",
+            "option",
+            "legend",
+        ]);
+
         this.inlineTags = new Set([
             "abbr",
             "a",
@@ -46,42 +81,7 @@ class InPageTranslation {
         ]);
     }
 
-    loadTagsSet() {
-        // set of element types we want to translate
-        this.tagsSet = new Set();
-        this.tagsSet.add("div");
-        this.tagsSet.add("p");
-        this.tagsSet.add("span");
-        // this.tagsSet.add("#text");
-        this.tagsSet.add("i");
-        this.tagsSet.add("a");
-        this.tagsSet.add("b");
-        this.tagsSet.add("strong");
-        this.tagsSet.add("em");
-        this.tagsSet.add("h1");
-        this.tagsSet.add("h2");
-        this.tagsSet.add("h3");
-        this.tagsSet.add("h4");
-        this.tagsSet.add("h5");
-        this.tagsSet.add("h6");
-        this.tagsSet.add("label");
-        this.tagsSet.add("body");
-        this.tagsSet.add("header");
-        this.tagsSet.add("footer");
-        // this.tagsSet.add("li");
-        this.tagsSet.add("ul");
-        this.tagsSet.add("ol");
-        this.tagsSet.add("dt");
-        this.tagsSet.add("dd");
-        this.tagsSet.add("td");
-        this.tagsSet.add("th");
-        this.tagsSet.add("caption");
-        this.tagsSet.add("button");
-        this.tagsSet.add("option");
-        this.tagsSet.add("legend");
-    }
-
-    start() {
+    start(language) {
 
         /*
          * start the dom parser, the DOM mutation observer and request the
@@ -89,6 +89,9 @@ class InPageTranslation {
          */
         this.started = true;
         this.addDebugStylesheet();
+
+        // Language we expect. If we find elements that do not match, nope out.
+        this.language = language;
 
         const pageTitle = document.getElementsByTagName("title")[0];
         if (pageTitle) {
@@ -103,8 +106,10 @@ class InPageTranslation {
         document.head.appendChild(element);
 
         const sheet = element.sheet;
-        sheet.insertRule('[x-firefox-translated] { border: 2px solid red; }', 0);
-        sheet.insertRule('[x-firefox-translated=""] { border: 2px solid blue; }', 1);
+        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated] { border: 2px solid red; }', 0);
+        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated~="skipped"] { border: 2px solid purple; }', 1);
+        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated~="rejected"] { border: 2px solid yellow; }', 2);
+        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated=""] { border: 2px solid blue; }', 3);
     }
 
     startTreeWalker(root) {
@@ -112,7 +117,7 @@ class InPageTranslation {
             return this.validateNode(node);
         }
 
-        const nodeIterator = document.createNodeIterator(
+        const nodeIterator = document.createTreeWalker(
             root,
             // eslint-disable-next-line no-bitwise
             NodeFilter.SHOW_ELEMENT,
@@ -191,16 +196,46 @@ class InPageTranslation {
         return inlineElements >= blockElements;
     }
 
+    isExcludedNode(node) {
+        return node.matches('[lang]:not([lang|="ru"])');
+    }
+
+    containsExcludedNode(node) {
+        return node.querySelector('[lang]:not([lang|="ru"])');
+    }
+
     validateNode(node) {
-        if (this.tagsSet.has(node.nodeName.toLowerCase()) &&
-            node.textContent.trim().length > 0 &&
-            !this.isParentTranslating(node)) {
-            if (this.hasTextOfItsOwn(node))
-                return NodeFilter.FILTER_ACCEPT;
-            else
-                return NodeFilter.FILTER_SKIP;
+        if (!this.selectedTags.has(node.nodeName.toLowerCase())) {
+            node.setAttribute('x-bergamot-translated', 'rejected not-in-selected-tags');
+            return NodeFilter.FILTER_REJECT;
         }
-        return NodeFilter.FILTER_REJECT;
+
+        if (this.isExcludedNode(node)) {
+            node.setAttribute('x-bergamot-translated', 'rejected is-excluded-node');
+            return NodeFilter.FILTER_REJECT;
+        }
+
+        if (node.textContent.trim().length === 0) {
+            node.setAttribute('x-bergamot-translated', 'rejected empty-text-content');
+            return NodeFilter.FILTER_REJECT;
+        }
+        
+        if (this.isParentTranslating(node)) {
+            node.setAttribute('x-bergamot-translated', 'rejected is-parent-translating');
+            return NodeFilter.FILTER_REJECT;
+        }
+
+        if (!this.hasTextOfItsOwn(node)) {
+            node.setAttribute('x-bergamot-translated', 'skipped does-not-have-text-of-its-own');
+            return NodeFilter.FILTER_SKIP; // otherwise dig deeper
+        } 
+
+        if (this.containsExcludedNode(node)) {
+            node.setAttribute('x-bergamot-translated', 'skipped contains-excluded-node');
+            return NodeFilter.FILTER_SKIP; // otherwise dig deeper  
+        }
+        
+        return NodeFilter.FILTER_ACCEPT; // send whole node as 1 block
     }
 
     queueTranslation(node) {
@@ -212,7 +247,7 @@ class InPageTranslation {
         this.translationsCounter += 1;
 
         // Debugging: mark the node so we can add CSS to see them
-        node.setAttribute('x-firefox-translated', this.translationCounter);
+        node.setAttribute('x-bergamot-translated', this.translationsCounter);
 
         // let's categorize the elements on their respective hashmaps
         if (this.isElementHidden(node)) {
@@ -302,7 +337,7 @@ class InPageTranslation {
 
     updateElements() {
         const updateElement = (translatedHTML, node) => {
-            node.setAttribute('x-firefox-translated', '');
+            node.setAttribute('x-bergamot-translated', '');
             node.innerHTML = translatedHTML;
         }
         this.updateMap.forEach(updateElement);
