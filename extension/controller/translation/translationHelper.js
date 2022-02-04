@@ -329,15 +329,13 @@ class Channel {
                 if (direct.length)
                     return resolve([direct[0]]);
 
-                console.log(outbound, inbound);
-
                 // Find the pivot language
                 const shared = intersect(
                     outbound.map(model => model.to),
                     inbound.map(model => model.from)
                 );
 
-                if (!shared.length)
+                if (!shared.size)
                     throw new Error(`No model available to translate from ${from} to ${to}`);
 
                 resolve([

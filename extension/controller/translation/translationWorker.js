@@ -112,15 +112,15 @@ class TranslationWorker {
         const Module = await this.module;
         const service = await this.service;
 
-        const htmlOptions = new Module.HTMLOptions();
-        htmlOptions.setContinuationDelimiters("\n ,.(){}[]0123456789");
-        htmlOptions.setSubstituteInlineTagsWithSpaces(true);
+        // const htmlOptions = new Module.HTMLOptions();
+        // htmlOptions.setContinuationDelimiters("\n ,.(){}[]0123456789");
+        // htmlOptions.setSubstituteInlineTagsWithSpaces(true);
 
         const responseOptions = {
             qualityScores: false,
             alignment: false,
             html: options.html || false,
-            htmlOptions
+            // htmlOptions
         };
 
         // Convert texts array into a std::vector<std::string>.
