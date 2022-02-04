@@ -450,9 +450,9 @@ class Channel {
         this.queue = [];
 
         queue.forEach(batch => {
-            batch.forEach(task => {
-                if (filter(task.request)) {
-                    task.reject(new Error('removed by filter'));
+            batch.requests.forEach(({request, resolve, reject}) => {
+                if (filter(request)) {
+                    reject(new Error('removed by filter'));
                     return;
                 }
 
@@ -460,9 +460,9 @@ class Channel {
                     key: batch.key,
                     priority: batch.priority,
                     models: batch.models,
-                    request: task.request,
-                    resolve: task.resolve,
-                    reject: task.reject
+                    request,
+                    resolve,
+                    reject
                 });
             });
         });
