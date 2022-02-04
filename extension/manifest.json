@@ -23,8 +23,7 @@
       "scripts": [
         "controller/LanguageDetection.js",
         "model/modelRegistry.js",
-        "controller/translation/bergamot-translator-worker.js",
-        "controller/translation/translationWorker.js",
+        "controller/translation/translationHelper.js",
         "controller/backgroundScript.js"
       ]
     },
