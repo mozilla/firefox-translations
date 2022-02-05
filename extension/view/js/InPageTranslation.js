@@ -133,6 +133,7 @@ class InPageTranslation {
         sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated~="skipped"] { border: 2px solid purple; }', 1);
         sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated~="rejected"] { border: 2px solid yellow; }', 2);
         sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated=""] { border: 2px solid blue; }', 3);
+        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated=""] [x-bergamot-translated~="rejected"] { border: 4px dashed red; }', 4);
     }
 
     startTreeWalker(root) {
@@ -269,7 +270,7 @@ class InPageTranslation {
         }
         
         if (this.isParentTranslating(node)) {
-            node.setAttribute('x-bergamot-translated', 'rejected is-parent-translating');
+            // node.setAttribute('x-bergamot-translated', 'rejected is-parent-translating');
             return NodeFilter.FILTER_REJECT;
         }
 
