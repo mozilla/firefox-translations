@@ -133,7 +133,7 @@ class InPageTranslation {
         sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated~="skipped"] { border: 2px solid purple; }', 1);
         sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated~="rejected"] { border: 2px solid yellow; }', 2);
         sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated=""] { border: 2px solid blue; }', 3);
-        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated=""] [x-bergamot-translated~="rejected"] { border: 4px dashed red; }', 4);
+        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated=""] [x-bergamot-translated~="is-excluded-node"] { border: 4px dashed red; }', 4);
     }
 
     startTreeWalker(root) {
