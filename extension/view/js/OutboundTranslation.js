@@ -45,9 +45,6 @@ class OutboundTranslation {
      */
     this.addFormListeners(document.querySelectorAll("textarea"));
 
-    // scan all text inputs
-    this.addFormListeners(document.querySelectorAll("input[type='text']"));
-
     /*
      * we then add the typying listeners to the outbound translation main
      * textarea in order to capture what's input and push it to the
@@ -205,9 +202,11 @@ class OutboundTranslation {
     } else {
       // we have a collection of nodes
       for (const node of nodes) {
-        const zindex = this.determineHighsetZIndex(node);
-        if (zindex > this.highestZIndex) {
-          this.highestZIndex = zindex;
+        if (node.nodeType === 1) {
+          const zindex = this.determineHighsetZIndex(node);
+          if (zindex > this.highestZIndex) {
+            this.highestZIndex = zindex;
+          }
         }
       }
     }
@@ -233,10 +232,11 @@ class OutboundTranslation {
     const callback = function(mutationsList) {
         for (const mutation of mutationsList) {
             if (mutation.type === "childList" &&
+                mutation.addedNodes[0] &&
                 mutation.addedNodes[0].id !== "fxtranslations-ot") {
               // we update the OT's widget zindex to keep it in front
               this.updateZIndex(mutation.addedNodes);
-              // and then add listeners to occasionaly new form elements
+              // and then add listeners to occasional new form elements
               mutation.addedNodes.forEach(node => this.startTreeWalker(node));
             } else if (mutation.type === "attributes" &&
                        mutation.attributeName === "style" &&
@@ -255,7 +255,7 @@ class OutboundTranslation {
 
   startTreeWalker(root) {
     const acceptNode = node => {
-        return node.nodeName === "TEXTAREA" || (node.nodeName === "INPUT" && node.type === "text")
+        return node.nodeName === "TEXTAREA"
     }
 
     const nodeIterator = document.createNodeIterator(
