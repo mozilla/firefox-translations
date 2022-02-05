@@ -83,7 +83,7 @@ class OutboundTranslation {
 
     // listen to when the textarea loses focus in order to remove the div
     this.otTextArea.addEventListener("blur", () => {
-      document.body.removeChild(this.otDiv);
+      if (document.body.contains(this.otDiv)) document.body.removeChild(this.otDiv);
     });
 
     // get a reference to the backtranslations textarea
@@ -104,8 +104,9 @@ class OutboundTranslation {
         text,
         type: "outbound"
       };
-      this.notifyMediator("translate", payload);
 
+      this.notifyMediator("translate", payload);
+      console.log(`OT Call to this.notifyMediator(translate). ${new Date(Date.now()).toUTCString()}`);
     }
   }
 

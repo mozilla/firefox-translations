@@ -81,6 +81,24 @@ class TranslationHelper {
             }
         }
 
+        translateOutboundTranslation(message) {
+            Promise.resolve().then(function () {
+                // todo: we should have a way to disable this.
+                let total_words = message[0].sourceParagraph.trim().split(" ").length;
+                const t0 = performance.now();
+                const translationResultBatch = this.translate(message);
+                const timeElapsed = [total_words, performance.now() - t0];
+
+                message[0].translatedParagraph = translationResultBatch[0];
+                // and then report to the mediator
+                postMessage([
+                    "translationComplete",
+                    message,
+                    timeElapsed
+                ]);
+            }.bind(this));
+        }
+
         consumeTranslationQueue() {
 
             while (this.translationQueue.length() > 0) {
@@ -88,6 +106,7 @@ class TranslationHelper {
                 Promise.resolve().then(function () {
                     if (translationMessagesBatch) {
                         try {
+                            // todo: we should have a way to disable this.
                             let total_words = 0;
                             translationMessagesBatch.forEach(message => {
                                 total_words += message.sourceParagraph.trim().split(" ").length;
@@ -151,16 +170,22 @@ class TranslationHelper {
 
                     /*
                      * if we get a translation request while the engine is
-                     * being loaded, we just wait for it, so we break
+                     * being loaded, we enqueue the messae and break
                      */
                     this.translationQueue.enqueue(message);
                     break;
 
                 case this.ENGINE_STATE.LOADED:
 
-                    this.translationQueue.enqueue(message);
-                    // engine and model are loaded, so let's consume
-                    this.consumeTranslationQueue()
+                    if (message[0].type === "outbound") {
+                        // we skip the line if the message is from ot.
+                        // and since we know this is OT, there's only one msg
+                        this.translateOutboundTranslation([message[0]]);
+                    } else {
+                        this.translationQueue.enqueue(message);
+                        // engine and model are loaded, so let's consume
+                        this.consumeTranslationQueue()
+                    }
                     break;
                 default:
             }

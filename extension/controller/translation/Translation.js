@@ -81,12 +81,23 @@ class Translation {
      * the message to the worker
      */
     translate(translationMessage) {
-        // add this message to the queue
-        this.translationMessageBuffer.enqueue(translationMessage);
 
-        // and schedule an update if required
-        if (!this.translateSchedule) {
-            this.translateSchedule = setTimeout(this.submitMessages.bind(this), this.TRANSLATION_INTERVAL);
+        if (translationMessage.type === "outbound") {
+            // if the message is from outbound translations, we skip the line.
+            if (this.translationWorker) {
+                this.translationWorker.postMessage([
+                    "translate",
+                    [translationMessage]
+                ]);
+            }
+        } else {
+            // add this message to the queue
+            this.translationMessageBuffer.enqueue(translationMessage);
+
+            // and schedule an update if required
+            if (!this.translateSchedule) {
+                this.translateSchedule = setTimeout(this.submitMessages.bind(this), this.TRANSLATION_INTERVAL);
+            }
         }
     }
 
