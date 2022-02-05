@@ -16,47 +16,7 @@ class InPageTranslation {
         this.messagesSent = new Set();
         this.nodesSent = new Set();
 
-        this.selectedTags = new Set([
-            "div",
-            "p",
-            "span",
-            // "#text",
-            "i",
-            "a",
-            "b",
-            "strong",
-            "em",
-            "h1",
-            "h2",
-            "h3",
-            "h4",
-            "h5",
-            "h6",
-            "label",
-            "body",
-            "header",
-            "footer",
-            "main",
-            "article",
-            "section", // too large?
-            "nav",
-            // "li", // moved to inline
-            "ul",
-            "ol",
-            "dl",
-            "dt",
-            "dd",
-            "td",
-            "th",
-            "caption",
-            "button",
-            "option",
-            "legend",
-
-            "summary",
-            "details",
-        ]);
-
+        // Tags that are treated as "meh inline tags just send them to the translator"
         this.inlineTags = new Set([
             "abbr",
             "a",
@@ -82,11 +42,66 @@ class InPageTranslation {
             "ins",
             "del",
 
-            // Not really but for testing
+            // Not really but for testing, also bergamot-translator treats them as sentece-breaking anyway
+            "th",
             "td",
             "li",
             "br"
         ]);
+
+        // Tags that we are allowed to enter (& submit if deemed necessary)
+        this.selectedTags = new Set([
+            // At least include all the inline tags we know
+            ...this.inlineTags,
+            "div",
+            "p",
+            "span",
+            // "#text",
+            "i",
+            "a",
+            "b",
+            "strong",
+            "em",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "form",
+            "label",
+            "body",
+            "header",
+            "footer",
+            "main",
+            "article",
+            "section", // too large?
+            "nav",
+            // "li", // moved to inline
+            "ul",
+            "ol",
+            "dl",
+            "dt",
+            "dd",
+            "td",
+            "th",
+            "caption",
+            "button",
+            "select",
+            "option",
+            "fieldset",
+            "legend",
+
+            "summary",
+            "details",
+
+            // Allow it to enter tables at least
+            "table",
+            "thead",
+            "tbody",
+            "tr",
+        ]);
+
     }
 
     start(language) {
@@ -238,7 +253,7 @@ class InPageTranslation {
     }
 
     validateNode(node) {
-        if (!this.selectedTags.has(node.nodeName.toLowerCase()) && !this.inlineTags.has(node.nodeName.toLowerCase())) {
+        if (!this.selectedTags.has(node.nodeName.toLowerCase())) {
             node.setAttribute('x-bergamot-translated', 'rejected not-in-selected-tags');
             return NodeFilter.FILTER_REJECT;
         }
