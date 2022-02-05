@@ -527,7 +527,7 @@ class Channel {
 }
 
 // Just a little test to run in the web inspector for debugging
-async function test() {
+async function test(translationHelper) {
     console.log(await Promise.all([
         translationHelper.translate({
             from: 'de',
@@ -537,7 +537,8 @@ async function test() {
         translationHelper.translate({
             from: 'de',
             to: 'en',
-            text: 'Mein Name ist Jelmer.'
+            text: 'Mein Name ist <a href="#">Jelmer</a>.',
+            html: true
         })
     ]));
 }
