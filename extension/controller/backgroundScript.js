@@ -104,6 +104,9 @@ class Tab extends EventTarget {
         this._scheduledUpdateEvent = null;
     }
 
+    /**
+     * Begins translation of the tab
+     */
     translate({from, to}) {
         this.update(state => ({
             state: State.TRANSLATION_IN_PROGRESS,
@@ -119,16 +122,31 @@ class Tab extends EventTarget {
         });
     }
 
+    /**
+     * Aborts translation of the tab
+     */
     abort() {
-        this.update({
+        this.update(state => ({
             state: State.TRANSLATION_AVAILABLE
-        });
+        }));
 
         this.frames.forEach(frame => {
             postMessage({
                 command: 'TranslateAbort'
             });
         });
+    }
+
+    /**
+     * Resets the tab state after navigating away from a page. The disconnect
+     * of the tab's content scripts will already have triggered abort()
+     */
+    reset() {
+        this.update(state => ({
+            state: State.PAGE_LOADING,
+            pendingTranslationRequests: 0,
+            totalTranslationRequests: 0
+        }));
     }
 
     update(callback) {
@@ -338,9 +356,7 @@ browser.webNavigation.onCommitted.addListener(({tabId, frameId}) => {
     if (frameId !== 0)
         return;
 
-    getTab(tabId).update(state => {
-        state: State.PAGE_LOADING
-    });
+    getTab(tabId).reset();
 });
 
 // Remove the tab state if a tab is removed
