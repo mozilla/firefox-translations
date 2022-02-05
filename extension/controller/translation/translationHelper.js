@@ -406,8 +406,8 @@ class Channel {
      * ```
      */
     translate(request) {
-        const {from, to, text, html, priority} = request;
-        
+        const {from, to, html, priority} = request;
+
         return new Promise(async (resolve, reject) => {
             // Batching key: only requests with the same key can be batched
             // together. Think same translation model, same options.
