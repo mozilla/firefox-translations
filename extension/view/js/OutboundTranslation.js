@@ -13,6 +13,7 @@ class OutboundTranslation {
     this.translationTimeout = null;
     this.TYPING_TIMEOUT = 500; // constant defining how long to wait before translating after the user stopped typing
     this.isUserTyping = false;
+    this.textareaContentsMap = new Map();
   }
 
   // eslint-disable-next-line max-lines-per-function
@@ -29,6 +30,8 @@ class OutboundTranslation {
         pageFragment = "Error loading outbound translation code fragment";
       }
     } catch (exception) {
+
+
       console.error(exception.message, exception.stack);
     }
 
@@ -38,12 +41,12 @@ class OutboundTranslation {
     this.otDiv.innerHTML = pageFragment;
     this.otDiv.id = "fxtranslations-ot";
     this.pageStatusLabel = this.otDiv.querySelector(".fxtranslations-status");
-    // we can hardcode the widget to have the highest zindex in the page
+    // it's safe to hardcode the widget to have the highest possible zindex in the page
     this.otDiv.style.zIndex = 2147483647;
 
     /*
      * we scan all textareas and attach our listeners to display
-     * the UI when the element receives focus
+     * the widget when the element receives focus
      */
     this.addFormListeners(document.querySelectorAll("textarea"));
 
@@ -87,14 +90,30 @@ class OutboundTranslation {
     // set focus on the OT textarea
     this.otTextArea.focus();
 
-    // listen to when the textarea loses focus in order to remove the div
-    this.otTextArea.addEventListener("blur", () => {
-      if (document.body.contains(this.otDiv)) document.body.removeChild(this.otDiv);
-    });
-
     // get a reference to the backtranslations textarea
     this.backTranslationsTextArea = document.getElementById("OTapp")
     .querySelectorAll("textarea")[1];
+
+    // listen to when the textarea loses focus in order to remove the div
+    this.otTextArea.addEventListener("blur", () => {
+      // if the widget is still in the dom
+      if (document.body.contains(this.otDiv)) {
+        // first we save the content of the widget
+        this.textareaContentsMap.set(this.selectedTextArea, { typedContent: this.otTextArea.value, translatedContent: this.backTranslationsTextArea.value });
+        // remove it from the dom
+        document.body.removeChild(this.otDiv);
+        // and clear its forms
+        this.otTextArea.value = "";
+        this.backTranslationsTextArea.value = "";
+      }
+    });
+
+    // update the widget content's if we have it stored
+    const widgetContent = this.textareaContentsMap.get(formElement);
+    if (widgetContent){
+      this.otTextArea.value = widgetContent.typedContent;
+      this.backTranslationsTextArea.value = widgetContent.translatedContent;
+    }
   }
 
   sendTextToTranslation() {
