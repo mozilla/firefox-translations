@@ -190,7 +190,12 @@ class InPageTranslation {
         const callback = function(mutationsList) {
             for (const mutation of mutationsList) {
                 if (mutation.type === "childList") {
-                    mutation.addedNodes.forEach(node => this.startTreeWalker(node));
+                    mutation.addedNodes.forEach(node => {
+                        // we should skip the outbound translations widget
+                        if (node.id !== "fxtranslations-ot") {
+                            this.startTreeWalker(node)
+                        }
+                    });
                 }
             }
         }.bind(this);
