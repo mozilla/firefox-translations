@@ -12,7 +12,6 @@ class OutboundTranslation {
     this.backTranslationsTextArea = null;
     this.translationTimeout = null;
     this.TYPING_TIMEOUT = 500; // constant defining how long to wait before translating after the user stopped typing
-    this.highestZIndex = 0;
     this.isUserTyping = false;
   }
 
@@ -39,7 +38,8 @@ class OutboundTranslation {
     this.otDiv.innerHTML = pageFragment;
     this.otDiv.id = "fxtranslations-ot";
     this.pageStatusLabel = this.otDiv.querySelector(".fxtranslations-status");
-    this.updateZIndex(document.body.children);
+    // we can hardcode the widget to have the highest zindex in the page
+    this.otDiv.style.zIndex = 2147483647;
 
     /*
      * we scan all textareas and attach our listeners to display
@@ -72,15 +72,15 @@ class OutboundTranslation {
   addFormListeners(formElements) {
     for (const formElement of formElements) {
       formElement.addEventListener("focus", () => {
-        this.attachOtToTextAreaListener();
+        this.attachOtToTextAreaListener(formElement);
       });
     }
   }
 
-  attachOtToTextAreaListener() {
+  attachOtToTextAreaListener(formElement) {
+    if (document.body.contains(this.otDiv)) return;
     document.body.appendChild(this.otDiv);
-
-    this.selectedTextArea = document.activeElement;
+    this.selectedTextArea = formElement;
     this.otTextArea = document.getElementById("OTapp")
       .querySelectorAll("textarea")[0];
 
@@ -112,8 +112,8 @@ class OutboundTranslation {
         type: "outbound"
       };
 
-      this.notifyMediator("translate", payload);
       this.updateStatusLabel("Translation in progress...");
+      this.notifyMediator("translate", payload);
     } else {
       this.updateStatusLabel("Ready.");
       this.updateBackTranslationTextArea("");
@@ -169,21 +169,6 @@ class OutboundTranslation {
     this.selectedTextArea.value = content;
   }
 
-  determineHighsetZIndex(root) {
-    // if the root itsels has the zindex property, we start with it
-    let highestZ = this.extractElementZIndex(root);
-    // then we loop through its children
-    const elements = root.getElementsByTagName("*");
-    if (!elements.length) return highestZ;
-    for (let element of elements) {
-      const currentZ = this.extractElementZIndex(element);
-      if (currentZ > highestZ) {
-        highestZ = currentZ;
-      }
-    }
-    return highestZ;
-  }
-
   extractElementZIndex(element){
     // first we check if the element contains inline style set
     let styleZIndex = element.style &&
@@ -202,29 +187,6 @@ class OutboundTranslation {
     ? parseInt(getComputedStyle(element).zIndex, 10)
     : 0;
     return Math.max(styleZIndex, computedZIndex);
-  }
-
-  updateZIndex(nodes) {
-    // we have a collection of nodes, so we need to iterate
-    if (nodes.nodeType === 1) {
-      // we have a single node
-      const zindex = this.determineHighsetZIndex(nodes);
-      if (zindex > this.highestZIndex) {
-        this.highestZIndex = zindex;
-      }
-    } else {
-      // we have a collection of nodes
-      for (const node of nodes) {
-        if (node.nodeType === 1) {
-          const zindex = this.determineHighsetZIndex(node);
-          if (zindex > this.highestZIndex) {
-            this.highestZIndex = zindex;
-          }
-        }
-      }
-    }
-
-    this.otDiv.style.zIndex = this.highestZIndex + 1;
   }
 
   /*
@@ -247,14 +209,10 @@ class OutboundTranslation {
             if (mutation.type === "childList" &&
                 mutation.addedNodes[0] &&
                 mutation.addedNodes[0].id !== "fxtranslations-ot") {
-              // we update the OT's widget zindex to keep it in front
-              this.updateZIndex(mutation.addedNodes);
               // and then add listeners to occasional new form elements
-              mutation.addedNodes.forEach(node => this.startTreeWalker(node));
-            } else if (mutation.type === "attributes" &&
-                       mutation.attributeName === "style" &&
-                       mutation.target.id !== "fxtranslations-ot") {
-                this.updateZIndex(mutation.target);
+              mutation.addedNodes.forEach(node => {
+                if (node.nodeType === 1) this.startTreeWalker(node)
+              });
             }
         }
     }.bind(this);
