@@ -13,6 +13,7 @@ class OutboundTranslation {
     this.translationTimeout = null;
     this.TYPING_TIMEOUT = 500; // constant defining how long to wait before translating after the user stopped typing
     this.highestZIndex = 0;
+    this.isUserTyping = false;
   }
 
   // eslint-disable-next-line max-lines-per-function
@@ -37,6 +38,7 @@ class OutboundTranslation {
     this.otDiv.className = "fxtranslations-ot";
     this.otDiv.innerHTML = pageFragment;
     this.otDiv.id = "fxtranslations-ot";
+    this.pageStatusLabel = this.otDiv.querySelector(".fxtranslations-status");
     this.updateZIndex(document.body.children);
 
     /*
@@ -51,6 +53,10 @@ class OutboundTranslation {
      * translatinon queue
      */
     this.otDiv.querySelector("textarea").addEventListener("keydown", () => {
+      if (!this.isUserTyping) {
+        this.isUserTyping = true;
+        this.updateStatusLabel("Typing");
+      }
       if (this.translationTimeout) {
         clearTimeout(this.translationTimeout);
       }
@@ -60,7 +66,7 @@ class OutboundTranslation {
       );
     });
     this.startMutationObserver();
-
+    this.updateStatusLabel("Ready");
   }
 
   addFormListeners(formElements) {
@@ -93,6 +99,7 @@ class OutboundTranslation {
 
   sendTextToTranslation() {
 
+    this.isUserTyping = false;
     const text = `${this.otTextArea.value}  `;
     if (text.trim().length) {
 
@@ -106,7 +113,11 @@ class OutboundTranslation {
       };
 
       this.notifyMediator("translate", payload);
-      console.log(`OT Call to this.notifyMediator(translate). ${new Date(Date.now()).toUTCString()}`);
+      this.updateStatusLabel("Translation in progress...");
+    } else {
+      this.updateStatusLabel("Ready.");
+      this.updateBackTranslationTextArea("");
+      this.updateselectedTextArea("");
     }
   }
 
@@ -146,6 +157,7 @@ class OutboundTranslation {
        * this is an outbound translation request
        */
       this.updateBackTranslationTextArea(translationMessage.translatedParagraph);
+      this.updateStatusLabel("Translation completed.");
     }
   }
 
@@ -272,4 +284,10 @@ class OutboundTranslation {
       this.addFormListeners([currentNode]);
     }
   }
+
+  updateStatusLabel(status) {
+    // update the status in the widget
+    this.pageStatusLabel.innerHTML = status;
+  }
+
 }

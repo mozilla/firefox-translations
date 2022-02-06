@@ -1,11 +1,15 @@
+
 <div id="OTapp" class="fxtranslations-appOT">
+  <div class="fxtranslations-header">This is form translations by Firefox Translations. It allows you to translate input forms. Type in the form to the left in <em>{YOURLANGUAGE}</em> to fill the form you selected in {TGTLANG}. The form to the right represents the text translated from {YOURLANGUAGE} to {TGTLANG} translated back from {TGTLANG} to {YOURLANGUAGE} for your verification.</div>
   <br>
   <div id="fxtranslations-panelOT-from" class="fxtranslations-panelOT fxtranslations--fromOT">
-    <textarea class="fxtranslations-textareaOT"></textarea>
+    <label for="fxtranslations-textareaOT" class="fxtranslations-panelLabel">Type in {YOURLANG}</label><br>
+    <textarea id="fxtranslations-textareaOT" class="fxtranslations-textareaOT"></textarea>
   </div>
   <div class="fxtranslations-panelOT fxtranslations--toOT">
+    <label for="fxtranslations-textareaOT" class="fxtranslations-panelLabel">Backtranslation</label><br>
     <textarea id="fxtranslations-textareaBT" class="fxtranslations-textareaOT" readonly></textarea>
   </div>
   <br>
-  <div class="fxtranslations-footer"></div>
+  <div id="fxtranslations-status" class="fxtranslations-status"></div>
 </div>
