@@ -16,6 +16,9 @@ class InPageTranslation {
         this.messagesSent = new Set();
         this.nodesSent = new Set();
 
+        // Reference for all tags:
+        // https://developer.mozilla.org/en-US/docs/Web/HTML/Element
+
         // Tags that are treated as "meh inline tags just send them to the translator"
         this.inlineTags = new Set([
             "abbr",
@@ -49,59 +52,40 @@ class InPageTranslation {
             "br"
         ]);
 
-        // Tags that we are allowed to enter (& submit if deemed necessary)
-        this.selectedTags = new Set([
-            // At least include all the inline tags we know
-            ...this.inlineTags,
-            "div",
-            "p",
-            "span",
-            // "#text",
-            "i",
-            "a",
-            "b",
-            "strong",
-            "em",
-            "h1",
-            "h2",
-            "h3",
-            "h4",
-            "h5",
-            "h6",
-            "form",
-            "label",
-            "body",
-            "header",
-            "footer",
-            "main",
-            "article",
-            "section", // too large?
-            "nav",
-            // "li", // moved to inline
-            "ul",
-            "ol",
-            "dl",
-            "dt",
-            "dd",
-            "td",
-            "th",
-            "caption",
-            "button",
-            "select",
-            "option",
-            "fieldset",
-            "legend",
+        // Tags that we do not want to translate
+        this.excludedTags = new Set([
+            // Code-type elements generally don't translate well.
+            'code',
+            'kbd',
+            'samp',
+            'var',
+            'dir', // DEPCREATED
 
-            "summary",
-            "details",
+            // Debateable
+            'acronym',
 
-            // Allow it to enter tables at least
-            "table",
-            "thead",
-            "tbody",
-            "tr",
-        ]);
+            // Embedded media, lets not just yet. Maybe svg might be fun? Think
+            // of inline diagrams that contain labels that we could translate.
+            'svg',
+            'math',
+            'embed',
+            'object',
+            'applet', // DEPRECATED
 
+            // Title is already a special case, other than that I can't think of
+            // anything in <head> that needs translating
+            'head',
+            
+            // Don't attempt to translate any inline script or style
+            'style', 
+            'script',
+
+            // Let's stay away from translating prefilled forms
+            'textarea',
+
+            // handled in isExcludedNode
+            // `*[lang]:not([lang|=${language}])`
+        ])
     }
 
     start(language) {
@@ -237,13 +221,13 @@ class InPageTranslation {
     }
 
     isExcludedNode(node) {
+        // Exclude certain elements
+        if (this.excludedTags.has(node.nodeName.toLowerCase()))
+            return true;
+
         // Exclude elements that have a lang attribute that mismatches the
         // language we're currently translating.
         if (node.lang && node.lang.substr(0.2) !== this.language)
-            return true;
-
-        // Exclude CODE blocks
-        if (node.nodeName === 'CODE')
             return true;
 
         return false;
@@ -252,15 +236,10 @@ class InPageTranslation {
     containsExcludedNode(node) {
         // TODO describe this in terms of the function above, but I assume
         // using querySelector is faster for now.
-        return node.querySelector(`[lang]:not([lang|="${this.language}"]), code`);
+        return node.querySelector(`[lang]:not([lang|="${this.language}"]), ${Array.from(this.excludedTags).join(',')}`);
     }
 
     validateNode(node) {
-        if (!this.selectedTags.has(node.nodeName.toLowerCase())) {
-            node.setAttribute('x-bergamot-translated', 'rejected not-in-selected-tags');
-            return NodeFilter.FILTER_REJECT;
-        }
-
         if (this.isExcludedNode(node)) {
             node.setAttribute('x-bergamot-translated', 'rejected is-excluded-node');
             return NodeFilter.FILTER_REJECT;
