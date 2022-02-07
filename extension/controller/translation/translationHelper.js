@@ -81,7 +81,6 @@ class Channel {
         return new Promise((resolve, reject) => {
             const id = ++this.serial;
             this.pending.set(id, {resolve, reject});
-            console.log('Sending', {id, message});
             this.worker.postMessage({id, message});
         })
     }
@@ -93,8 +92,6 @@ class Channel {
     onmessage({data: {id, message, error}}) {
         if (id === undefined)
             return;
-
-        console.log('Receiving', {id, message, error});
 
         const {resolve, reject} = this.pending.get(id);
         this.pending.delete(id);
@@ -438,7 +435,10 @@ class Channel {
         queue.forEach(batch => {
             batch.requests.forEach(({request, resolve, reject}) => {
                 if (filter(request)) {
-                    reject(new Error('removed by filter'));
+                    // Add error.request property to match response.request for
+                    // a resolve() callback. Pretty useful if you don't want to
+                    // do all kinds of Funcion.bind() dances.
+                    reject(Object.assign(new Error('removed by filter'), {request}));
                     return;
                 }
 
@@ -452,8 +452,6 @@ class Channel {
                 });
             });
         });
-
-        console.debug("After pruning closed tab, ", this.queue.length, "of", queue.length, "batches left");
     }
 
     /**
@@ -489,8 +487,6 @@ class Channel {
      */
     async consumeBatch(batch, worker) {
         performance.mark('BTConsumeBatch.start');
-
-        console.debug("Translating batch", batch);
 
         // Make sure the worker has all necessary models loaded. If not, tell it
         // first to load them.

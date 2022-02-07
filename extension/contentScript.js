@@ -87,7 +87,3 @@ on('TranslateResponse', data => {
         translatedParagraph: data.translation
     });
 });
-
-backgroundScript.onMessage.addListener(message => {
-    console.log('[contentScript] received', message);
-});

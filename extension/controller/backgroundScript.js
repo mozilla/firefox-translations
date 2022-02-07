@@ -164,8 +164,7 @@ class Tab extends EventTarget {
         const diff = callback(this.state);
         if (diff === undefined)
             throw new Error('state update callback function did not return a value');
-        
-        console.log('Tab update', this.id, diff);
+
         Object.assign(this.state, diff);
 
         // Delay the update notification to accumulate multiple changes in one
@@ -181,8 +180,6 @@ class Tab extends EventTarget {
     _dispatchUpdateEvent() {
         const {diff} = this._scheduledUpdateEvent;
         this._scheduledUpdateEvent = null;
-
-        console.info('Tab update notify', this.id, diff);
 
         const updateEvent = new Event('update');
         updateEvent.data = diff;
@@ -247,7 +244,6 @@ function connectTab(tab, port) {
     });
 
     // Send an initial update to the port
-    console.log('Sending Update to', tab.id, Object.assign({}, tab.state));
     port.postMessage({
         command: 'Update',
         data: tab.state
@@ -320,6 +316,14 @@ function connectContentScript(contentScript) {
                             });
                         }
                     })
+                    .catch(e => {
+                        // Catch error messages caused by abort()
+                        if (e && e.message && e.message === 'removed by filter' && e.request && e.request._abortSignal.aborted)
+                            return;
+                        
+                        // rethrow any other error
+                        throw e;
+                    })
                     .finally(() => {
                         tab.update(state => ({
                             pendingTranslationRequests: state.pendingTranslationRequests - 1,
@@ -340,8 +344,6 @@ function connectContentScript(contentScript) {
 }
 
 function connectPopup(popup) {
-    console.log('connectPopup', popup);
-
     const tabId = parseInt(popup.name.substr('popup-'.length));
 
     const tab = getTab(tabId);
@@ -350,8 +352,6 @@ function connectPopup(popup) {
     connectTab(tab, popup);
 
     popup.onMessage.addListener(message => {
-        console.log('popup.onMessage', message);
-
         switch (message.command) {
             case "TranslateStart":
                 tab.translate({

@@ -107,8 +107,6 @@ class TranslationWorker {
      * this method.
      */
     async translate({models, texts, options}) {
-        console.log('Worker translate called with', {models, texts, options});
-
         const Module = await this.module;
         const service = await this.service;
 
