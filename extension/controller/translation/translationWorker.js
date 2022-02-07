@@ -158,7 +158,7 @@ const worker = new TranslationWorker();
 // Responder for Proxy<Channel> created in TranslationHelper.loadWorker()
 onmessage = async ({data: {id, message}}) => {
     try {
-        const result = await worker[message.name].apply(worker, message.args);
+        const result = await worker[message.name](...message.args);
         postMessage({id, message: result});
     } catch (err) {
         console.error(err);

@@ -105,6 +105,8 @@ class InPageTranslation {
     }
 
     start(language) {
+        if (this.started)
+            return;
 
         /*
          * start the dom parser, the DOM mutation observer and request the

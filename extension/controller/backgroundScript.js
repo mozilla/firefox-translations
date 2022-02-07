@@ -6,6 +6,10 @@ function* product(as, bs) {
             yield [a, b];
 }
 
+function isSameDomain(url1, url2) {
+    return url1 && url2 && new URL(url1).host === new URL(url2).host;
+}
+
 // Temporary fix around few models, bad classified, and similar looking languages.
 // From https://github.com/bitextor/bicleaner/blob/3df2b2e5e2044a27b4f95b83710be7c751267e5c/bicleaner/bicleaner_hardrules.py#L50
 const SimilarLanguages = [
@@ -18,7 +22,10 @@ const SimilarLanguages = [
  * from->to language pairs, based on the detected language, the preferred
  * target language, and what models are available.
  */
-async function detectLanguage(sample, suggested, languageHelper) {
+async function detectLanguage({sample, suggested}, languageHelper) {
+    if (!sample)
+        throw new Error('Empty sample');
+
     const [detected, models] = await Promise.all([
         browser.i18n.detectLanguage(sample),
         translationHelper.registry
@@ -40,7 +47,7 @@ async function detectLanguage(sample, suggested, languageHelper) {
     let confidence = Object.fromEntries(detected.languages.map(({language, percentage}) => [language, percentage / 100]));
 
     // Take suggestions into account
-    Object.entries(suggested).forEach(([lang, score]) => {
+    Object.entries(suggested || {}).forEach(([lang, score]) => {
         confidence[lang] = Math.max(score, confidence[lang] || 0.0);
     });
 
@@ -81,7 +88,6 @@ async function detectLanguage(sample, suggested, languageHelper) {
 const State = {
     PAGE_LOADING: 'page-loading',
     PAGE_LOADED: 'page-loaded',
-    // LANGUAGE_DETECTED: 'language-detected',
     TRANSLATION_NOT_AVAILABLE: 'translation-not-available',
     TRANSLATION_AVAILABLE: 'translation-available',
     TRANSLATION_IN_PROGRESS: 'translation-in-progress',
@@ -97,7 +103,8 @@ class Tab extends EventTarget {
             state: State.PAGE_LOADING,
             pendingTranslationRequests: 0,
             totalTranslationRequests: 0,
-            debug: false
+            debug: false,
+            url: null
         };
         this.frames = new Map();
 
@@ -113,13 +120,6 @@ class Tab extends EventTarget {
             from,
             to
         }));
-
-        this.frames.forEach(frame => {
-            frame.postMessage({
-                command: 'TranslateStart',
-                data: {from, to}
-            });
-        });
     }
 
     /**
@@ -141,44 +141,59 @@ class Tab extends EventTarget {
      * Resets the tab state after navigating away from a page. The disconnect
      * of the tab's content scripts will already have triggered abort()
      */
-    reset() {
-        this.update(state => ({
-            state: State.PAGE_LOADING,
-            pendingTranslationRequests: 0,
-            totalTranslationRequests: 0
-        }));
+     reset(url) {
+        this.update(state => {
+            if (isSameDomain(url, state.url)) {
+                return {
+                    url,
+                    pendingTranslationRequests: 0,
+                    totalTranslationRequests: 0
+                };
+            } else {
+                return {
+                    url,
+                    pendingTranslationRequests: 0,
+                    totalTranslationRequests: 0,
+                    state: State.PAGE_LOADING
+                };
+            }
+        });
     }
 
     update(callback) {
-        const mutation = callback(this.state);
-        if (mutation === undefined)
+        const diff = callback(this.state);
+        if (diff === undefined)
             throw new Error('state update callback function did not return a value');
         
-        Object.assign(this.state, mutation);
+        console.log('Tab update', this.id, diff);
+        Object.assign(this.state, diff);
 
         // Delay the update notification to accumulate multiple changes in one
         // notification.
         if (!this._scheduledUpdateEvent) {
             const callbackId = requestIdleCallback(this._dispatchUpdateEvent.bind(this));
-            this._scheduledUpdateEvent = {mutation, callbackId};
+            this._scheduledUpdateEvent = {diff, callbackId};
         } else {
-            Object.assign(this._scheduledUpdateEvent.mutation, mutation);
+            Object.assign(this._scheduledUpdateEvent.diff, diff);
         }
     }
 
     _dispatchUpdateEvent() {
-        const {mutation} = this._scheduledUpdateEvent;
+        const {diff} = this._scheduledUpdateEvent;
         this._scheduledUpdateEvent = null;
 
+        console.info('Tab update notify', this.id, diff);
+
         const updateEvent = new Event('update');
-        updateEvent.data = mutation;
+        updateEvent.data = diff;
         this.dispatchEvent(updateEvent);
     }
 }
 
 function showPopup(event) {
-    switch (event.data.state) {
+    switch (event.target.state.state) {
         case State.TRANSLATION_AVAILABLE:
+        case State.TRANSLATION_IN_PROGRESS:
             browser.pageAction.show(event.target.id);
             break;
         case State.TRANSLATION_NOT_AVAILABLE:
@@ -232,6 +247,7 @@ function connectTab(tab, port) {
     });
 
     // Send an initial update to the port
+    console.log('Sending Update to', tab.id, Object.assign({}, tab.state));
     port.postMessage({
         command: 'Update',
         data: tab.state
@@ -270,21 +286,26 @@ function connectContentScript(contentScript) {
         abort();
     });
 
+    // Respond to certain messages from the content script. Mainly individual
+    // translation requests, and detect language requests which then change the
+    // state of the tab to reflect whether translations are available or not.
     contentScript.onMessage.addListener(message => {
-        console.log('contentScript.onMessage', message);
-
         switch (message.command) {
+            // Send by the content-scripts inside this tab
             case "DetectLanguage":
-                detectLanguage(message.data.sample, message.data.suggested || {}, translationHelper).then(summary => {
+                detectLanguage(message.data, translationHelper).then(summary => {
+                    // TODO: When we support multiple frames inside a tab, we
+                    // should integrate the results from each frame somehow.
                     tab.update(state => ({
                         ...summary, // {from, to, models}
-                        state: summary.models.length > 0
+                        state: summary.models.length > 0 // TODO this is always true
                             ? State.TRANSLATION_AVAILABLE
                             : State.TRANSLATION_NOT_AVAILABLE
                     }));
                 });
                 break;
 
+            // Send by the content-scripts inside this tab
             case "TranslateRequest":
                 tab.update(state => ({
                     pendingTranslationRequests: state.pendingTranslationRequests + 1,
@@ -307,6 +328,10 @@ function connectContentScript(contentScript) {
                     })
                 break;
 
+            // Send by this script's Tab.abort() but handled per content-script
+            // since each content-script handler (connectContentScript) has the
+            // ability to abort all of the content-script's translation
+            // requests. Same code is called when content-script disconnects.
             case "TranslateAbort":
                 abort();
                 break;
@@ -351,12 +376,13 @@ browser.runtime.onConnect.addListener((port) => {
 });
 
 // Initialize or update the state of a tab when navigating
-browser.webNavigation.onCommitted.addListener(({tabId, frameId}) => {
+browser.webNavigation.onCommitted.addListener(({tabId, frameId, url}) => {
     // Right now we're only interested in top-level navigation changes
     if (frameId !== 0)
         return;
 
-    getTab(tabId).reset();
+    // Todo: treat reload and link different? Reload -> disable translation?
+    getTab(tabId).reset(url);
 });
 
 // Remove the tab state if a tab is removed

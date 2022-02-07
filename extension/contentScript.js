@@ -1,4 +1,54 @@
-console.log('mediator.js started');
+"use strict";
+
+const backgroundScript = browser.runtime.connect({name: 'content-script'});
+
+const state = {
+    state: 'page-loading'
+};
+
+function on(command, callback) {
+    backgroundScript.onMessage.addListener(message => {
+        if (message.command === command)
+            callback(message.data);
+    });
+}
+
+on('Update', diff => {
+    Object.assign(state, diff);
+});
+
+on('Update', diff => {
+    if ('state' in diff && diff.state === 'translation-in-progress')
+        inPageTranslation.start(diff.from);
+});
+
+on('Update', diff => {
+    if ('state' in diff && diff.state === 'page-loading') {
+        // request the language detection class to extract a page's snippet
+        const languageDetection = new LanguageDetection();
+        const sample = languageDetection.extractPageContent();
+        const suggested = languageDetection.extractSuggestedLanguages();
+
+        // Once we have the snippet, send it to background script for analysis
+        // and possibly further action (like showing the popup)
+        backgroundScript.postMessage({
+            command: "DetectLanguage",
+            data: {
+                sample,
+                suggested
+            }
+        });
+    }
+});
+
+on('Update', diff => {
+    if ('debug' in diff) {
+        if (diff.debug)
+            document.querySelector('html').setAttribute('x-bergamot-debug', JSON.stringify(state));
+        else
+            document.querySelector('html').removeAttribute('x-bergamot-debug');
+    }
+});
 
 const PRIORITIES = {
     'viewportNodeMap': 1,
@@ -6,21 +56,15 @@ const PRIORITIES = {
     'hiddenNodeMap': 3
 };
 
-const backgroundScript = browser.runtime.connect({name: 'content-script'});
-
-// Todo rewrite this
-const model = {};
-
 const inPageTranslation = new InPageTranslation({
     contentScriptsMessageListener: (sender, {command, payload}) => {
-        console.assert(command == 'translate');
-
+        console.assert(state.from !== undefined && state.to !== undefined);
         backgroundScript.postMessage({
             command: "TranslateRequest",
             data: {
                 // translation request
-                from: model.from,
-                to: model.to,
+                from: state.from,
+                to: state.to,
                 html: true,
                 text: payload.text,
                 
@@ -37,47 +81,13 @@ const inPageTranslation = new InPageTranslation({
     }
 });
 
-backgroundScript.onMessage.addListener(({command, data}) => {
-    switch (command) {
-        case "TranslateResponse":
-            inPageTranslation.mediatorNotification({
-                ...data.request.user,
-                translatedParagraph: data.translation
-            });
-            break;
-        case "TranslateStart":
-            model.from = data.from;
-            model.to = data.to;
-            inPageTranslation.start(data.from);
-            break;
-    }
+on('TranslateResponse', data => {
+    inPageTranslation.mediatorNotification({
+        ...data.request.user,
+        translatedParagraph: data.translation
+    });
 });
 
-// request the language detection class to extract a page's snippet
-const languageDetection = new LanguageDetection();
-const sample = languageDetection.extractPageContent();
-const suggested = languageDetection.extractSuggestedLanguages();
-
-// Once we have the snippet, send it to background script for analysis
-// and possibly further action (like showing the popup)
-backgroundScript.postMessage({
-    command: "DetectLanguage",
-    data: {
-        sample,
-        suggested
-    }
-});
-
-// Quick hack to get debugging in here
-backgroundScript.onMessage.addListener(({command, data}) => {
-    switch (command) {
-        case "Update":
-            if ('debug' in data) {
-                if (data.debug)
-                    document.querySelector('html').setAttribute('x-bergamot-debug', true);
-                else
-                    document.querySelector('html').removeAttribute('x-bergamot-debug');
-            }
-            break;
-    }
+backgroundScript.onMessage.addListener(message => {
+    console.log('[contentScript] received', message);
 });

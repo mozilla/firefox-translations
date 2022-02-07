@@ -54,6 +54,9 @@ function render(state) {
 	});
 }
 
+// Query which tab we represent and then connect to the tab state in the 
+// background-script. Connecting will cause us to receive an "Update" message
+// with the tab's state (and any future updates to it)
 browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 	const tabId = tabs[0].id;
 
@@ -70,8 +73,6 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 	};
 
 	backgroundScript.onMessage.addListener(({command, data}) => {
-		console.log('[popup] backgroundScript.onMessage', {command, data});
-
 		switch (command) {
 			case 'Update':
 				Object.assign(state, data);
@@ -88,6 +89,11 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 					from: document.querySelector('#lang-from').value,
 					to: document.querySelector('#lang-to').value
 				}
+			});
+		},
+		'click #abort-translate-btn': e => {
+			backgroundScript.postMessage({
+				command: 'TranslateAbort'
 			});
 		},
 		'change input[type=checkbox][data-state-key]': e => {

@@ -10,6 +10,10 @@
 			body {
 				padding:  1em;
 			}
+
+			progress {
+				display: block;
+			}
 		</style>
 	</head>
 	<body>
@@ -22,7 +26,8 @@
 			</div>
 			<div data-state="translation-in-progress">
 				<p id="progress-message">Translating page…</p>
-				<progress id="progress-bar">
+				<progress id="progress-bar"></progress>
+				<button id="abort-translate-btn">Stop translating</button>
 			</div>
 			<div data-state="translation-error">
 				<p>Error during translation:</p>
