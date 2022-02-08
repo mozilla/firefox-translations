@@ -1,0 +1,22 @@
+[
+  {
+    "namespace": "experiments.telemetryPreferences",
+    "description": "Enables read-only access to specific Telemetry-related about:config preferences",
+    "events": [
+      {
+        "name": "onUploadEnabledPrefChange",
+        "type": "function",
+        "parameters": []
+      }
+    ],
+    "functions": [
+      {
+        "name": "getUploadEnabledPref",
+        "type": "function",
+        "description": "Get the uploadEnabled preference's value",
+        "parameters": [],
+        "async": true
+      }
+    ]
+  }
+]

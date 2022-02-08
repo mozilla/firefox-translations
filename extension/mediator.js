@@ -19,7 +19,7 @@ class Mediator {
         /*
          *  todo: read from config
          */
-        this.telemetry = new Telemetry(true, false, false);
+        this.telemetry = new Telemetry(false, false, false);
         this.translationTelemetry = new TranslationTelemetry(this.telemetry);
         this.translationTelemetry.recordVersions(browser.runtime.getManifest().version, "?", "?");
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
@@ -34,6 +34,7 @@ class Mediator {
 
     init() {
         browser.runtime.sendMessage({ command: "monitorTabLoad" });
+        browser.runtime.sendMessage({ command: "loadTelemetryUploadPref" });
         browser.runtime.sendMessage({ command: "loadTelemetryInfo" });
     }
 
@@ -210,6 +211,9 @@ class Mediator {
             case "telemetryInfoLoaded":
                 this.translationTelemetry.recordEnvironment(message.env);
                 this.telemetry.setBrowserEnv(message.env);
+                break;
+            case "telemetryUploadPrefLoaded":
+                this.telemetry.setUploadEnabled(message.uploadEnabled);
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
