@@ -100,40 +100,8 @@ jobs:
         run: |
           ccache -s # Print current cache stats
       - name: Import GEMM library from a separate wasm module
-        working-directory: build-wasm-without-wormhole
+        working-directory: bergamot-translator/build-wasm-without-wormhole
         run: bash ../wasm/patch-artifacts-import-gemm-module.sh
-
-
-      # WORMHOLE=on
-      - name: "Configure builds for WORMHOLE=on"
-        working-directory: bergamot-translator
-        run: |
-          mkdir -p build-wasm-with-wormhole
-          cd build-wasm-with-wormhole
-          emcmake cmake -DCOMPILE_WASM=on -DWORMHOLE=on ..
-      - name: "Compile with WORMHOLE=on"
-        working-directory: bergamot-translator/build-wasm-with-wormhole
-        run: |
-          emmake make -j2
-      - name: ccache epilog
-        run: |
-          ccache -s # Print current cache stats
-      - name: Instantiate simd wormhole
-        working-directory: bergamot-translator/build-wasm-with-wormhole
-        run: bash ../wasm/patch-artifacts-enable-wormhole.sh
-
-      - name: Import GEMM library from a separate wasm module
-        working-directory: bergamot-translator/build-wasm-with-wormhole
-        run: bash ../wasm/patch-artifacts-import-gemm-module.sh
-
-      # Rename the wormhole on builds
-      - name: Rename artefacts with wormhole
-        working-directory: bergamot-translator/build-wasm-with-wormhole
-        run: |
-              mv bergamot-translator-worker{,-with-wormhole}.js
-              mv bergamot-translator-worker{,-with-wormhole}.js.bak
-              mv bergamot-translator-worker{,-with-wormhole}.wasm
-      # Upload both together.
       - name: Upload wasm artifact
         uses: actions/upload-artifact@v2
         with:
@@ -143,8 +111,6 @@ jobs:
               # Without wormhole
               ${{github.workspace}}/bergamot-translator/build-wasm-without-wormhole/bergamot-translator-worker.js
               ${{github.workspace}}/bergamot-translator/build-wasm-without-wormhole/bergamot-translator-worker.wasm
-              ${{github.workspace}}/bergamot-translator/build-wasm-with-wormhole/bergamot-translator-worker-with-wormhole.js
-              ${{github.workspace}}/bergamot-translator/build-wasm-with-wormhole/bergamot-translator-worker-with-wormhole.wasm
 
   build-extension:
     runs-on: ubuntu-latest
