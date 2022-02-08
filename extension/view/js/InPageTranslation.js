@@ -345,19 +345,25 @@ class InPageTranslation {
         const targetNode = document;
 
         // options for the observer (which mutations to observe)
-        const config = { attributes: true, childList: true, subtree: true };
-        // callback function to execute when mutations are observed
-        const callback = function(mutationsList) {
+        const config = {
+            characterData: true,
+            childList: true,
+            subtree: true
+        };
+        
+        // create an observer instance linked to the callback function
+        const observer = new MutationObserver(mutationsList => {
             for (const mutation of mutationsList) {
-                if (mutation.type === "childList") {
-                    // console.log(mutation);
-                    mutation.addedNodes.forEach(node => this.startTreeWalker(node));
+                switch (mutation.type) {
+                    case "childList":
+                        mutation.addedNodes.forEach(node => this.startTreeWalker(node));
+                        break;
+                    case "characterData":
+                        this.startTreewalker(mutation.target.parentNode);
+                        break;
                 }
             }
-        }.bind(this);
-
-        // create an observer instance linked to the callback function
-        const observer = new MutationObserver(callback);
+        });
 
         // start observing the target node for configured mutations
         observer.observe(targetNode, config);
