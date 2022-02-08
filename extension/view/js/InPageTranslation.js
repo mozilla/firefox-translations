@@ -1,3 +1,4 @@
+"use strict";
 
 // eslint-disable-next-line no-unused-vars
 class InPageTranslation {
@@ -308,6 +309,13 @@ class InPageTranslation {
             // if we already sent this message, we just skip it
             return;
         }
+
+        // Give each element an id that gets passed through the translation so
+        // we can later on reunite it.
+        node.querySelectorAll('*').forEach((el, i) => {
+            el.dataset.xBergamotId = i;
+        });
+
         const text = node.innerHTML;
         if (text.trim().length) {
 
@@ -368,8 +376,69 @@ class InPageTranslation {
     updateElements() {
         const updateElement = (translatedHTML, node) => {
             node.setAttribute('x-bergamot-translated', '');
-            node.innerHTML = translatedHTML;
-        }
+            
+            const scratch = node.cloneNode(false); // shallow clone of parent node
+            scratch.innerHTML = translatedHTML;
+
+            const originalHTML = node.innerHTML;
+
+            const clonedNodes = new Set();
+
+            const merge = (dst, src, path) => {
+                const dstChildNodes = Object.fromEntries(Array.from(dst.childNodes)
+                    .map(child => dst.removeChild(child))
+                    .filter(child => child.nodeType === Node.ELEMENT_NODE)
+                    .map(child => [child.dataset.xBergamotId, child]));
+
+                const srcChildNodes = new Set(Array.from(src.childNodes)
+                    .filter(child => child.nodeType === Node.ELEMENT_NODE)
+                    .map(child => child.dataset.xBergamotId));
+
+                Array.from(src.childNodes).forEach(child => {
+                    // Element nodes we try to use the already existing DOM nodes
+                    if (child.nodeType === Node.ELEMENT_NODE) {
+                        let counterpart = dstChildNodes[child.dataset.xBergamotId];
+
+                        if (!counterpart) {
+                            console.warn(`[InPlaceTranslation] ${path.join('/')} Could not find counterpart for`, child.dataset.xBergamotId, dstChildNodes, child);
+                            return;
+                        }
+
+                        if (counterpart.parentNode) {
+                            counterpart = counterpart.cloneNode(true);
+                            clonedNodes.add(counterpart.dataset.xBergamotId);
+                            console.warn(`[InPlaceTranslation] ${path.join('/')} Cloning node`, counterpart, 'because it was already inserted earlier');
+                        }
+
+                        if (child.innerText?.trim())
+                            merge(counterpart, child, [...path, counterpart.dataset.xBergamotId]);
+
+                        dst.appendChild(counterpart);
+                    }
+                    // All other nodes we just copy in directly
+                    else {
+                        dst.appendChild(child);
+                    }
+                });
+
+                const lost = Object.values(dstChildNodes)
+                    .filter(child => !child.parentNode);
+
+                if (lost.length)
+                    console.warn(`[InPlaceTranslation] ${path.join('/')} Not all nodes unified`, {
+                        lost,
+                        cloned: Array.from(clonedNodes.values()),
+                        isInClonedNode: path.some(id => clonedNodes.has(id)),
+                        originalHTML,
+                        translatedHTML,
+                        dst: dst.outerHTML,
+                        src: src.outerHTML
+                    });
+            };
+
+            merge(node, scratch, []);
+        };
+
         this.updateMap.forEach(updateElement);
         this.updateMap.clear();
         this.updateTimeout = null;
