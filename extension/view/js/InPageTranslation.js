@@ -390,7 +390,12 @@ class InPageTranslation {
 
             const clonedNodes = new Set();
 
+            // Merge the live tree (dst) with the translated tree (src) by
+            // re-using elements from the live tree.
             const merge = (dst, src, path) => {
+                // Remove all live nodes at this branch of the tree, but keep
+                // an (indexed) reference to them since we will be adding them
+                // back, but possibly in a different order.
                 const dstChildNodes = Object.fromEntries(Array.from(dst.childNodes)
                     .map(child => dst.removeChild(child))
                     .filter(child => child.nodeType === Node.ELEMENT_NODE)
@@ -400,9 +405,12 @@ class InPageTranslation {
                     .filter(child => child.nodeType === Node.ELEMENT_NODE)
                     .map(child => child.dataset.xBergamotId));
 
+                // src (translated) dictates the order.
                 Array.from(src.childNodes).forEach(child => {
                     // Element nodes we try to use the already existing DOM nodes
                     if (child.nodeType === Node.ELEMENT_NODE) {
+                        // Find an element in the live tree that matches the
+                        // one in the translated tree.
                         let counterpart = dstChildNodes[child.dataset.xBergamotId];
 
                         if (!counterpart) {
@@ -410,19 +418,25 @@ class InPageTranslation {
                             return;
                         }
 
+                        // If it already has a parentNode, we already used it
+                        // with appendChild. This can happen, bergamot-translator
+                        // can duplicate HTML in the same branch.
                         if (counterpart.parentNode) {
                             counterpart = counterpart.cloneNode(true);
                             clonedNodes.add(counterpart.dataset.xBergamotId);
                             console.warn(`[InPlaceTranslation] ${path.join('/')} Cloning node`, counterpart, 'because it was already inserted earlier');
                         }
-
+    
+                        // Only attempt a recursive merge if there is anything
+                        // to merge (I mean any translated text)
                         if (child.innerText?.trim())
                             merge(counterpart, child, [...path, counterpart.dataset.xBergamotId]);
 
+                        // Put the live node back in the live branch. But now
+                        // it has been synced with the translated text and order.
                         dst.appendChild(counterpart);
-                    }
-                    // All other nodes we just copy in directly
-                    else {
+                    } else {
+                        // All other node types we just copy in directly
                         dst.appendChild(child);
                     }
                 });
@@ -443,6 +457,9 @@ class InPageTranslation {
             };
 
             merge(node, scratch, []);
+
+            // TODO is this a good idea?
+            // this.nodesSent.delete(node);
         };
 
         this.updateMap.forEach(updateElement);
