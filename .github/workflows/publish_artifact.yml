@@ -47,17 +47,6 @@ jobs:
       - name: Obtain emsdk sources
         run: |
             git clone --depth 1 https://github.com/emscripten-core/emsdk.git
-      - name: Cache-op for build-cache through ccache
-        uses: actions/cache@v2
-        with:
-          path: |
-              ${{ env.ccache_dir }}
-              ${{ github.workspace }}/emsdk/ccache/git-emscripten_64bit/
-          key: ccache-${{ github.job }}-${{ env.emsdk_version }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}-${{ steps.ccache_vars.outputs.timestamp }}
-          restore-keys: |-
-            ccache-${{ github.job }}-${{ env.emsdk_version }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}
-            ccache-${{ github.job }}-${{ env.emsdk_version }}-${{ steps.ccache_vars.outputs.hash }}
-            ccache-${{ github.job }}-${{ env.emsdk_version }}
       - name: Setup Emscripten toolchain
         run: |
             (cd emsdk && ./emsdk install ${{ env.emsdk_version }} ccache-git-emscripten-64bit)
@@ -81,6 +70,16 @@ jobs:
             emcc --version
             emcmake cmake --version
             emmake make --version
+      - name: Cache-op for build-cache through ccache
+        uses: actions/cache@v2
+        with:
+          path: |
+              ${{ env.ccache_dir }}
+          key: ccache-${{ github.job }}-${{ env.emsdk_version }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}-${{ steps.ccache_vars.outputs.timestamp }}
+          restore-keys: |-
+            ccache-${{ github.job }}-${{ env.emsdk_version }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}
+            ccache-${{ github.job }}-${{ env.emsdk_version }}-${{ steps.ccache_vars.outputs.hash }}
+            ccache-${{ github.job }}-${{ env.emsdk_version }}
       - name: ccache prolog
         run: |-
           ccache -s # Print current cache stats
