@@ -25,12 +25,10 @@ jobs:
     name: "emscripten"
     runs-on: ubuntu-latest
     steps:
-
       - name: Checkout
         uses: actions/checkout@v2
         with:
           submodules: recursive
-
       - name: Set ccache environment for emcc
         run: |
           # We are hardcoding this to mtime instead of env pickup. Rest use content.
@@ -42,11 +40,27 @@ jobs:
           echo "CCACHE_MAXSIZE=${{ env.ccache_maxsize }}" >> $GITHUB_ENV
           # https://emscripten.org/docs/compiling/Building-Projects.html#using-a-compiler-wrapper
           echo "EM_COMPILER_WRAPPER=ccache" >> $GITHUB_ENV
-          
+      - name: Generate ccache_vars for ccache based on machine
+        shell: bash
+        id: ccache_vars
+        run: |-
+          echo "::set-output name=hash::$(echo ${{ env.ccache_compilercheck }})"
+          echo "::set-output name=timestamp::$(date '+%Y-%m-%dT%H.%M.%S')"
       # This need to be run before setup, so ccache build caching doesn't complain.
       - name: Obtain emsdk sources
         run: |
             git clone --depth 1 https://github.com/emscripten-core/emsdk.git
+      - name: Cache-op for build-cache through ccache
+        uses: actions/cache@v2
+        with:
+          path: |
+             ${{ env.ccache_dir }}
+             ${{ github.workspace }}/emsdk/ccache/git-emscripten_64bit/
+          key: ccache-${{ github.job }}-${{ env.emsdk_version }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}-${{ steps.ccache_vars.outputs.timestamp }}
+          restore-keys: |-
+            ccache-${{ github.job }}-${{ env.emsdk_version }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}
+            ccache-${{ github.job }}-${{ env.emsdk_version }}-${{ steps.ccache_vars.outputs.hash }}
+            ccache-${{ github.job }}-${{ env.emsdk_version }}
       - name: Setup Emscripten toolchain
         run: |
             (cd emsdk && ./emsdk install ${{ env.emsdk_version }} ccache-git-emscripten-64bit)
@@ -59,27 +73,11 @@ jobs:
                 | sed 's/export \(.*\);/echo \1 >> $GITHUB_ENV;/' );
             # This looks more permanent than version pinned, so keeping temporarily to avoid failures.
             echo "${{ github.workspace }}/emsdk/ccache/git-emscripten_64bit/bin" >> $GITHUB_PATH
-      - name: Generate ccache_vars for ccache based on machine
-        shell: bash
-        id: ccache_vars
-        run: |-
-          echo "::set-output name=hash::$(echo ${{ env.ccache_compilercheck }})"
-          echo "::set-output name=timestamp::$(date '+%Y-%m-%dT%H.%M.%S')"
       - name: Verify Emscripten setup
         run: |
             emcc --version
             emcmake cmake --version
             emmake make --version
-      - name: Cache-op for build-cache through ccache
-        uses: actions/cache@v2
-        with:
-          path: |
-              ${{ env.ccache_dir }}
-          key: ccache-${{ github.job }}-${{ env.emsdk_version }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}-${{ steps.ccache_vars.outputs.timestamp }}
-          restore-keys: |-
-            ccache-${{ github.job }}-${{ env.emsdk_version }}-${{ steps.ccache_vars.outputs.hash }}-${{ github.ref }}
-            ccache-${{ github.job }}-${{ env.emsdk_version }}-${{ steps.ccache_vars.outputs.hash }}
-            ccache-${{ github.job }}-${{ env.emsdk_version }}
       - name: ccache prolog
         run: |-
           ccache -s # Print current cache stats
