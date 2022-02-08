@@ -15,7 +15,7 @@ class InPageTranslation {
         this.updateTimeout = null;
         this.UI_UPDATE_INTERVAL = 500;
         this.messagesSent = new Set();
-        this.nodesSent = new Set();
+        this.nodesSent = new WeakSet();
 
         // Reference for all tags:
         // https://developer.mozilla.org/en-US/docs/Web/HTML/Element
