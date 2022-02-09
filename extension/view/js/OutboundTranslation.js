@@ -68,6 +68,15 @@ class OutboundTranslation {
         this.TYPING_TIMEOUT
       );
     });
+
+    // we need to list to then scroll in the main textarea in order to scroll
+    // all other at same time.
+    this.otDiv.querySelector("textarea").addEventListener("scroll", e => {
+      window.requestAnimationFrame(() => {
+        this.scrollTextAreas(e.target.scrollTop);
+      });
+    });
+
     this.startMutationObserver();
     this.updateStatusLabel("Ready");
   }
@@ -134,6 +143,7 @@ class OutboundTranslation {
       this.updateStatusLabel("Translation in progress...");
       this.notifyMediator("translate", payload);
     } else {
+      // textarea is empty. let's clear everything.
       this.updateStatusLabel("Ready.");
       this.updateBackTranslationTextArea("");
       this.updateselectedTextArea("");
@@ -182,10 +192,12 @@ class OutboundTranslation {
 
   updateBackTranslationTextArea(content) {
     this.backTranslationsTextArea.value = content;
+    this.backTranslationsTextArea.scrollTop = this.backTranslationsTextArea.scrollHeight;
   }
 
   updateselectedTextArea(content) {
     this.selectedTextArea.value = content;
+    this.selectedTextArea.scrollTop = this.selectedTextArea.scrollHeight;
   }
 
   extractElementZIndex(element){
@@ -265,6 +277,11 @@ class OutboundTranslation {
   updateStatusLabel(status) {
     // update the status in the widget
     this.pageStatusLabel.innerHTML = status;
+  }
+
+  scrollTextAreas(scrollTop) {
+    this.backTranslationsTextArea.scrollTop = scrollTop;
+    this.selectedTextArea.scrollTop = scrollTop;
   }
 
 }

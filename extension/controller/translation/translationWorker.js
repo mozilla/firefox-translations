@@ -177,9 +177,11 @@ class TranslationHelper {
 
                 case this.ENGINE_STATE.LOADED:
 
-                    if (message[0].type === "outbound") {
-                        // we skip the line if the message is from ot.
-                        // and since we know this is OT, there's only one msg
+                    if (message[0] && message[0].type === "outbound") {
+                        /*
+                         * we skip the line if the message is from ot.
+                         * and since we know this is OT, there's only one msg
+                         */
                         this.translateOutboundTranslation([message[0]]);
                     } else {
                         this.translationQueue.enqueue(message);
@@ -202,13 +204,11 @@ class TranslationHelper {
               await this.constructTranslationService();
               await this.constructTranslationModel(sourceLanguage, targetLanguage);
               if (withOutboundTranslation) {
-                console.log("OT:translationWorker.js::loadOutboundTranslation inicio " + new Date().toLocaleTimeString());
                 await this.constructTranslationModel(targetLanguage, sourceLanguage);
                 postMessage([
                     "displayOutboundTranslation",
                     null
                 ]);
-                console.log("OT:translationWorker.js::loadOutboundTranslation fim " + new Date().toLocaleTimeString());
               }
               let finish = Date.now();
               console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
