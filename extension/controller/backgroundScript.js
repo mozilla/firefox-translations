@@ -69,7 +69,14 @@ const messageListener = async function(message, sender) {
             }
             browser.tabs.sendMessage(sender.tab.id, { command: "telemetryInfoLoaded", env: cachedEnvInfo })
             break;
-        case "translationRequested":
+
+       case "loadTelemetryUploadPref": {
+           let uploadEnabled = await browser.experiments.telemetryPreferences.getUploadEnabledPref();
+           browser.tabs.sendMessage(sender.tab.id, { command: "telemetryUploadPrefLoaded", uploadEnabled })
+           break;
+       }
+
+       case "translationRequested":
             // requested for translation received. let's inform the mediator
             browser.tabs.sendMessage(
                 message.tabId,
@@ -131,3 +138,12 @@ const messageListener = async function(message, sender) {
 
 browser.runtime.onMessage.addListener(messageListener);
 browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
+browser.experiments.telemetryPreferences.onUploadEnabledPrefChange
+    .addListener(async () => {
+        const tabs = await browser.tabs.query({});
+        for (let tab of tabs) {
+            if (tab.title !== "Settings") {
+                messageListener({ command: "loadTelemetryUploadPref" }, { tab })
+            }
+        }
+    });

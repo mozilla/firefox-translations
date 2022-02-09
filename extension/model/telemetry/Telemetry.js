@@ -66,9 +66,9 @@ class TranslationTelemetry {
 // eslint-disable-next-line
 class Telemetry {
 
-    constructor(sendPings= false, debug= true, enableLogging = false) {
+    constructor(uploadEnabled= false, debug= true, enableLogging = false) {
         this._telemetryId = "firefox-translations";
-        this._sendPings = sendPings;
+        this._uploadEnabled = uploadEnabled;
         this._debug = debug;
         this._enableLogging = enableLogging;
 
@@ -79,6 +79,15 @@ class Telemetry {
 
     setBrowserEnv(val) {
         this._browserEnv = val;
+    }
+
+    setUploadEnabled(val) {
+        this._uploadEnabled = val;
+        if (this._uploadEnabled) {
+            this._log("uploading is enabled in preferences");
+        } else {
+            this._log("uploading is disabled in preferences");
+        }
     }
 
     increment(category, name) {
@@ -185,7 +194,7 @@ class Telemetry {
         const body = JSON.stringify(ping.data);
         this._log(`ping submitted '${pingName}':`, body);
 
-        if (this._sendPings) {
+        if (this._uploadEnabled) {
             let uuid = self.crypto.randomUUID();
             // we imitate behavior of glean.js 0.15.0
             let headers = {
@@ -208,9 +217,11 @@ class Telemetry {
                 headers,
                 body
             }).then(res => {
-                this._log("Telemetry sent:", body);
-                this._log("Request complete! response:", res);
+                this._log("uploaded: ", body);
+                this._log("request complete! response:", res);
             });
+        } else {
+            this._log("uploading is disabled, ping is not sent")
         }
 
         Reflect.deleteProperty(this._pings, pingName);
