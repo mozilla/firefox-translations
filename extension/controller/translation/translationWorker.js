@@ -178,6 +178,7 @@ class TranslationHelper {
                 case this.ENGINE_STATE.LOADED:
 
                     if (message[0] && message[0].type === "outbound") {
+
                         /*
                          * we skip the line if the message is from ot.
                          * and since we know this is OT, there's only one msg
@@ -185,7 +186,6 @@ class TranslationHelper {
                         this.translateOutboundTranslation([message[0]]);
                     } else {
                         this.translationQueue.enqueue(message);
-                        // engine and model are loaded, so let's consume
                         this.consumeTranslationQueue()
                     }
                     break;

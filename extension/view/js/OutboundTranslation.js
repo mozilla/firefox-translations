@@ -17,7 +17,7 @@ class OutboundTranslation {
   }
 
   // eslint-disable-next-line max-lines-per-function
-  async start() {
+  async start(navigatorLanguage, pageLanguage) {
 
     let pageFragment = null;
     try {
@@ -31,7 +31,6 @@ class OutboundTranslation {
       }
     } catch (exception) {
 
-
       console.error(exception.message, exception.stack);
     }
 
@@ -41,6 +40,11 @@ class OutboundTranslation {
     this.otDiv.innerHTML = pageFragment;
     this.otDiv.id = "fxtranslations-ot";
     this.pageStatusLabel = this.otDiv.querySelector(".fxtranslations-status");
+    this.otDiv.querySelector(".fxtranslations-header").innerHTML =
+      this.otDiv.querySelector(".fxtranslations-header").innerHTML
+        .replaceAll("{navigatorLanguage}", navigatorLanguage)
+        .replaceAll("{pageLanguage}", pageLanguage);
+
     // it's safe to hardcode the widget to have the highest possible zindex in the page
     this.otDiv.style.zIndex = 2147483647;
 
@@ -69,8 +73,10 @@ class OutboundTranslation {
       );
     });
 
-    // we need to list to then scroll in the main textarea in order to scroll
-    // all other at same time.
+    /*
+     * we need to list to then scroll in the main textarea in order to scroll
+     * all other at same time.
+     */
     this.otDiv.querySelector("textarea").addEventListener("scroll", e => {
       window.requestAnimationFrame(() => {
         this.scrollTextAreas(e.target.scrollTop);
@@ -108,7 +114,10 @@ class OutboundTranslation {
       // if the widget is still in the dom
       if (document.body.contains(this.otDiv)) {
         // first we save the content of the widget
-        this.textareaContentsMap.set(this.selectedTextArea, { typedContent: this.otTextArea.value, translatedContent: this.backTranslationsTextArea.value });
+        this.textareaContentsMap.set(this.selectedTextArea, {
+            typedContent: this.otTextArea.value,
+            translatedContent: this.backTranslationsTextArea.value
+        });
         // remove it from the dom
         document.body.removeChild(this.otDiv);
         // and clear its forms

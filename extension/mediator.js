@@ -168,7 +168,10 @@ class Mediator {
 
                 /* display the outboundstranslation widget */
                 this.outboundTranslation = new OutboundTranslation(this);
-                this.outboundTranslation.start();
+                this.outboundTranslation.start(
+                    this.languageDetection.navigatorLanguage,
+                    this.languageDetection.pageLanguage.language
+                );
                 break;
 
             case "onError":
