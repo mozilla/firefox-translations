@@ -4,7 +4,7 @@
  */
 
 /* global LanguageDetection, OutboundTranslation, Translation , browser,
-InPageTranslation, browser, Telemetry, TranslationTelemetry */
+InPageTranslation, browser, Telemetry, TranslationTelemetry, BERGAMOT_VERSION_FULL */
 
 class Mediator {
 
@@ -21,7 +21,7 @@ class Mediator {
          */
         this.telemetry = new Telemetry(false, false, false);
         this.translationTelemetry = new TranslationTelemetry(this.telemetry);
-        this.translationTelemetry.recordVersions(browser.runtime.getManifest().version, "?", "?");
+        this.translationTelemetry.recordVersions(browser.runtime.getManifest().version, "?", BERGAMOT_VERSION_FULL);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
         this.statsMode = false;
