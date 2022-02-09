@@ -103,14 +103,21 @@
         ],
         "script": "controller/experiments/TelemetryEnvironment/api.js"
       }
-        },
-      "experiments_telemetryPreferences": {
-          "schema": "controller/experiments/TelemetryPreferences/schema.json",
-          "parent": {
-            "scopes": ["addon_parent"],
-            "paths": [["experiments", "telemetryPreferences"]],
-            "script": "controller/experiments/TelemetryPreferences/api.js"
-          }
+    },
+    "experiments_telemetryPreferences": {
+      "schema": "controller/experiments/TelemetryPreferences/schema.json",
+      "parent": {
+        "scopes": [
+          "addon_parent"
+        ],
+        "paths": [
+          [
+            "experiments",
+            "telemetryPreferences"
+          ]
+        ],
+        "script": "controller/experiments/TelemetryPreferences/api.js"
+      }
     }
   },
   "icons": {
