@@ -83,7 +83,6 @@ class TranslationHelper {
 
         translateOutboundTranslation(message) {
             Promise.resolve().then(function () {
-                // todo: we should have a way to disable this.
                 let total_words = message[0].sourceParagraph.trim().split(" ").length;
                 const t0 = performance.now();
                 const translationResultBatch = this.translate(message);
@@ -106,7 +105,6 @@ class TranslationHelper {
                 Promise.resolve().then(function () {
                     if (translationMessagesBatch) {
                         try {
-                            // todo: we should have a way to disable this.
                             let total_words = 0;
                             translationMessagesBatch.forEach(message => {
                                 total_words += message.sourceParagraph.trim().split(" ").length;
@@ -155,9 +153,7 @@ class TranslationHelper {
                 // if the engine hasn't loaded yet.
                 case this.ENGINE_STATE.LOAD_PENDING:
                     this.translationQueue = new Queue();
-                    // let's change the state to loading
                     this.engineState = this.ENGINE_STATE.LOADING;
-                    // and load the module
                     this.loadTranslationEngine(
                         message[0].sourceLanguage,
                         message[0].targetLanguage,
