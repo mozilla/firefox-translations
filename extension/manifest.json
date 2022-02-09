@@ -47,13 +47,13 @@
         "mediator.js"
       ],
       "css": [
-        "view/static/ot.css"
+        "view/static/outboundTranslation.css"
       ],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
-    "ot.html",
+    "view/static/outboundTranslation.html",
     "model/Queue.js",
     "controller/translation/translationWorker.js"
   ],

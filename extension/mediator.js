@@ -13,7 +13,6 @@ class Mediator {
         this.translation = null;
         this.translationsCounter = 0;
         this.languageDetection = new LanguageDetection();
-        this.outboundTranslation = new OutboundTranslation(this);
         this.inPageTranslation = new InPageTranslation(this);
 
         /*
@@ -116,7 +115,9 @@ class Mediator {
                     message.tabId,
                     this.languageDetection.navigatorLanguage,
                     this.languageDetection.pageLanguage.language,
-                    message.payload.attrId
+                    message.payload.attrId,
+                    message.payload.withOutboundTranslation,
+                    message.payload.withQualityEstimation
                 );
                 this.messagesSenderLookupTable.set(translationMessage.messageID, sender);
                 this.translation.translate(translationMessage);
@@ -166,7 +167,11 @@ class Mediator {
             case "displayOutboundTranslation":
 
                 /* display the outboundstranslation widget */
-                this.outboundTranslation.start();
+                this.outboundTranslation = new OutboundTranslation(this);
+                this.outboundTranslation.start(
+                    this.languageDetection.navigatorLanguage,
+                    this.languageDetection.pageLanguage.language
+                );
                 break;
 
             case "onError":
@@ -194,6 +199,12 @@ class Mediator {
                 break;
 
 
+            case "domMutation":
+
+                if (this.outboundTranslation) {
+                    this.outboundTranslation.updateZIndex(message.payload);
+                }
+                break;
             default:
         }
     }
@@ -224,20 +235,11 @@ class Mediator {
                 // eslint-disable-next-line no-case-declarations
                 // let's start the in-page translation widget
                 if (!this.inPageTranslation.started){
+                    this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
+                    this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
                     this.inPageTranslation.start();
                 }
-
                 break;
-            case "outboundTranslationRequested":
-
-                /*
-                 * so, now that we received the request from the infobar to
-                 * start outbound translation, let's request the
-                 *  worker to download the models
-                 */
-                this.translation.loadOutboundTranslation(message);
-                break;
-
             case "displayStatistics":
                 this.statsMode = true;
                 break;

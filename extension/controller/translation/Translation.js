@@ -81,12 +81,23 @@ class Translation {
      * the message to the worker
      */
     translate(translationMessage) {
-        // add this message to the queue
-        this.translationMessageBuffer.enqueue(translationMessage);
 
-        // and schedule an update if required
-        if (!this.translateSchedule) {
-            this.translateSchedule = setTimeout(this.submitMessages.bind(this), this.TRANSLATION_INTERVAL);
+        if (translationMessage.type === "outbound") {
+            // if the message is from outbound translations, we skip the line.
+            if (this.translationWorker) {
+                this.translationWorker.postMessage([
+                    "translate",
+                    [translationMessage]
+                ]);
+            }
+        } else {
+            // add this message to the queue
+            this.translationMessageBuffer.enqueue(translationMessage);
+
+            // and schedule an update if required
+            if (!this.translateSchedule) {
+                this.translateSchedule = setTimeout(this.submitMessages.bind(this), this.TRANSLATION_INTERVAL);
+            }
         }
     }
 
@@ -121,7 +132,9 @@ class Translation {
         tabId,
         navigatorLanguage,
         pageLanguage,
-        attrId
+        attrId,
+        withOutboundTranslation,
+        withQualityEstimation
     ) {
 
         /*
@@ -155,15 +168,8 @@ class Translation {
         translationMessage.tabId = tabId;
         translationMessage.type = type;
         translationMessage.attrId = attrId;
+        translationMessage.withOutboundTranslation = withOutboundTranslation;
+        translationMessage.withQualityEstimation = withQualityEstimation;
         return translationMessage;
-    }
-
-    loadOutboundTranslation(translationMessage) {
-        if (this.translationWorker) {
-            this.translationWorker.postMessage([
-                "loadOutboundTranslation",
-                translationMessage
-            ]);
-        }
     }
 }

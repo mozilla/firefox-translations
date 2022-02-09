@@ -27,7 +27,6 @@ class TranslationHelper {
             this.engineState = this.ENGINE_STATE.LOAD_PENDING;
         }
 
-
         get ENGINE_STATE () {
             return {
                 LOAD_PENDING: 0,
@@ -36,7 +35,7 @@ class TranslationHelper {
               };
         }
 
-        async loadTranslationEngine(sourceLanguage, targetLanguage) {
+        async loadTranslationEngine(sourceLanguage, targetLanguage, withOutboundTranslation) {
             postMessage([
                 "updateProgress",
                 "Loading Translation Engine"
@@ -65,7 +64,7 @@ class TranslationHelper {
                      * initialized, we then load the language models
                      */
                     console.log(`Wasm Runtime initialized Successfully (preRun -> onRuntimeInitialized) in ${(Date.now() - this.wasmModuleStartTimestamp) / 1000} secs`);
-                    this.loadLanguageModel(sourceLanguage, targetLanguage);
+                    this.loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation);
                 }.bind(this),
                 wasmBinary: wasmArrayBuffer,
             };
@@ -82,6 +81,23 @@ class TranslationHelper {
             }
         }
 
+        translateOutboundTranslation(message) {
+            Promise.resolve().then(function () {
+                let total_words = message[0].sourceParagraph.trim().split(" ").length;
+                const t0 = performance.now();
+                const translationResultBatch = this.translate(message);
+                const timeElapsed = [total_words, performance.now() - t0];
+
+                message[0].translatedParagraph = translationResultBatch[0];
+                // and then report to the mediator
+                postMessage([
+                    "translationComplete",
+                    message,
+                    timeElapsed
+                ]);
+            }.bind(this));
+        }
+
         consumeTranslationQueue() {
 
             while (this.translationQueue.length() > 0) {
@@ -94,12 +110,10 @@ class TranslationHelper {
                                 total_words += message.sourceParagraph.trim().split(" ").length;
                             });
 
-                            console.log(" twarray to translate:", translationMessagesBatch);
                             const t0 = performance.now();
 
                             const translationResultBatch = this.translate(translationMessagesBatch);
                             const timeElapsed = [total_words, performance.now() - t0];
-                            console.log(" twarray translated:", translationResultBatch);
 
                             /*
                              * now that we have the paragraphs back, let's reconstruct them.
@@ -139,58 +153,43 @@ class TranslationHelper {
                 // if the engine hasn't loaded yet.
                 case this.ENGINE_STATE.LOAD_PENDING:
                     this.translationQueue = new Queue();
-                    // let's change the state to loading
                     this.engineState = this.ENGINE_STATE.LOADING;
-                    // and load the module
                     this.loadTranslationEngine(
                         message[0].sourceLanguage,
-                        message[0].targetLanguage
+                        message[0].targetLanguage,
+                        message[0].withOutboundTranslation
                     );
+
                     this.translationQueue.enqueue(message);
                     break;
                 case this.ENGINE_STATE.LOADING:
 
                     /*
                      * if we get a translation request while the engine is
-                     * being loaded, we just wait for it, so we break
+                     * being loaded, we enqueue the messae and break
                      */
                     this.translationQueue.enqueue(message);
                     break;
 
                 case this.ENGINE_STATE.LOADED:
 
-                    this.translationQueue.enqueue(message);
-                    // engine and model are loaded, so let's consume
-                    this.consumeTranslationQueue()
+                    if (message[0] && message[0].type === "outbound") {
+
+                        /*
+                         * we skip the line if the message is from ot.
+                         * and since we know this is OT, there's only one msg
+                         */
+                        this.translateOutboundTranslation([message[0]]);
+                    } else {
+                        this.translationQueue.enqueue(message);
+                        this.consumeTranslationQueue()
+                    }
                     break;
                 default:
             }
         }
 
-        async loadOutboundTranslation(message) {
-
-            /*
-             * load the outbound translation model
-             */
-            let start = Date.now();
-            try {
-                await this.constructTranslationModel(message.from, message.to);
-                console.log(`Outbound Model '${message.from}${message.to}' successfully constructed. Time taken: ${(Date.now() - start) / 1000} secs`);
-                // model was lodaded properly, let's communicate the mediator and the UI
-                postMessage([
-                    "updateProgress",
-                    "Automatic page and form translations loaded."
-                ]);
-                postMessage([
-                    "displayOutboundTranslation",
-                    null
-                ]);
-            } catch (error) {
-              console.log(`Outbound Model '${message.from}${message.to}' construction failed: '${error.message} - ${error.stack}'`);
-            }
-        }
-
-        async loadLanguageModel(sourceLanguage, targetLanguage) {
+        async loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation) {
 
             /*
              * let's load the models and communicate to the caller (translation)
@@ -200,6 +199,13 @@ class TranslationHelper {
             try {
               await this.constructTranslationService();
               await this.constructTranslationModel(sourceLanguage, targetLanguage);
+              if (withOutboundTranslation) {
+                await this.constructTranslationModel(targetLanguage, sourceLanguage);
+                postMessage([
+                    "displayOutboundTranslation",
+                    null
+                ]);
+              }
               let finish = Date.now();
               console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
               postMessage([
@@ -207,7 +213,6 @@ class TranslationHelper {
                 "loaded",
                 finish-start
               ]);
-
 
             } catch (error) {
               console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
@@ -609,9 +614,6 @@ onmessage = function(message) {
             break;
         case "translate":
             translationHelper.requestTranslation(message.data[1]);
-            break;
-        case "loadOutboundTranslation":
-            translationHelper.loadOutboundTranslation(message.data[1]);
             break;
         default:
             // ignore

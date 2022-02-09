@@ -15,6 +15,8 @@ class InPageTranslation {
         this.UI_UPDATE_INTERVAL = 500;
         this.messagesSent = new Set();
         this.initialWordsInViewportReported = false;
+        this.withOutboundTranslation = null;
+        this.withQualityEstimation = null;
     }
 
     loadTagsSet() {
@@ -162,6 +164,8 @@ class InPageTranslation {
           const payload = {
             text,
             type: "inpage",
+            withOutboundTranslation: this.withOutboundTranslation,
+            withQualityEstimation: this.withQualityEstimation,
             attrId: [
                      this.processingNodeMap,
                      key
@@ -186,8 +190,12 @@ class InPageTranslation {
         const callback = function(mutationsList) {
             for (const mutation of mutationsList) {
                 if (mutation.type === "childList") {
-                    // console.log(mutation);
-                    mutation.addedNodes.forEach(node => this.startTreeWalker(node));
+                    mutation.addedNodes.forEach(node => {
+                        // we should skip the outbound translations widget
+                        if (node.id !== "fxtranslations-ot") {
+                            this.startTreeWalker(node)
+                        }
+                    });
                 }
             }
         }.bind(this);
@@ -225,7 +233,6 @@ class InPageTranslation {
                idCounter
               ] = translationMessage.attrId;
         const translatedText = translationMessage.translatedParagraph;
-        console.log("no enqueue", translatedText);
         let targetNode = null;
         switch (hashMapName) {
             case "hiddenNodeMap":
