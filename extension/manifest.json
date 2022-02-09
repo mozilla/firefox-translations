@@ -1,88 +1,113 @@
 {
-    "manifest_version": 2,
-    "name": "Firefox Translations",
-    "version": "0.5",
-    "applications": {
-        "gecko": {
-            "id": "firefox-translations@mozilla.org",
-            "strict_min_version": "79.0"
-        }
-    },
-    "browser_specific_settings": {
-      "gecko": {
-        "id": "firefox-translations@mozilla.org",
-        "strict_min_version": "79.0"
+  "manifest_version": 2,
+  "name": "Firefox Translations",
+  "version": "0.5",
+  "applications": {
+    "gecko": {
+      "id": "firefox-translations@mozilla.org",
+      "strict_min_version": "79.0"
+    }
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "firefox-translations@mozilla.org",
+      "strict_min_version": "79.0"
+    }
+  },
+  "permissions": [
+    "<all_urls>",
+    "tabs",
+    "webNavigation",
+    "storage"
+  ],
+  "background": {
+    "scripts": [
+      "controller/LanguageDetection.js",
+      "view/js/TranslationNotificationManager.js",
+      "controller/backgroundScript.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "controller/LanguageDetection.js",
+        "model/Queue.js",
+        "controller/translation/Translation.js",
+        "controller/translation/TranslationMessage.js",
+        "controller/translation/translationWorker.js",
+        "controller/translation/bergamotTranslatorVersion.js",
+        "view/js/OutboundTranslation.js",
+        "view/js/InPageTranslation.js",
+        "model/telemetry/Telemetry.js",
+        "model/telemetry/TelemetrySchema.js",
+        "model/modelRegistry.js",
+        "mediator.js"
+      ],
+      "css": [
+        "view/static/ot.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    "ot.html",
+    "model/Queue.js",
+    "controller/translation/translationWorker.js"
+  ],
+  "incognito": "spanning",
+  "experiment_apis": {
+    "experiment_languageDetector": {
+      "schema": "controller/experiments/LanguageDetector/schema.json",
+      "parent": {
+        "scopes": [
+          "addon_parent"
+        ],
+        "paths": [
+          [
+            "experiments",
+            "languageDetector"
+          ]
+        ],
+        "script": "controller/experiments/LanguageDetector/api.js"
       }
     },
-    "permissions": [
-        "<all_urls>",
-        "tabs",
-        "webNavigation",
-        "storage"
-    ],
-    "background": {
-      "scripts": [
-        "controller/LanguageDetection.js",
-        "view/js/TranslationNotificationManager.js",
-        "controller/backgroundScript.js"
-      ]
+    "experiments_translationbar": {
+      "schema": "controller/experiments/TranslationBar/schema.json",
+      "parent": {
+        "scopes": [
+          "addon_parent"
+        ],
+        "paths": [
+          [
+            "experiments",
+            "translationbar"
+          ]
+        ],
+        "script": "controller/experiments/TranslationBar/api.js"
+      }
     },
-    "content_scripts": [
-        {
-          "matches": ["<all_urls>"],
-          "js": [
-            "controller/LanguageDetection.js",
-            "model/Queue.js",
-            "controller/translation/Translation.js",
-            "controller/translation/TranslationMessage.js",
-            "controller/translation/translationWorker.js",
-            "controller/translation/bergamotTranslatorVersion.js",
-            "view/js/OutboundTranslation.js",
-            "view/js/InPageTranslation.js",
-            "model/telemetry/Telemetry.js",
-            "model/telemetry/TelemetrySchema.js",
-            "model/modelRegistry.js",
-            "mediator.js"
-          ],
-          "css": ["view/static/ot.css"],
-          "run_at": "document_idle"
-        }
-    ],
-    "web_accessible_resources": [
-      "ot.html",
-      "model/Queue.js",
-      "controller/translation/translationWorker.js"
-    ],
-    "incognito": "spanning",
-    "experiment_apis": {
-        "experiment_languageDetector": {
-          "schema": "controller/experiments/LanguageDetector/schema.json",
-          "parent": {
-            "scopes": ["addon_parent"],
-            "paths": [["experiments", "languageDetector"]],
-            "script": "controller/experiments/LanguageDetector/api.js"
-          }
-        },
-        "experiments_translationbar": {
-          "schema": "controller/experiments/TranslationBar/schema.json",
-          "parent": {
-            "scopes": ["addon_parent"],
-            "paths": [["experiments", "translationbar"]],
-            "script": "controller/experiments/TranslationBar/api.js"
-          }
-        },
-        "experiment_telemetryEnvironment": {
-          "schema": "controller/experiments/TelemetryEnvironment/schema.json",
-          "parent": {
-            "scopes": ["addon_parent"],
-            "paths": [["experiments", "telemetryEnvironment"]],
-            "script": "controller/experiments/TelemetryEnvironment/api.js"
-          }
-        }
-    },
-    "icons": {
-      "16": "/view/icons/translation.16x16.png",
-      "32": "/view/icons/translation.32x32.png"
-    },
-    "description": "Firefox Translations translates any webpage utilizing client based machine learning algorithms and models."
-  }
+    "experiment_telemetryEnvironment": {
+      "schema": "controller/experiments/TelemetryEnvironment/schema.json",
+      "parent": {
+        "scopes": [
+          "addon_parent"
+        ],
+        "paths": [
+          [
+            "experiments",
+            "telemetryEnvironment"
+          ]
+        ],
+        "script": "controller/experiments/TelemetryEnvironment/api.js"
+      }
+    }
+  },
+  "icons": {
+    "16": "/view/icons/translation.16x16.png",
+    "32": "/view/icons/translation.32x32.png"
+  },
+  "description": "Firefox Translations translates any webpage utilizing client based machine learning algorithms and models."
+}
