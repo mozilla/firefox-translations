@@ -1,56 +1,66 @@
 {
-    "manifest_version": 2,
-    "name": "Bergamot Translations",
-    "version": "0.0.0",
-    "version_name": "development",
-    "applications": {
-        "gecko": {
-            "strict_min_version": "79.0"
-        }
-    },
-    "browser_specific_settings": {
-      "gecko": {
-        "strict_min_version": "79.0"
-      }
-    },
-    "permissions": [
-        "<all_urls>",
-        "tabs",
-        "webNavigation",
-        "storage"
-    ],
-    "background": {
-      "scripts": [
-        "model/modelRegistry.js",
-        "controller/translation/translationHelper.js",
-        "controller/backgroundScript.js"
-      ]
-    },
-    "content_scripts": [
-        {
-          "matches": ["<all_urls>"],
-          "js": [
-            "controller/LanguageDetection.js",
-            "view/js/InPageTranslation.js",
-            "model/modelRegistry.js",
-            "contentScript.js"
-          ],
-          "run_at": "document_idle"
-        }
-    ],
-    "incognito": "spanning",
-    "page_action": {
-      "browser_style": true,
-      "default_icon": {
-        "19": "/view/icons/translation.16x16.png",
-        "38": "/view/icons/translation.32x32.png"
-      },
-      "default_title": "Translation available",
-      "default_popup": "/view/static/popup.html"
-    },
-    "icons": {
-      "16": "/view/icons/translation.16x16.png",
-      "32": "/view/icons/translation.32x32.png"
-    },
-    "description": "Experimental Bergamot Translations translates any webpage utilizing client based machine learning algorithms and models."
-  }
+	"manifest_version": 2,
+	"name": "Bergamot Translations",
+	"version": "0.0.1",
+	"version_name": "development",
+	"browser_specific_settings":
+	{
+		"gecko":
+		{
+			"strict_min_version": "79.0"
+			"id": "{c9cdf885-0431-4eed-8e18-967b1758c951}"
+		}
+	},
+	"permissions":
+	[
+		"<all_urls>",
+		"tabs",
+		"webNavigation",
+		"storage"
+	],
+	"background":
+	{
+		"scripts":
+		[
+			"model/modelRegistry.js",
+			"controller/translation/translationHelper.js",
+			"controller/backgroundScript.js"
+		]
+	},
+	"content_scripts":
+	[
+		{
+			"matches":
+			[
+				"<all_urls>"
+			],
+			"js":
+			[
+				"controller/LanguageDetection.js",
+				"view/js/InPageTranslation.js",
+				"model/modelRegistry.js",
+				"contentScript.js"
+			],
+			"run_at": "document_idle"
+		}
+	],
+	"incognito": "spanning",
+	"page_action":
+	{
+		"browser_style": true,
+		"default_icon":
+		{
+			"19": "/view/icons/translation.16x16.png",
+			"38": "/view/icons/translation.32x32.png"
+		},
+		"default_title": "Translation available",
+		"default_popup": "/view/static/popup.html"
+	},
+	"icons":
+	{
+		"16": "/view/icons/translation.16x16.png",
+		"32": "/view/icons/translation.32x32.png"
+	},
+	"description": "Experimental Bergamot Translations translates any webpage utilizing client based machine learning algorithms and models.",
+	"homepage_url": "https://github.com/jelmervdl/firefox-translations"
+}
