@@ -231,9 +231,14 @@ class Mediator {
                 this.determineIfTranslationisRequired();
                 break;
             case "translationRequested":
-                // here we handle when the user's translation request in the infobar
-                // eslint-disable-next-line no-case-declarations
-                // let's start the in-page translation widget
+
+                /*
+                 * here we handle when the user's translation request in the infobar
+                 * let's start the in-page translation widget
+                 */
+
+                // the user might have changed the page language, so we just accept it
+                this.languageDetection.pageLanguage.language = message.from;
                 if (!this.inPageTranslation.started){
                     this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
                     this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
