@@ -16,7 +16,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         <deck anonid="translationStates" selectedIndex="0">
           <hbox class="translate-offer-box" align="center">
             <label value="&translation.thisPageIsIn.label;"/>
-            <menulist class="notification-button" anonid="detectedLanguage">
+            <menulist class="notification-button" anonid="detectedLanguage" oncommand="this.closest('notification').fromLanguageChanged();">
               <menupopup/>
             </menulist>
             <label value="&translation.translateThisPage.label;"/>
@@ -29,22 +29,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
               <label value="&translation.translatingContent.label;" style="display:none"/>
               <label anonid="progress-label" value="" style="padding-left:5px"/>
             </hbox>
-          </vbox>
-          <hbox class="translated-box" align="center">
-            <label value="&translation.translatedFrom.label;" style="margin-inline-end: 4px;"/>
-            <label anonid="fromLanguage" style="margin-inline:0;font-weight: bold;"/>
-            <label value="&translation.translatedTo.label;" style="margin-inline:3px;"/>
-            <label anonid="toLanguage" style="margin-inline:0;font-weight: bold;"/>
-            <label value="&translation.translatedToSuffix.label;"/>
-            <button anonid="showOriginal" class="notification-button" label="&translation.showOriginal.button;" oncommand="this.closest('notification').showOriginal();"/>
-            <button anonid="showTranslation" class="notification-button" label="&translation.showTranslation.button;" oncommand="this.closest('notification').showTranslation();"/>
-          </hbox>
-          <hbox class="translation-error" align="center">
-            <label value="&translation.errorTranslating.label;"/>
-            <button class="notification-button" label="&translation.tryAgain.button;" anonid="tryAgain" oncommand="this.closest('notification').translate();"/>
-          </hbox>
-          <vbox class="translation-unavailable" pack="center">
-            <label value="&translation.serviceUnavailable.label;"/>
           </vbox>
         </deck>
         <spacer flex="1"/>
@@ -71,18 +55,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
       "chrome://global/locale/notification.dtd",
       "chrome://browser/locale/translation.dtd",
     ];
-  }
-
-  connectedCallback() {
-    this.appendChild(this.constructor.fragment);
-
-    for (const [propertyName, selector] of [
-      ["details", "[anonid=details]"],
-      ["messageImage", ".messageImage"],
-      ["spacer", "[anonid=spacer]"],
-    ]) {
-      this[propertyName] = this.querySelector(selector);
-    }
   }
 
   updateTranslationProgress(
@@ -116,12 +88,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
       }
     }
     this.setAttribute("state", stateName);
-
-
-    if (val === this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATED) {
-      this._handleButtonHiding();
-    }
-
     deck.selectedIndex = val;
   }
 
@@ -130,7 +96,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   init(translationNotificationManager) {
-
     // set icon in the infobar. we should move this to a css file.
     this._getAnonElt("logoIcon").setAttribute("src", translationNotificationManager.logoIcon);
 
@@ -171,20 +136,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 
   fromLanguageChanged() {
     this.translationNotificationManager.reportInfobarEvent("change_lang");
-    this.translation.fromLanguageChanged(
-      this._getSourceLang(),
-      this._getTargetLang(),
-    );
-    this.translate();
-  }
-
-  toLanguageChanged() {
-    this.translationNotificationManager.reportInfobarEvent("change_lang");
-    this.translation.toLanguageChanged(
-      this._getSourceLang(),
-      this._getTargetLang(),
-    );
-    this.translate();
   }
 
   translate() {
@@ -200,57 +151,13 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATING;
   }
 
-  _close() {
-
-    this.close();
-
-    /*
-     * todo: this.translation is undefined
-     * const from = this._getSourceLang();
-     * const to = this._getTargetLang();
-     * this.translation.infobarClosed(from, to);
-     */
-  }
-
   /*
    * to be called when the infobar should be closed per user's wish (e.g.
    * by clicking the notification's close button, the not now button or choosing never to translate)
    */
   closeCommand() {
     this.translationNotificationManager.reportInfobarEvent("closed");
-    this._close();
-  }
-
-  /*
-   * to be called when the infobar should be closed per user's wish
-   * by clicking the Not now button
-   */
-  notNow() {
-    this.translationNotificationManager.reportInfobarEvent("not_now");
-    this._close();
-  }
-
-  _handleButtonHiding() {
-    const originalShown = this.translation.uiState.originalShown;
-    this._getAnonElt("showOriginal").hidden = originalShown;
-    this._getAnonElt("showTranslation").hidden = !originalShown;
-  }
-
-  showOriginal() {
-    this.translationNotificationManager.reportInfobarEvent("accept_outbound");
-    this.translation.showOriginalContent(
-      this._getSourceLang(),
-      this._getTargetLang(),
-    );
-    this._handleButtonHiding();
-  }
-
-  showTranslation() {
-    this.translation.showTranslatedContent(
-      this._getSourceLang(),
-      this._getTargetLang(),
-    );
-    this._handleButtonHiding();
+    this.close();
   }
 
   _getSourceLang() {
@@ -294,7 +201,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     item.disabled = neverForLangs.split(",").includes(lang);
 
     // check if translation is disabled for the domain:
-    const principal = this.translation.browser.contentPrincipal;
+    const principal = this.translationNotificationManager.browser.contentPrincipal;
     const perms = Services.perms;
     item = this._getAnonElt("neverForSite");
     item.disabled =
@@ -315,21 +222,15 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 
     Services.prefs.setCharPref(kPrefName, val);
 
-    this.translation.neverForLanguage(
-      this._getSourceLang(),
-      this._getTargetLang(),
-    );
-    this._close();
+    this.close();
   }
 
   neverForSite() {
     this.translationNotificationManager.reportInfobarEvent("never_translate_site");
-    const principal = this.translation.browser.contentPrincipal;
+    const principal = this.translationNotificationManager.browser.contentPrincipal;
     const perms = Services.perms;
     perms.addFromPrincipal(principal, "translate", perms.DENY_ACTION);
-
-    this.translation.neverForSite(this._getSourceLang(), this._getTargetLang());
-    this._close();
+    this.close();
   }
 
   displayStatistics() {
@@ -339,7 +240,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
      */
     this.translationNotificationManager.enableStats();
   }
-
 };
 
 customElements.define(

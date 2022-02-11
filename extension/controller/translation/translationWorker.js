@@ -131,6 +131,7 @@ class TranslationHelper {
                             ]);
                         } catch (e) {
                             postMessage(["onError", "translation"]);
+                            postMessage(["updateProgress", "Automatic translation is enabled but we found errors."]);
                             console.error("Translation error: ", e)
                             throw e;
                         }
@@ -553,6 +554,7 @@ class TranslationHelper {
             } catch (e) {
                 console.error("Error in translation engine ", e)
                 postMessage(["onError", "marian"]);
+                postMessage(["updateProgress", "Automatic translation is enabled but we found errors."]);
                 throw e;
             }
 
