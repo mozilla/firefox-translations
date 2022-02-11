@@ -190,6 +190,7 @@ class TranslationHelper {
             }
         }
 
+    // eslint-disable-next-line max-lines-per-function
         async loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation) {
 
             /*
@@ -233,17 +234,13 @@ class TranslationHelper {
             this.engineState = this.ENGINE_STATE.LOADED;
             let notificationMessage = "Automatic Translation enabled";
             if (!isReversedModelLoaded) {
-                notificationMessage += `; Translation of forms disabled (reverse translation is not supported for this language)`
+                notificationMessage += "; Translation of forms disabled (reverse translation is not supported for this language)"
             }
             postMessage([
                 "updateProgress",
                 notificationMessage
             ]);
 
-            postMessage([
-                "updateProgress",
-
-            ]);
             this.consumeTranslationQueue();
             console.log("loadLanguageModel function complete");
         }
