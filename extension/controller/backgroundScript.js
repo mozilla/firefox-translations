@@ -13,7 +13,8 @@ let cachedEnvInfo = null;
 // eslint-disable-next-line max-lines-per-function
 const messageListener = async function(message, sender) {
     let languageDetection = null;
-    let listenerCompleteLoad = null;
+    let listeneronUpdatedLoad = null;
+    let webNavigationCompletedLoad = null;
     switch (message.command) {
         case "detectPageLanguage":
 
@@ -33,17 +34,43 @@ const messageListener = async function(message, sender) {
              * wait until the page within the tab is loaded, and then return
              * with the tabId to the caller
              */
-            listenerCompleteLoad = details => {
-                if (details.tabId === sender.tab.id && details.frameId === 0) {
-                    browser.webNavigation.onCompleted.removeListener(listenerCompleteLoad);
-                    console.log("webNavigation.onCompleted => notifying browser to display the infobar")
-                    browser.tabs.sendMessage(
-                        sender.tab.id,
-                        { command: "responseMonitorTabLoad", tabId: sender.tab.id }
-                    )
+            listeneronUpdatedLoad = (tabId, changeInfo, tab) => {
+                if ((tabId === sender.tab.id || tab.url === sender.tab.url) && changeInfo.status === "complete") {
+                    browser.tabs.onUpdated.removeListener(listeneronUpdatedLoad);
+                    browser.webNavigation.onCompleted.removeListener(webNavigationCompletedLoad);
+                    console.log("browser.tabs.onUpdated.addListener => notifying browser to display the infobar: ", changeInfo.status, tabId, sender.tab.id, tab.url)
+
+                    /*
+                     * some specific race condition in the tab messaging API
+                     * demands that we wait before sending the message, hence the
+                     * setTimeout
+                     */
+                    setTimeout(() => {
+                        browser.tabs.sendMessage(
+                            tabId,
+                            { command: "responseMonitorTabLoad", tabId }
+                        );
+                    } ,250);
                 }
             };
-            browser.webNavigation.onCompleted.addListener(listenerCompleteLoad);
+
+            webNavigationCompletedLoad = details => {
+                if (details.tabId === sender.tab.id) {
+                    browser.webNavigation.onCompleted.removeListener(webNavigationCompletedLoad);
+                    browser.tabs.onUpdated.removeListener(listeneronUpdatedLoad);
+                    console.log("webNavigation.onCompleted => notifying browser to display the infobar")
+                    setTimeout(() => {
+                        browser.tabs.sendMessage(
+                            details.tabId ,
+                            { command: "responseMonitorTabLoad", tabId: details.tabId }
+                        );
+                    } ,250);
+                }
+            };
+
+            browser.webNavigation.onCompleted.addListener(webNavigationCompletedLoad);
+            browser.tabs.onUpdated.addListener(listeneronUpdatedLoad);
+
             break;
         case "displayTranslationBar":
 
