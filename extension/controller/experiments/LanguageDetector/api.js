@@ -27,7 +27,16 @@ this.experiment_languageDetector = class extends ExtensionAPI {
         languageDetector: {
           detect: async function detect(str) {
             try {
-              return await LanguageDetector.detectLanguage(str);
+              let lang = await LanguageDetector.detectLanguage(str);
+
+              /*
+               * language detector returns "no" for both Norwegian Nynorsk ("nn") and Norwegian Bokmål ("nb")
+               * let's default to "nb", since we have a better model and
+               * Bokmål is more popular in Norway, about 85-90 % of writing is done in Bokmål.
+               */
+              if (lang.language === "no") lang.language = "nb"
+
+              return lang
             } catch (error) {
               // surface otherwise silent or obscurely reported errors
               console.error(error.message, error.stack);
