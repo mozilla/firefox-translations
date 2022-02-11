@@ -16,7 +16,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         <deck anonid="translationStates" selectedIndex="0">
           <hbox class="translate-offer-box" align="center">
             <label value="&translation.thisPageIsIn.label;"/>
-            <menulist class="notification-button" anonid="detectedLanguage">
+            <menulist class="notification-button" anonid="detectedLanguage" oncommand="this.closest('notification').fromLanguageChanged();">
               <menupopup/>
             </menulist>
             <label value="&translation.translateThisPage.label;"/>
@@ -96,7 +96,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   init(translationNotificationManager) {
-
     // set icon in the infobar. we should move this to a css file.
     this._getAnonElt("logoIcon").setAttribute("src", translationNotificationManager.logoIcon);
 
@@ -133,6 +132,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 
   _getAnonElt(anonId) {
     return this.querySelector(`[anonid=${anonId}]`);
+  }
+
+  fromLanguageChanged() {
+    this.translationNotificationManager.reportInfobarEvent("change_lang");
   }
 
   translate() {
