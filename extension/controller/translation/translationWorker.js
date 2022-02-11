@@ -200,11 +200,15 @@ class TranslationHelper {
               await this.constructTranslationService();
               await this.constructTranslationModel(sourceLanguage, targetLanguage);
               if (withOutboundTranslation) {
-                await this.constructTranslationModel(targetLanguage, sourceLanguage);
-                postMessage([
-                    "displayOutboundTranslation",
-                    null
-                ]);
+                  try {
+                    await this.constructTranslationModel(targetLanguage, sourceLanguage);
+                    postMessage([
+                        "displayOutboundTranslation",
+                        null
+                    ]);
+                  } catch (ex) {
+                      console.warn("Error while constructing a reversed model for outbound translation. It might be not supported.", ex)
+                  }
               }
               let finish = Date.now();
               console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
