@@ -60,6 +60,18 @@
                 const chromeWin = tab.browser.ownerGlobal;
 
                 /*
+                 * let's test if either this language or this page should not
+                 * display the infobar
+                 */
+                const neverForLangs = Services.prefs.getCharPref("browser.translation.neverForLanguages",);
+                const principal = tab.browser.contentPrincipal;
+                if (neverForLangs.split(",").includes(detectedLanguage) ||
+                    Services.perms.testExactPermissionFromPrincipal(principal, "translate") ===
+                    Services.perms.DENY_ACTION) {
+                      return;
+                }
+
+                /*
                  * as a workaround to be able to load updates for the translation notification on extension reload
                  * we use the current unix timestamp as part of the element id.
                  * TODO: Restrict use of Date.now() as cachebuster to development mode only
@@ -92,10 +104,7 @@
                 translationNotificationManager.tabId = tabId;
                 translationNotificationManager.bgScriptListenerCallback = bgScriptListenerCallback;
                 translationNotificationManager.notificationBox = notif;
-
-                /*
-                 * todo: find a way to use css here
-                 */
+                translationNotificationManager.browser = tab.browser;
                 translationNotificationManager.logoIcon = context.extension.getURL("/view/icons/translation.16x16.png",)
 
                 notif.init(translationNotificationManager);
