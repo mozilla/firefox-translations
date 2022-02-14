@@ -1,5 +1,17 @@
 "use strict";
 
+function computePath(node, root) {
+    if (root === undefined)
+        root = document.body;
+    let path = node.parentNode && node.parentNode != root ? computePath(node.parentNode) : '';
+    path += `/${node.nodeName}`
+    if (node.id)
+        path += `#${node.id}`;
+    else if (node.className)
+        path += `.${Array.from(node.classList).join('.')}`;
+    return path;
+}
+
 // eslint-disable-next-line no-unused-vars
 class InPageTranslation {
 
@@ -381,6 +393,7 @@ class InPageTranslation {
 
     updateElements() {
         const updateElement = (translatedHTML, node) => {
+            // console.groupCollapsed(computePath(node));
             node.setAttribute('x-bergamot-translated', '');
             
             const scratch = node.cloneNode(false); // shallow clone of parent node
@@ -388,11 +401,28 @@ class InPageTranslation {
 
             const originalHTML = node.innerHTML;
 
+            // console.log(node);
+            // console.log(`Translated: ${translatedHTML}`);
+            // console.log(`Original:   ${originalHTML}`);
+
             const clonedNodes = new Set();
+
+            const removeTextNodes = (node) => {
+                Array.from(node.childNodes).forEach(child => {
+                    switch (child.nodeType) {
+                        case Node.TEXT_NODE:
+                            node.removeChild(child);
+                            break;
+                        case Node.ELEMENT_NODE:
+                            removeTextNodes(child);
+                            break;
+                    }
+                });
+            };
 
             // Merge the live tree (dst) with the translated tree (src) by
             // re-using elements from the live tree.
-            const merge = (dst, src, path) => {
+            const merge = (dst, src) => {
                 // Remove all live nodes at this branch of the tree, but keep
                 // an (indexed) reference to them since we will be adding them
                 // back, but possibly in a different order.
@@ -414,7 +444,7 @@ class InPageTranslation {
                         let counterpart = dstChildNodes[child.dataset.xBergamotId];
 
                         if (!counterpart) {
-                            console.warn(`[InPlaceTranslation] ${path.join('/')} Could not find counterpart for`, child.dataset.xBergamotId, dstChildNodes, child);
+                            console.warn(`[InPlaceTranslation] ${computePath(child, scratch)} Could not find counterpart for`, child.dataset.xBergamotId, dstChildNodes, child);
                             return;
                         }
 
@@ -424,13 +454,19 @@ class InPageTranslation {
                         if (counterpart.parentNode) {
                             counterpart = counterpart.cloneNode(true);
                             clonedNodes.add(counterpart.dataset.xBergamotId);
-                            console.warn(`[InPlaceTranslation] ${path.join('/')} Cloning node`, counterpart, 'because it was already inserted earlier');
+                            console.warn(`[InPlaceTranslation] ${computePath(child, scratch)} Cloning node`, counterpart, 'because it was already inserted earlier');
                         }
     
                         // Only attempt a recursive merge if there is anything
                         // to merge (I mean any translated text)
                         if (child.innerText?.trim())
-                            merge(counterpart, child, [...path, counterpart.dataset.xBergamotId]);
+                            merge(counterpart, child);
+                        else if (counterpart.innerText?.trim()) {
+                            // Oh this is bad. The original node had text, but
+                            // the one that came out of translation doesn't?
+                            console.warn(`[InPlaceTranslation] ${computePath(child, scratch)} Child`, child, 'has no text but counterpart', counterpart, 'does');
+                            removeTextNodes(counterpart); // TODO this should not be necessary
+                        }
 
                         // Put the live node back in the live branch. But now
                         // it has been synced with the translated text and order.
@@ -445,10 +481,9 @@ class InPageTranslation {
                     .filter(child => !child.parentNode);
 
                 if (lost.length)
-                    console.warn(`[InPlaceTranslation] ${path.join('/')} Not all nodes unified`, {
+                    console.warn(`[InPlaceTranslation] ${computePath(src, scratch)} Not all nodes unified`, {
                         lost,
                         cloned: Array.from(clonedNodes.values()),
-                        isInClonedNode: path.some(id => clonedNodes.has(id)),
                         originalHTML,
                         translatedHTML,
                         dst: dst.outerHTML,
@@ -456,10 +491,11 @@ class InPageTranslation {
                     });
             };
 
-            merge(node, scratch, []);
+            merge(node, scratch);
 
             // TODO is this a good idea?
             // this.nodesSent.delete(node);
+            // console.groupEnd(computePath(node));
         };
 
         this.updateMap.forEach(updateElement);
