@@ -74,7 +74,7 @@ class InPageTranslation {
             'var',
             'dir', // DEPCREATED
 
-            // Debateable
+            // Debatable
             'acronym',
 
             // Embedded media, lets not just yet. Maybe svg might be fun? Think
@@ -84,7 +84,17 @@ class InPageTranslation {
             'embed',
             'object',
             'applet', // DEPRECATED
-
+            'iframe',
+            
+            // Elements that are treated as opaque by Firefox which causes their
+            // innerHTML property to be just the raw text node behind it. So
+            // no guarantee that the HTML is valid, which makes bergamot-
+            // translator very unhappy.
+            // (https://searchfox.org/mozilla-central/source/parser/html/nsHtml5Tokenizer.cpp#176)
+            'noscript',
+            'noembed',
+            'noframes',
+            
             // Title is already a special case, other than that I can't think of
             // anything in <head> that needs translating
             'head',
