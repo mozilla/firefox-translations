@@ -502,8 +502,7 @@ class Channel {
         // the message passing API between this thread and the worker thread.
         const responses = await worker.translate({
             models: batch.models.map(({from, to}) => ({from, to})),
-            texts: batch.requests.map(({request: {text}}) => text),
-            options: {html: batch.requests[0].request.html}
+            texts: batch.requests.map(({request: {text, html}}) => ({text, html}))
         });
 
         // Responses are in! Connect them back to their requests and call their

@@ -106,24 +106,17 @@ class TranslationWorker {
      * models necessary for translating text are already loaded before calling
      * this method.
      */
-    async translate({models, texts, options}) {
+    async translate({models, texts}) {
         const Module = await this.module;
         const service = await this.service;
 
-        // const htmlOptions = new Module.HTMLOptions();
-        // htmlOptions.setContinuationDelimiters("\n ,.(){}[]0123456789");
-        // htmlOptions.setSubstituteInlineTagsWithSpaces(true);
-
-        const responseOptions = {
-            qualityScores: false,
-            alignment: false,
-            html: options.html || false,
-            // htmlOptions
-        };
-
         // Convert texts array into a std::vector<std::string>.
         let input = new Module.VectorString();
-        texts.forEach(text => input.push_back(text));
+        texts.forEach(({text}) => input.push_back(text));
+
+        // Extracts the texts[].html options into ResponseOption objects
+        let options = new Module.VectorResponseOptions();
+        texts.forEach(({html}) => options.push_back({qualityScores: false, alignment: false, html}));
 
         // Turn our model names into a list of TranslationModel pointers
         const translationModels = models.map(({from,to}) => {
@@ -133,11 +126,11 @@ class TranslationWorker {
 
         // translate the input, which is a vector<String>; the result is a vector<Response>
         const responses = models.length > 1
-            ? service.translateViaPivoting(...translationModels, input, responseOptions)
-            : service.translate(...translationModels, input, responseOptions);
+            ? service.translateViaPivoting(...translationModels, input, options)
+            : service.translate(...translationModels, input, options);
         
         input.delete();
-        // htmlOptions.delete();
+        options.delete();
 
         // Convert the Response WASM wrappers into native JavaScript types we
         // can send over the 'wire' (message passing)
