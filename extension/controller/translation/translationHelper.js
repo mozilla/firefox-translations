@@ -408,7 +408,7 @@ class Channel {
         return new Promise(async (resolve, reject) => {
             // Batching key: only requests with the same key can be batched
             // together. Think same translation model, same options.
-            const key = JSON.stringify({from, to, html});
+            const key = JSON.stringify({from, to});
 
             // (Fetching models first because if we would do it between looking
             // for a batch and making a new one, we end up with a race condition.)
