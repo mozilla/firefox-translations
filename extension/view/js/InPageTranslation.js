@@ -250,7 +250,7 @@ class InPageTranslation {
 
         // Exclude elements that have a lang attribute that mismatches the
         // language we're currently translating.
-        if (node.lang && node.lang.substr(0.2) !== this.language)
+        if (node.lang && node.lang.substr(0,2) !== this.language)
             return true;
 
         return false;
