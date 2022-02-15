@@ -474,7 +474,7 @@ class InPageTranslation {
                         else if (counterpart.innerText?.trim()) {
                             // Oh this is bad. The original node had text, but
                             // the one that came out of translation doesn't?
-                            console.warn(`[InPlaceTranslation] ${computePath(child, scratch)} Child`, child, 'has no text but counterpart', counterpart, 'does');
+                            console.warn(`[InPlaceTranslation] ${computePath(child, scratch)} Child ${child.outerHTML} has no text but counterpart ${counterpart.outerHTML} does`);
                             removeTextNodes(counterpart); // TODO this should not be necessary
                         }
 
