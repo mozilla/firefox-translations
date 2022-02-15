@@ -190,6 +190,7 @@ class TranslationHelper {
             }
         }
 
+    // eslint-disable-next-line max-lines-per-function
         async loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation) {
 
             /*
@@ -197,15 +198,22 @@ class TranslationHelper {
              * when we are finished
              */
             let start = Date.now();
+            let isReversedModelLoaded = false;
             try {
               await this.constructTranslationService();
               await this.constructTranslationModel(sourceLanguage, targetLanguage);
+
               if (withOutboundTranslation) {
-                await this.constructTranslationModel(targetLanguage, sourceLanguage);
-                postMessage([
-                    "displayOutboundTranslation",
-                    null
-                ]);
+                  try {
+                    await this.constructTranslationModel(targetLanguage, sourceLanguage);
+                    postMessage([
+                        "displayOutboundTranslation",
+                        null
+                    ]);
+                    isReversedModelLoaded = true;
+                  } catch (ex) {
+                      console.warn("Error while constructing a reversed model for outbound translation. It might be not supported.", ex)
+                  }
               }
               let finish = Date.now();
               console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
@@ -224,10 +232,15 @@ class TranslationHelper {
               return;
             }
             this.engineState = this.ENGINE_STATE.LOADED;
+            let notificationMessage = "Automatic Translation enabled";
+            if (!isReversedModelLoaded) {
+                notificationMessage += ". Translation of forms is not supported for this language."
+            }
             postMessage([
                 "updateProgress",
-                "Automatic Translation enabled"
+                notificationMessage
             ]);
+
             this.consumeTranslationQueue();
             console.log("loadLanguageModel function complete");
         }
