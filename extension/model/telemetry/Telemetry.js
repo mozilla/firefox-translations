@@ -104,7 +104,7 @@ class Telemetry {
                 ping.data.metrics.counter[key] = 1;
             }
 
-            this._log(`counter metric ${category}.${name} recorded in ping ${pingName}: `, ping)
+            this._log(`counter ${pingName}.${category}.${name} = ${ping.data.metrics.counter[key]}`)
         }
     }
 
@@ -124,7 +124,7 @@ class Telemetry {
                 ping.data.events = []
             }
             ping.data.events.push(newEvent);
-            this._log(`event metric ${category}.${name} recorded in ping ${pingName}: `, ping)
+            this._log(`event ${pingName}.${category}.${name}`)
         }
     }
 
@@ -140,7 +140,7 @@ class Telemetry {
             ping.data.metrics.timespan[`${category}.${name}`] = {}
             ping.data.metrics.timespan[`${category}.${name}`].value = valMs;
             ping.data.metrics.timespan[`${category}.${name}`].time_unit = "millisecond";
-            this._log(`timespan metric ${category}.${name} recorded in ping ${pingName}: `, ping)
+            this._log(`timespan ${pingName}.${category}.${name} = ${valMs}`)
         }
     }
 
@@ -154,7 +154,7 @@ class Telemetry {
                 ping.data.metrics.quantity = {};
             }
             ping.data.metrics.quantity[`${category}.${name}`] = val;
-            this._log(`quantity metric ${category}.${name} recorded in ping ${pingName}: `, ping)
+            this._log(`quantity ${pingName}.${category}.${name} = ${val}`)
         }
     }
 
@@ -168,7 +168,7 @@ class Telemetry {
                 ping.data.metrics.string = {}
             }
             ping.data.metrics.string[`${category}.${name}`] = val;
-            this._log(`string metric ${category}.${name} recorded in ping ${pingName}: `, ping)
+            this._log(`string  ${pingName}.${category}.${name} = ${val}`)
         }
     }
 
