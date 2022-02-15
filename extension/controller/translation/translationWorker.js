@@ -234,7 +234,7 @@ class TranslationHelper {
             this.engineState = this.ENGINE_STATE.LOADED;
             let notificationMessage = "Automatic Translation enabled";
             if (!isReversedModelLoaded) {
-                notificationMessage += "; Translation of forms disabled (reverse translation is not supported for this language)"
+                notificationMessage += ". Translation of forms is not supported for this language."
             }
             postMessage([
                 "updateProgress",
