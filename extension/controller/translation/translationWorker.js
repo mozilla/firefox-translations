@@ -399,7 +399,7 @@ class TranslationHelper {
                 try {
                     response = await fetch(itemURL);
                 } catch (exception) {
-                    console.log("Error downloading translation modules. (not found)");
+                    console.log(`Error downloading translation modules. (${itemURL} not found)`);
                     postMessage([
                         "updateProgress",
                         "Error downloading translation modules. (not found)"

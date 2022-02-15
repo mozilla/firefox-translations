@@ -7,6 +7,7 @@
     "format": "prettier 'extension/*.{js,css}' --tab-width=2 --arrow-parens=always --trailing-comma=es5 --no-bracket-spacing --write",
     "lint:extension": "web-ext lint -s extension",
     "once": "web-ext run -s extension --verbose --firefox nightly  --no-config-discovery --pref=extensions.experiments.enabled=true --pref=extensions.translations.disabled=false --pref=javascript.options.wasm_simd_wormhole=true --pref=datareporting.healthreport.uploadEnabled=false",
+    "once-release": "web-ext run -s extension --verbose --no-config-discovery --pref=extensions.experiments.enabled=true --pref=extensions.translations.disabled=false --pref=datareporting.healthreport.uploadEnabled=false",
     "package": "npm run build && mv web-ext-artifacts/*.zip addon.xpi",
     "setup-webext": "npm install -g web-ext"
   },
