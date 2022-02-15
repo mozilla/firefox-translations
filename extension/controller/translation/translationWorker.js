@@ -200,7 +200,7 @@ class TranslationHelper {
             let start = Date.now();
             let isReversedModelLoadingFailed = false;
             try {
-              await this.constructTranslationService();
+              this.constructTranslationService();
               await this.constructTranslationModel(sourceLanguage, targetLanguage);
 
               if (withOutboundTranslation) {
