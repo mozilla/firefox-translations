@@ -21,7 +21,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             </menulist>
             <label value="&translation.translateThisPage.label;"/>
             <button class="notification-button primary" label="&translation.translate.button;" anonid="translate" oncommand="this.closest('notification').translate();"/>
-            <checkbox anonid="outboundtranslations-check" label="Enable translations of forms?" checked="true" style="padding-left:5px"/>
+            <checkbox anonid="outboundtranslations-check" label="Enable translations of forms?" style="padding-left:5px"/>
             <checkbox anonid="qualityestimations-check" label="Enable quality estimation?" style="padding-left:5px"/>
           </hbox>
           <vbox class="translating-box" pack="center">
@@ -140,6 +140,9 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 
   translate() {
     this.translationNotificationManager.reportInfobarEvent("translate");
+    if (this._getAnonElt("outboundtranslations-check").checked) {
+      this.translationNotificationManager.reportInfobarEvent("accept_outbound");
+    }
     const from = this._getSourceLang();
     const to = this._getTargetLang();
     this.translationNotificationManager.requestInPageTranslation(
