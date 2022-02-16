@@ -22,7 +22,8 @@ function renderSelect(select, values) {
 	// Todo: we can be smarter about this!
 	while (select.length)
 		select.remove(0);
-	Object.entries(values).forEach(([value, label]) => select.add(new Option(label, value), null));
+	for (let [value, label] of values)
+		select.add(new Option(label, value), null);
 }
 
 function queryXPathAll(query, callback) {
@@ -42,8 +43,8 @@ function render(state) {
 		...state,
 		'lang-from': regionNamesInEnglish.of(state.from),
 		'lang-to': regionNamesInEnglish.of(state.to),
-		'lang-from-options': Object.fromEntries(state.models.map(({from}) => [from, regionNamesInEnglish.of(from)])),
-		'lang-to-options': Object.fromEntries(state.models.map(({to}) => [to, regionNamesInEnglish.of(to)])),
+		'lang-from-options': new Map(state.models.map(({from}) => [from, regionNamesInEnglish.of(from)])),
+		'lang-to-options': new Map(state.models.map(({to}) => [to, regionNamesInEnglish.of(to)])),
 		'completedTranslationRequests': state.totalTranslationRequests - state.pendingTranslationRequests
 	};
 
