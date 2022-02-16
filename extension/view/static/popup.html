@@ -4,15 +4,45 @@
 		<meta charset="utf-8">
 		<style>
 			*[hidden] {
-				display: none;
+				display: none !important;
 			}
 
 			body {
 				padding:  1em;
+				width: 300px;
+				overflow: hidden;
 			}
 
-			progress {
+			div[data-state] {
+				display: flex;
+				flex-direction: column;
+			}
+
+			progress, select, button, label {
+				flex: 1 0 auto;
 				display: block;
+				padding: 8px 8px;
+				margin: 4px 0;
+			}
+
+			button {
+				text-align: center;
+				border: 0;
+				border-radius: 2px;
+				line-height: 1.5em;
+			}
+
+			button.primary {
+				background-color: #0060df;
+				color: #fff;
+			}
+
+			button.primary:hover {
+				background-color: #003eaa;
+			}
+
+			input[type=checkbox]:first-child {
+				margin-left: 0;
 			}
 		</style>
 	</head>
@@ -22,7 +52,7 @@
 				<p>Wanna translate this page?</p>
 				<select id="lang-from" data-bind:options="lang-from-options" data-bind:value="from"></select>
 				<select id="lang-to" data-bind:options="lang-to-options" data-bind:value="to"></select>
-				<button id="translate-btn">Translate page</button>
+				<button id="translate-btn" class="primary">Translate page</button>
 			</div>
 			<div data-state="translation-in-progress">
 				<p id="progress-message">Translating page from <span data-bind:text-content="lang-from"></span> to <span data-bind:text-content="lang-to"></span>…</p>
