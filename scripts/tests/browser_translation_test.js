@@ -18,7 +18,8 @@
 
    /*
     * the infobar is not triggered first time the page is loaded due some caching
-    * so we need to reload the tab in order to have it summoned
+    * so we need to reload the tab in order to have it summoned. It happens only
+    * on mochistests.
     */
    gBrowser.reloadTab(tab);
 
