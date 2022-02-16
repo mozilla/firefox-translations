@@ -14,7 +14,7 @@ function isSameDomain(url1, url2) {
 // From https://github.com/bitextor/bicleaner/blob/3df2b2e5e2044a27b4f95b83710be7c751267e5c/bicleaner/bicleaner_hardrules.py#L50
 const SimilarLanguages = [
     new Set(['es', 'ca', 'gl', 'pt']),
-    new Set(['no', 'nn', 'da'])
+    new Set(['no', 'nb', 'nn', 'da']) // no == nb for bicleaner
 ];
 
 /**
