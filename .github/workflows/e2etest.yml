@@ -1,0 +1,20 @@
+name: End-to-End Tests
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '30 1 * * *'
+  pull_request:  
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '17.x'
+      - run: npm install
+      - run: brew install git-cinnabar
+      - name: Run test
+        run: python3 scripts/tests/e2e-tests.py
