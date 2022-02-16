@@ -198,7 +198,7 @@ class TranslationHelper {
              * when we are finished
              */
             let start = Date.now();
-            let isReversedModelLoaded = false;
+            let isReversedModelLoadingFailed = false;
             try {
               await this.constructTranslationService();
               await this.constructTranslationModel(sourceLanguage, targetLanguage);
@@ -210,9 +210,9 @@ class TranslationHelper {
                         "displayOutboundTranslation",
                         null
                     ]);
-                    isReversedModelLoaded = true;
                   } catch (ex) {
                       console.warn("Error while constructing a reversed model for outbound translation. It might be not supported.", ex)
+                      isReversedModelLoadingFailed = true;
                   }
               }
               let finish = Date.now();
@@ -233,7 +233,7 @@ class TranslationHelper {
             }
             this.engineState = this.ENGINE_STATE.LOADED;
             let notificationMessage = "Automatic Translation enabled";
-            if (!isReversedModelLoaded) {
+            if (isReversedModelLoadingFailed) {
                 notificationMessage += ". Translation of forms is not supported for this language."
             }
             postMessage([
