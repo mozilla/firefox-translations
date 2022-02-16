@@ -37,20 +37,22 @@ function queryXPathAll(query, callback) {
 }
 
 function render(state) {
-	const regionNamesInEnglish = new Intl.DisplayNames(['en'], {type: 'language'});
+	const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
 
-	state = {
+	const renderState = {
 		...state,
-		'lang-from': regionNamesInEnglish.of(state.from),
-		'lang-to': regionNamesInEnglish.of(state.to),
-		'lang-from-options': new Map(state.models.map(({from}) => [from, regionNamesInEnglish.of(from)])),
-		'lang-to-options': new Map(state.models.map(({to}) => [to, regionNamesInEnglish.of(to)])),
+		'from': state.from || state.page.from,
+		'to': state.to || state.page.to,
+		'lang-from': state.from ? regionNamesInEnglish.of(state.from) : '',
+		'lang-to': state.to ? regionNamesInEnglish.of(state.to) : '',
+		'lang-from-options': new Map(state.page.models.map(({from}) => [from, regionNamesInEnglish.of(from)])),
+		'lang-to-options': new Map(state.page.models.map(({to}) => [to, regionNamesInEnglish.of(to)])),
 		'completedTranslationRequests': state.totalTranslationRequests - state.pendingTranslationRequests
 	};
 
 	// Toggle "hidden" state of all <div data-state=""> elements
 	document.querySelectorAll('*[data-state]').forEach(el => {
-		el.hidden = el.dataset.state != state.state;
+		el.hidden = el.dataset.state != renderState.state;
 	});
 
 	// Assign values to each element that has <div data-bind:something=""> attributes
@@ -61,10 +63,10 @@ function render(state) {
 
 			switch (match[1]) {
 				case 'options':
-					renderSelect(el, state[value]);
+					renderSelect(el, renderState[value]);
 					break;
 				default:
-					el[match[1]] = state[value];
+					el[match[1]] = renderState[value];
 					break;
 			}
 		});

@@ -143,7 +143,7 @@ class Tab extends EventTarget {
      */
      reset(url) {
         this.update(state => {
-            if (isSameDomain(url, state.url)) {
+            if (isSameDomain(url, state.url) && state.state == State.TRANSLATION_IN_PROGRESS) {
                 return {
                     url,
                     pendingTranslationRequests: 0,
@@ -293,7 +293,7 @@ function connectContentScript(contentScript) {
                     // TODO: When we support multiple frames inside a tab, we
                     // should integrate the results from each frame somehow.
                     tab.update(state => ({
-                        ...summary, // {from, to, models}
+                        page: summary, // {from, to, models}
                         state: summary.models.length > 0 // TODO this is always true
                             ? State.TRANSLATION_AVAILABLE
                             : State.TRANSLATION_NOT_AVAILABLE
