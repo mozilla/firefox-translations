@@ -1,9 +1,10 @@
-// Emscripten glue code
-importScripts('bergamot-translator-worker.js');
-
 /**
  * Wrapper around the dirty bits of Bergamot's WASM bindings.
  */
+
+// Global because importScripts is global.
+var Module = {};
+
 class TranslationWorker {
     constructor() {
         this.module = this.loadModule();
@@ -21,17 +22,20 @@ class TranslationWorker {
             const response = await fetch("bergamot-translator-worker.wasm");
             const wasmBinary = await response.arrayBuffer();
 
-            const { addOnPreMain, Module } = loadEmscriptenGlueCode({
-                    wasmBinary,
-                    preRun: [
-                            () => {
-                                    // this.wasmModuleStartTimestamp = Date.now();
-                            }
-                    ],
-                    onRuntimeInitialized: () => {
-                            resolve(Module);
-                    }
+            Object.assign(Module, {
+                wasmBinary,
+                preRun: [
+                        () => {
+                                // this.wasmModuleStartTimestamp = Date.now();
+                        }
+                ],
+                onRuntimeInitialized: () => {
+                        resolve(Module);
+                }
             });
+
+            // Emscripten glue code
+            importScripts('bergamot-translator-worker.js');
         })
     }
 

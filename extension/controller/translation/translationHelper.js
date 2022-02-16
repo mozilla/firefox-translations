@@ -137,6 +137,7 @@ class Channel {
         // TODO is this really not async? Can I just send messages to it from
         // the start and will they be queued or something?
         const worker = new Worker('controller/translation/translationWorker.js');
+        worker.onerror = (err) => console.error('Worker:', err);
 
         // Little wrapper around the message passing api of Worker to make it
         // easy to await a response to a sent message.
