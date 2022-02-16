@@ -22,7 +22,7 @@ function renderSelect(select, values) {
 	// Todo: we can be smarter about this!
 	while (select.length)
 		select.remove(0);
-	values.forEach(value => select.add(new Option(value), null));
+	Object.entries(values).forEach(([value, label]) => select.add(new Option(label, value), null));
 }
 
 function render(state) {
@@ -32,13 +32,15 @@ function render(state) {
 		el.hidden = el.dataset.state != state.state;
 	});
 
-	const fromOptions = new Set(state.models.map(({from}) => from));
+	const regionNamesInEnglish = new Intl.DisplayNames(['en'], {type: 'language'});
+
+	const fromOptions = Object.fromEntries(state.models
+		.map(({from}) => [from, regionNamesInEnglish.of(from)]));
 	renderSelect(document.querySelector('#lang-from'), fromOptions);
 	document.querySelector('#lang-from').value = state.from;
 
-	const toOptions = new Set(state.models
-		.filter(({from}) => (!state.from || state.from === from))
-		.map(({to}) => to));
+	const toOptions = Object.fromEntries(state.models
+		.map(({to}) => [to, regionNamesInEnglish.of(to)]));
 	renderSelect(document.querySelector('#lang-to'), toOptions);
 	document.querySelector('#lang-to').value = state.to;
 
