@@ -294,6 +294,11 @@ function connectContentScript(contentScript) {
                 detectLanguage(message.data, translationHelper).then(summary => {
                     // TODO: When we support multiple frames inside a tab, we
                     // should integrate the results from each frame somehow.
+                    // For now we ignore it, because 90% of the time it will be
+                    // an ad that's in English and mess up our estimate.
+                    if (contentScript.sender.frameId !== 0)
+                        return; 
+
                     tab.update(state => ({
                         page: summary, // {from, to, models}
                         state: summary.models.length > 0 // TODO this is always true
