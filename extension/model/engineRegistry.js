@@ -7,7 +7,7 @@ const engineRegistryRootURLTest = "https://example.com/browser/browser/extension
 const engineRegistry = {
     bergamotTranslatorWasm: {
         fileName: "bergamot-translator-worker.wasm",
-        fileSize: 6924188,
-        sha256: "8a54332d47acbf4f5a7262eaff79ead7db188adc7171c77b253f2640f16ea2f2"
+        fileSize: 6922513,
+        sha256: "32dce15a1e444ca677808485186648f5f3657ddde2ddc4349443655b37296c3f"
     }
 }
