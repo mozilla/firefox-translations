@@ -152,6 +152,8 @@ class Tab extends EventTarget {
             } else {
                 return {
                     url,
+                    from: null,  // Only reset from as page could be different
+                                 // language. We leave to selected as is
                     pendingTranslationRequests: 0,
                     totalTranslationRequests: 0,
                     state: State.PAGE_LOADING
