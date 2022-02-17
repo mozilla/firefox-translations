@@ -25,6 +25,7 @@ class TranslationHelper {
             this.wasmModuleStartTimestamp = null;
             this.WasmEngineModule = null;
             this.engineState = this.ENGINE_STATE.LOAD_PENDING;
+            this.PIVOT_LANGUAGE = 'en';
         }
 
         get ENGINE_STATE () {
@@ -265,26 +266,23 @@ class TranslationHelper {
         }
 
         async constructTranslationModel(from, to) {
-
-            /*
-             * if none of the languages is English then construct multiple models with
-             * English as a pivot language.
-             */
-            if (from !== "en" && to !== "en") {
-                console.log(`Constructing model '${from}${to}' via pivoting: '${from}en' and 'en${to}'`);
+            if (this._isPivotingRequired(from, to)) {
+                // Pivoting requires 2 translation models to be constructed
+                const languagePairSrcToPivot = this._getLanguagePair(from, this.PIVOT_LANGUAGE);
+                const languagePairPivotToTarget = this._getLanguagePair(this.PIVOT_LANGUAGE, to);
                 await Promise.all([
-                    this.constructTranslationModelInvolvingEnglish(from, "en"),
-                    this.constructTranslationModelInvolvingEnglish("en", to)
+                    this.constructTranslationModelHelper(languagePairSrcToPivot),
+                    this.constructTranslationModelHelper(languagePairPivotToTarget)
                 ]);
             } else {
-                console.log(`Constructing model '${from}${to}'`);
-                await this.constructTranslationModelInvolvingEnglish(from, to);
+                // Non-pivoting case requires only 1 translation model
+                await this.constructTranslationModelHelper(this._getLanguagePair(from, to));
             }
         }
 
         // eslint-disable-next-line max-lines-per-function
-        async constructTranslationModelInvolvingEnglish(from, to) {
-            const languagePair = `${from}${to}`;
+        async constructTranslationModelHelper(languagePair) {
+            console.log(`Constructing translation model ${languagePair}`);
 
             /*
              * for available configuration options,
@@ -367,12 +365,19 @@ class TranslationHelper {
             console.log(`Aligned model memory size: ${alignedModelMemory.size()}`);
             console.log(`Aligned shortlist memory size: ${alignedShortlistMemory.size()}`);
             console.log(`Translation Model config: ${modelConfig}`);
-            let translationModel;
 
-            translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabsMemoryList);
+            let translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabsMemoryList);
             if (translationModel) {
                 this.translationModels.set(languagePair, translationModel);
             }
+        }
+
+        _isPivotingRequired(from, to) {
+            return (from !== this.PIVOT_LANGUAGE) && (to !== this.PIVOT_LANGUAGE);
+        }
+
+        _getLanguagePair(from, to) {
+            return `${from}${to}`;
         }
 
         // eslint-disable-next-line max-lines-per-function
@@ -509,72 +514,107 @@ class TranslationHelper {
             return alignedMemory;
         }
 
+        // eslint-disable-next-line max-lines-per-function
         translate (messages) {
-
-            /*
-             * if none of the languages is English then perform translation with
-             * english as a pivot language.
-             */
             const from = messages[0].sourceLanguage;
             const to = messages[0].targetLanguage;
 
-            if (from !== "en" && to !== "en") {
-                let translatedParagraphsInEnglish = this.translateInvolvingEnglish(from, "en", messages);
-                return this.translateInvolvingEnglish("en", to, translatedParagraphsInEnglish, true);
-            }
-            return this.translateInvolvingEnglish(from, to, messages);
-        }
-
-        // eslint-disable-next-line max-params
-        translateInvolvingEnglish (from, to, messages, pivoting) {
-            const languagePair = `${from}${to}`;
-            if (!this.translationModels.has(languagePair)) {
-                throw Error(`Please load translation model '${languagePair}' before translating`);
-            }
-            const translationModel = this.translationModels.get(languagePair);
-
             /*
-             * instantiate the arguments of translate() API i.e. ResponseOptions and input (vector<string>)
+             * vectorResponseOptions, vectorSourceText are the arguments of translate API
+             * and vectorResponse is the result where each of its item corresponds to an item
+             * of vectorSourceText in the same order.
              */
-            const responseOptions = { qualityScores: true, alignment: true, html: false };
-            let input = new this.WasmEngineModule.VectorString();
-
-            messages.forEach(message => {
-
-                /*
-                 * if we are not pivoting we read from a batch of messages. if we are
-                 * we then read from a batch of paragraphs
-                 */
-                const sourceParagraph = pivoting
-                ? message
-                : message.sourceParagraph;
-
-                // prevent empty paragraph - it breaks the translation
-                if (sourceParagraph.trim() === "") {
-                    return;
-                }
-                input.push_back(sourceParagraph);
-            });
-
-            let result = null;
+            let vectorResponseOptions, vectorSourceText, vectorResponse;
             try {
-                // translate the input, which is a vector<String>; the result is a vector<Response>
-                result = this.translationService.translate(translationModel, input, responseOptions);
+                vectorResponseOptions = this._prepareResponseOptions(messages);
+                vectorSourceText = this._prepareSourceText(messages);
+
+                if (this._isPivotingRequired(from, to)) {
+                    // Translate via pivoting
+                    const translationModelSrcToPivot = this._getLoadedTranslationModel(from, this.PIVOT_LANGUAGE);
+                    const translationModelPivotToTarget = this._getLoadedTranslationModel(this.PIVOT_LANGUAGE, to);
+                    vectorResponse = this.translationService.translateViaPivoting(translationModelSrcToPivot,
+                        translationModelPivotToTarget,
+                        vectorSourceText,
+                        vectorResponseOptions);
+                }
+                else {
+                    // Translate without pivoting
+                    const translationModel = this._getLoadedTranslationModel(from, to);
+                    vectorResponse = this.translationService.translate(translationModel, vectorSourceText, vectorResponseOptions);
+                }
+
+                // Parse all relevant information from vectorResponse
+                const listTranslatedText = this._parseTranslatedText(vectorResponse);
+                return listTranslatedText;
             } catch (e) {
                 console.error("Error in translation engine ", e)
                 postMessage(["onError", "marian"]);
                 postMessage(["updateProgress", "Automatic translation is enabled but we found errors."]);
-                throw e;
+                throw e; // ToDo: Should we re-throw?
+            } finally {
+                // Necessary clean up
+                if (vectorSourceText != null) vectorSourceText.delete();
+                if (vectorResponseOptions != null) vectorResponseOptions.delete();
+                if (vectorResponse != null) vectorResponse.delete();
             }
-
-            const translatedParagraphs = [];
-            for (let i = 0; i < result.size(); i+=1) {
-                translatedParagraphs.push(result.get(i).getTranslatedText());
-            }
-
-            input.delete();
-            return translatedParagraphs;
         }
+
+        _getLoadedTranslationModel(from, to) {
+            const languagePair = this._getLanguagePair(from, to);
+            if (!this.translationModels.has(languagePair)) {
+                throw Error(`Translation model '${languagePair}' not loaded`);
+            }
+            return this.translationModels.get(languagePair);
+        }
+
+        _prepareResponseOptions(messages) {
+            const vectorResponseOptions = new this.WasmEngineModule.VectorResponseOptions;
+            // eslint-disable-next-line no-unused-vars
+            messages.forEach(message => {
+                /* ToDo: Activate this code once translate options can be passed per message
+                const translateOptions = message.translateOptions;
+                vectorResponseOptions.push_back({
+                    qualityScores: translateOptions["isQualityScores"],
+                    alignment: true,
+                    html: translateOptions["isHtml"]
+                });*/
+                vectorResponseOptions.push_back({
+                    qualityScores: false,
+                    alignment: true,
+                    html: false,
+                });
+            });
+            if (vectorResponseOptions.size() == 0) {
+                vectorResponseOptions.delete();
+                throw Error(`No Translation Options provided`);
+            }
+            return vectorResponseOptions;
+        }
+
+        _prepareSourceText(messages) {
+            let vectorSourceText = new this.WasmEngineModule.VectorString;
+            messages.forEach(message => {
+                const sourceParagraph = message.sourceParagraph;
+                // prevent empty paragraph - it breaks the translation
+                if (sourceParagraph.trim() === "") return;
+                vectorSourceText.push_back(sourceParagraph);
+            })
+            if (vectorSourceText.size() == 0) {
+                vectorSourceText.delete();
+                throw Error(`No text provided to translate`);
+            }
+            return vectorSourceText;
+          }
+
+        _parseTranslatedText(vectorResponse) {
+            const result = [];
+            for (let i = 0; i < vectorResponse.size(); i++) {
+              const response = vectorResponse.get(i);
+              result.push(response.getTranslatedText());
+            }
+            return result;
+          }
 
         // this function extracts all the translated sentences from the Response and returns them.
         getAllTranslatedSentencesOfParagraph (response) {
