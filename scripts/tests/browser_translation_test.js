@@ -1,3 +1,4 @@
+/* eslint-disable prefer-reflect */
 /* eslint-disable no-undef */
 /* eslint-disable max-lines-per-function */
 
@@ -73,29 +74,18 @@ add_task(async function testTranslationBarDisplayed() {
    await new Promise(resolve => content.setTimeout(resolve, 5000));
 
    is(
-     content.document.getElementById("mainTextarea").value,
+     content.document.getElementById("mainTextarea").value.trim(),
      "Hola Mundo",
-     "Form translation Text was correctly translated."
+     "Form translation text was correctly translated."
    );
 
    is(
-     content.document.getElementById("OTapp").querySelectorAll("textarea")[1].value,
-     "Hello world",
-     "Back Translation Text was correctly translated."
+     content.document.getElementById("OTapp").querySelectorAll("textarea")[1].value.trim(),
+     "Hello World",
+     "Back Translation text was correctly translated."
    );
 
  });
-
-  await TestUtils.waitForCondition(
-   () => {
-     return (
-       true == false
-     );
-   },
-   "Translation was properly started.",
-   10000,
-   2000
- );
 
   delete window.MozTranslationNotification;
   delete window.now;
