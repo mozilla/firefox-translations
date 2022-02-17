@@ -624,6 +624,23 @@ infobar:
       - anatal-all@mozilla.com
     expires: 2022-08-10
 
+  outbound_enabled:
+    type: boolean
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Translation of forms is enabled.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/43
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+
 service:
   not_supported:
     type: counter
@@ -726,6 +743,76 @@ errors:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
       - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+
+
+forms:
+  displayed:
+    type: event
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      UI for translation of forms is displayed.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/43
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+
+  hidden:
+    type: event
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      UI for translation of forms is hidden after it was displayed.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/43
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+
+  fields:
+    type: quantity
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Number of text fields translated.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/43
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+
+  characters:
+    type: quantity
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Number of text fields translated.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/43
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10

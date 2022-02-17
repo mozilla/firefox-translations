@@ -213,6 +213,12 @@ const telemetrySchema = {
                 "send_in_pings": [
                     "custom"
                 ]
+            },
+            "outbound_enabled": {
+                "type": "boolean",
+                "send_in_pings": [
+                    "custom"
+                ]
             }
         },
         "service": {
@@ -250,6 +256,32 @@ const telemetrySchema = {
             },
             "model_download": {
                 "type": "counter",
+                "send_in_pings": [
+                    "custom"
+                ]
+            }
+        },
+        "forms": {
+            "displayed": {
+                "type": "event",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "hidden": {
+                "type": "event",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "fields": {
+                "type": "quantity",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "characters": {
+                "type": "quantity",
                 "send_in_pings": [
                     "custom"
                 ]
