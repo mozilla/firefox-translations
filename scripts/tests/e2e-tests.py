@@ -10,6 +10,8 @@ if not os.path.exists("scripts/tests/e2e-tests.py"):
     sys.exit("This script is intended to be executed from the root folder.")
 root = os.getcwd()
 
+# Remove old gecko
+subprocess.call("rm -rf gecko".split(), cwd=root)
 # First we build the extension
 subprocess.call("npm run build".split(), cwd=root)
 # the nwe clone gecko
