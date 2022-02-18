@@ -291,6 +291,12 @@ const telemetrySchema = {
                 "send_in_pings": [
                     "custom"
                 ]
+            },
+            "words": {
+                "type": "quantity",
+                "send_in_pings": [
+                    "custom"
+                ]
             }
         }
     }

@@ -822,7 +822,24 @@ forms:
     send_in_pings:
       - custom
     description: |
-      Number of text fields translated.
+      Total number of characters in all translated fields.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/43
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+
+  words:
+    type: quantity
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Total number of words in all translated fields.
     bugs:
       - https://github.com/mozilla/firefox-translations/issues/43
     data_reviews:

@@ -41,12 +41,18 @@ class Telemetry {
     }
 
     addOutboundTranslation(textArea, textToTranslate) {
-        this._otLenthPerTextArea.set(textArea, textToTranslate.length);
-        let lengthSum = 0;
+        this._otLenthPerTextArea.set(textArea, {
+                chars: textToTranslate.length,
+                words: textToTranslate.trim().split(" ").length
+            });
+        let charLengthSum = 0;
+        let wordLengthSum = 0;
         this._otLenthPerTextArea.forEach(v => {
-            lengthSum += v;
+            charLengthSum += v.chars;
+            wordLengthSum += v.words;
         });
-        this._client.quantity("forms", "characters", lengthSum)
+        this._client.quantity("forms", "characters", charLengthSum)
+        this._client.quantity("forms", "words", wordLengthSum)
         this._client.quantity("forms", "fields", this._otLenthPerTextArea.size)
         this._updateUsageTime();
     }
