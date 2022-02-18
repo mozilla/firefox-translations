@@ -1,6 +1,6 @@
 function loadEmscriptenGlueCode(Module) {
 
-    var BERGAMOT_VERSION_FULL = "v0.4.0+3478652";
+    var BERGAMOT_VERSION_FULL = "v0.4.1+9eb2437";
 
     var Module = typeof Module !== "undefined" ? Module : {};
     
@@ -6239,7 +6239,6 @@ function loadEmscriptenGlueCode(Module) {
         console.log(`Using fallback gemm implementation`);
         return fallbackGemmModuleExports;
     }
-    
 
   return { addOnPreMain, Module };
 }
