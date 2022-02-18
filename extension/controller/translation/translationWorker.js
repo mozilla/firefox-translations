@@ -25,7 +25,7 @@ class TranslationHelper {
             this.wasmModuleStartTimestamp = null;
             this.WasmEngineModule = null;
             this.engineState = this.ENGINE_STATE.LOAD_PENDING;
-            this.PIVOT_LANGUAGE = 'en';
+            this.PIVOT_LANGUAGE = "en";
         }
 
         get ENGINE_STATE () {
@@ -267,7 +267,7 @@ class TranslationHelper {
 
         async constructTranslationModel(from, to) {
             if (this._isPivotingRequired(from, to)) {
-                // Pivoting requires 2 translation models to be constructed
+                // pivoting requires 2 translation models to be constructed
                 const languagePairSrcToPivot = this._getLanguagePair(from, this.PIVOT_LANGUAGE);
                 const languagePairPivotToTarget = this._getLanguagePair(this.PIVOT_LANGUAGE, to);
                 await Promise.all([
@@ -275,7 +275,7 @@ class TranslationHelper {
                     this.constructTranslationModelHelper(languagePairPivotToTarget)
                 ]);
             } else {
-                // Non-pivoting case requires only 1 translation model
+                // non-pivoting case requires only 1 translation model
                 await this.constructTranslationModelHelper(this._getLanguagePair(from, to));
             }
         }
@@ -373,7 +373,7 @@ class TranslationHelper {
         }
 
         _isPivotingRequired(from, to) {
-            return (from !== this.PIVOT_LANGUAGE) && (to !== this.PIVOT_LANGUAGE);
+            return from !== this.PIVOT_LANGUAGE && to !== this.PIVOT_LANGUAGE;
         }
 
         _getLanguagePair(from, to) {
@@ -524,39 +524,35 @@ class TranslationHelper {
              * and vectorResponse is the result where each of its item corresponds to an item
              * of vectorSourceText in the same order.
              */
-            let vectorResponseOptions, vectorSourceText, vectorResponse;
+            let vectorResponse, vectorResponseOptions, vectorSourceText;
             try {
                 vectorResponseOptions = this._prepareResponseOptions(messages);
                 vectorSourceText = this._prepareSourceText(messages);
 
                 if (this._isPivotingRequired(from, to)) {
-                    // Translate via pivoting
+                    // translate via pivoting
                     const translationModelSrcToPivot = this._getLoadedTranslationModel(from, this.PIVOT_LANGUAGE);
                     const translationModelPivotToTarget = this._getLoadedTranslationModel(this.PIVOT_LANGUAGE, to);
-                    vectorResponse = this.translationService.translateViaPivoting(translationModelSrcToPivot,
-                        translationModelPivotToTarget,
-                        vectorSourceText,
-                        vectorResponseOptions);
-                }
-                else {
-                    // Translate without pivoting
+                    vectorResponse = this.translationService.translateViaPivoting(translationModelSrcToPivot, translationModelPivotToTarget, vectorSourceText, vectorResponseOptions);
+                } else {
+                    // translate without pivoting
                     const translationModel = this._getLoadedTranslationModel(from, to);
                     vectorResponse = this.translationService.translate(translationModel, vectorSourceText, vectorResponseOptions);
                 }
 
-                // Parse all relevant information from vectorResponse
+                // parse all relevant information from vectorResponse
                 const listTranslatedText = this._parseTranslatedText(vectorResponse);
                 return listTranslatedText;
             } catch (e) {
                 console.error("Error in translation engine ", e)
                 postMessage(["onError", "marian"]);
                 postMessage(["updateProgress", "Automatic translation is enabled but we found errors."]);
-                throw e; // ToDo: Should we re-throw?
+                throw e; // to do: Should we re-throw?
             } finally {
-                // Necessary clean up
-                if (vectorSourceText != null) vectorSourceText.delete();
-                if (vectorResponseOptions != null) vectorResponseOptions.delete();
-                if (vectorResponse != null) vectorResponse.delete();
+                // necessary clean up
+                if (typeof vectorSourceText !== "undefined") vectorSourceText.delete();
+                if (typeof vectorResponseOptions !== "undefined") vectorResponseOptions.delete();
+                if (typeof vectorResponse !== "undefined") vectorResponse.delete();
             }
         }
 
@@ -569,47 +565,50 @@ class TranslationHelper {
         }
 
         _prepareResponseOptions(messages) {
-            const vectorResponseOptions = new this.WasmEngineModule.VectorResponseOptions;
+            const vectorResponseOptions = new this.WasmEngineModule.VectorResponseOptions();
             // eslint-disable-next-line no-unused-vars
             messages.forEach(message => {
-                /* ToDo: Activate this code once translate options can be passed per message
-                const translateOptions = message.translateOptions;
-                vectorResponseOptions.push_back({
-                    qualityScores: message.withQualityEstimation,
-                    alignment: true,
-                    html: message.isHtml
-                });*/
+
+                /*
+                 * toDo: Activate this code once translate options can be passed per message
+                 * const translateOptions = message.translateOptions;
+                 * vectorResponseOptions.push_back({
+                 *  qualityScores: message.withQualityEstimation,
+                 *  alignment: true,
+                 *  html: message.isHtml
+                 * });
+                 */
                 vectorResponseOptions.push_back({
                     qualityScores: false,
                     alignment: true,
                     html: false,
                 });
             });
-            if (vectorResponseOptions.size() == 0) {
+            if (vectorResponseOptions.size() === 0) {
                 vectorResponseOptions.delete();
-                throw Error(`No Translation Options provided`);
+                throw Error("No Translation Options provided");
             }
             return vectorResponseOptions;
         }
 
         _prepareSourceText(messages) {
-            let vectorSourceText = new this.WasmEngineModule.VectorString;
+            let vectorSourceText = new this.WasmEngineModule.VectorString();
             messages.forEach(message => {
                 const sourceParagraph = message.sourceParagraph;
                 // prevent empty paragraph - it breaks the translation
                 if (sourceParagraph.trim() === "") return;
                 vectorSourceText.push_back(sourceParagraph);
             })
-            if (vectorSourceText.size() == 0) {
+            if (vectorSourceText.size() === 0) {
                 vectorSourceText.delete();
-                throw Error(`No text provided to translate`);
+                throw Error("No text provided to translate");
             }
             return vectorSourceText;
           }
 
         _parseTranslatedText(vectorResponse) {
             const result = [];
-            for (let i = 0; i < vectorResponse.size(); i++) {
+            for (let i = 0; i < vectorResponse.size(); i+=1) {
               const response = vectorResponse.get(i);
               result.push(response.getTranslatedText());
             }
