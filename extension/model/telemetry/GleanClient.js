@@ -159,7 +159,7 @@ class GleanClient {
                 "X-Telemetry-Agent": "Glean/0.15.0"
             };
             if (this._debug) {
-                headers["X-Debug-Id"] = "bergamot";
+                headers["X-Debug-Id"] = "firefox-translations";
             }
 
             /*
