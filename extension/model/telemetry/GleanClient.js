@@ -58,7 +58,7 @@ class GleanClient {
                 ping.firstEventTimestamp = newTimestamp;
             }
             let timeRelative = newTimestamp - ping.firstEventTimestamp;
-            const newEvent = { category, name, timeRelative };
+            const newEvent = { category, name, timestamp: timeRelative };
 
             if (!("events" in ping.data)) {
                 ping.data.events = []
