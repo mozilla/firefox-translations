@@ -575,9 +575,9 @@ class TranslationHelper {
                 /* ToDo: Activate this code once translate options can be passed per message
                 const translateOptions = message.translateOptions;
                 vectorResponseOptions.push_back({
-                    qualityScores: translateOptions["isQualityScores"],
+                    qualityScores: message.withQualityEstimation,
                     alignment: true,
-                    html: translateOptions["isHtml"]
+                    html: message.isHtml
                 });*/
                 vectorResponseOptions.push_back({
                     qualityScores: false,
