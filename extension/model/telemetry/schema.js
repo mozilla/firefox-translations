@@ -110,6 +110,12 @@ const telemetrySchema = {
             }
         },
         "performance": {
+            "total_usage_time": {
+                "type": "timespan",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
             "full_page_translated_time": {
                 "type": "timespan",
                 "send_in_pings": [

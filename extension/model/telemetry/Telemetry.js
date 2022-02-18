@@ -8,12 +8,14 @@ class Telemetry {
         this._client = client;
         this._totalWords = 0;
         this._totalEngineMs = 0;
+        this._translationStartTimestamp = null;
         this._startTimestamp = null;
         this._otLenthPerTextArea = new Map();
     }
 
     translationStarted() {
-        this._startTimestamp = Date.now();
+        this._translationStartTimestamp = Date.now();
+        this._updateUsageTime();
     }
 
     pageClosed() {
@@ -25,7 +27,7 @@ class Telemetry {
         this._totalEngineMs += engineTimeElapsed;
         // it has to be int to use in telemetry
         const engineWps = Math.floor(this._totalWords / (this._totalEngineMs / 1000));
-        const totalTimeMs = Date.now() - this._startTimestamp;
+        const totalTimeMs = Date.now() - this._translationStartTimestamp;
         const totalWps = Math.floor(this._totalWords / (totalTimeMs / 1000));
 
         this._client.quantity("performance", "translation_engine_wps", engineWps)
@@ -33,6 +35,7 @@ class Telemetry {
         this._client.quantity("performance", "full_page_translated_wps", totalWps)
         this._client.timespan("performance", "full_page_translated_time", totalTimeMs)
         this._client.quantity("performance", "word_count", this._totalWords)
+        this._updateUsageTime();
 
         return engineWps;
     }
@@ -45,6 +48,7 @@ class Telemetry {
         });
         this._client.quantity("forms", "characters", lengthSum)
         this._client.quantity("forms", "fields", this._otLenthPerTextArea.size)
+        this._updateUsageTime();
     }
 
     langPair(from, to) {
@@ -77,6 +81,7 @@ class Telemetry {
 
     infobarEvent(name) {
         this._client.event("infobar", name);
+        this._updateUsageTime();
 
         /* event corresponds to user action, but boolean value is useful to report the state and to filter */
         if (name === "accept_outbound") {
@@ -86,6 +91,7 @@ class Telemetry {
 
     formsEvent(name) {
         this._client.event("forms", name);
+        this._updateUsageTime();
     }
 
     error(name) {
@@ -106,5 +112,12 @@ class Telemetry {
 
     wordsInViewport(val) {
         this._client.quantity("performance", "word_count_visible_in_viewport", val);
+    }
+
+    _updateUsageTime() {
+        if (this._startTimestamp === null) {
+            this._startTimestamp = Date.now();
+        }
+        this._client.timespan("performance", "total_usage_time", Date.now() - this._startTimestamp);
     }
 }

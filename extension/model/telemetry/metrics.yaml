@@ -315,6 +315,22 @@ metadata:
     expires: 2022-08-10
 
 performance:
+  total_usage_time:
+    type: timespan
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Timing from the first event to the last event.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/43
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
   full_page_translated_time:
     type: timespan
     lifetime: ping
