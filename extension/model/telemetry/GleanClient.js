@@ -54,18 +54,17 @@ class GleanClient {
             let ping = this._build_ping(pingName);
 
             const newTimestamp = Date.now();
-            let timestamp = 0;
-            if (ping.lastEventTimestamp !== 0) {
-                timestamp = newTimestamp - ping.lastEventTimestamp;
+            if (ping.firstEventTimestamp === null) {
+                ping.firstEventTimestamp = newTimestamp;
             }
-            ping.lastEventTimestamp = newTimestamp;
-            const newEvent = { category, name, timestamp };
+            let timeRelative = newTimestamp - ping.firstEventTimestamp;
+            const newEvent = { category, name, timeRelative };
 
             if (!("events" in ping.data)) {
                 ping.data.events = []
             }
             ping.data.events.push(newEvent);
-            this._log(`event ${pingName}.${category}.${name}`)
+            this._log(`event ${pingName}.${category}.${name}, timestamp ${timeRelative}`)
         }
     }
 
@@ -204,7 +203,7 @@ class GleanClient {
         }
 
         let ping = {
-            lastEventTimestamp: 0,
+            firstEventTimestamp: null,
             data: {
                 metrics: {},
                 ping_info: {
