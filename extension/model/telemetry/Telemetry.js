@@ -127,9 +127,10 @@ class Telemetry {
     }
 
     _updateUsageTime() {
+        let timestamp = Date.now();
         if (this._startTimestamp === null) {
-            this._startTimestamp = Date.now();
+            this._startTimestamp = timestamp;
         }
-        this._client.timespan("performance", "total_usage_time", Date.now() - this._startTimestamp);
+        this._client.timespan("performance", "total_usage_time", timestamp - this._startTimestamp);
     }
 }
