@@ -1,7 +1,7 @@
 {
   "name": "firefox-translations",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "python scripts/tests/e2e-tests.py",
     "lint:js": "eslint -c  .eslintrc.js extension",
     "build": "web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
     "format": "prettier 'extension/*.{js,css}' --tab-width=2 --arrow-parens=always --trailing-comma=es5 --no-bracket-spacing --write",
