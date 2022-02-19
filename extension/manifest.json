@@ -42,7 +42,8 @@
         "view/js/OutboundTranslation.js",
         "view/js/InPageTranslation.js",
         "model/telemetry/Telemetry.js",
-        "model/telemetry/TelemetrySchema.js",
+        "model/telemetry/GleanClient.js",
+        "model/telemetry/schema.js",
         "model/modelRegistry.js",
         "mediator.js"
       ],

@@ -49,6 +49,7 @@ class TranslationHelper {
                 engineRegistry.bergamotTranslatorWasm.sha256
             );
             if (!wasmArrayBuffer) {
+                postMessage(["onError", "engine_download"]);
                 console.log("Error loading engine from cache or web.");
                 return;
             }
@@ -79,6 +80,7 @@ class TranslationHelper {
                     "updateProgress",
                     "Error loading translation module (wasm)"
                 ]);
+                postMessage(["onError", "engine_load"]);
             }
         }
 
@@ -226,6 +228,7 @@ class TranslationHelper {
 
             } catch (error) {
               console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
+              postMessage(["onError", "model_load"]);
               postMessage([
                 "updateProgress",
                 error.message
@@ -327,11 +330,13 @@ class TranslationHelper {
             const shortListBuffer = downloadedBuffers[1];
             if (!modelBuffer || !shortListBuffer) {
                 console.log("Error loading models from cache or web (models)");
+                postMessage(["onError", "model_download"]);
                 throw new Error("Error loading models from cache or web (models)");
             }
             const vocabAsArrayBuffer = await this.getItemFromCacheOrWeb(vocabFile, vocabFileSize, vocabFileChecksum);
             if (!vocabAsArrayBuffer) {
                 console.log("Error loading models from cache or web (vocab)");
+                postMessage(["onError", "model_download"]);
                 throw new Error("Error loading models from cache or web (vocab)");
             }
             const downloadedVocabBuffers = [];
@@ -431,7 +436,6 @@ class TranslationHelper {
                                 "updateProgress",
                                 "Error downloading translation engine. (timeout)"
                             ]);
-                            postMessage(["onError", "model_download"]);
                             return null;
                         }
                         // eslint-disable-next-line no-await-in-loop
@@ -459,7 +463,6 @@ class TranslationHelper {
                                 "updateProgress",
                                 "Error downloading translation engine. (no data)"
                             ]);
-                            postMessage(["onError", "model_download"]);
                             return null;
                         }
 
@@ -475,7 +478,6 @@ class TranslationHelper {
                         "updateProgress",
                         "Error downloading translation engine. (not found)"
                     ]);
-                    postMessage(["onError", "model_download"]);
                     return null;
                 }
             }
@@ -487,7 +489,6 @@ class TranslationHelper {
                     "updateProgress",
                     "Error downloading translation engine. (checksum)"
                 ]);
-                postMessage(["onError", "model_download"]);
                 return null;
             }
             return arraybuffer;

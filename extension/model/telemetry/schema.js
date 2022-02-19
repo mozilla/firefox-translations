@@ -110,6 +110,12 @@ const telemetrySchema = {
             }
         },
         "performance": {
+            "total_usage_time": {
+                "type": "timespan",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
             "full_page_translated_time": {
                 "type": "timespan",
                 "send_in_pings": [
@@ -208,8 +214,20 @@ const telemetrySchema = {
                     "custom"
                 ]
             },
-            "accept_outbound": {
+            "outbound_checked": {
                 "type": "event",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "outbound_unchecked": {
+                "type": "event",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "outbound_enabled": {
+                "type": "boolean",
                 "send_in_pings": [
                     "custom"
                 ]
@@ -250,6 +268,56 @@ const telemetrySchema = {
             },
             "model_download": {
                 "type": "counter",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "engine_download": {
+                "type": "counter",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "engine_load": {
+                "type": "counter",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "model_load": {
+                "type": "counter",
+                "send_in_pings": [
+                    "custom"
+                ]
+            }
+        },
+        "forms": {
+            "displayed": {
+                "type": "event",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "hidden": {
+                "type": "event",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "fields": {
+                "type": "quantity",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "characters": {
+                "type": "quantity",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "words": {
+                "type": "quantity",
                 "send_in_pings": [
                     "custom"
                 ]
