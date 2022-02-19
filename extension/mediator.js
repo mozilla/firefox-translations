@@ -81,7 +81,12 @@ class Mediator {
                 // request the backgroundscript to display the translationbar
                 browser.runtime.sendMessage({
                     command: "displayTranslationBar",
-                    languageDetection: this.languageDetection
+                    languageDetection: this.languageDetection,
+                    localizedLabels: {
+                        displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
+                        outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
+                        qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage")
+                    }
                 });
                 this.translationBarDisplayed = true;
                 // create the translation object
@@ -141,9 +146,10 @@ class Mediator {
 
                 if (this.statsMode) {
                     // if the user chose to see stats in the infobar, we display them
+                    console.log("msg no mediator stats", browser.i18n.getMessage("statsMessage", wordsPerSecond));
                     browser.runtime.sendMessage({
                         command: "updateProgress",
-                        progressMessage: [null,`Translation enabled (stats mode) Words-per-second: ${wordsPerSecond}`],
+                        progressMessage: browser.i18n.getMessage("statsMessage", wordsPerSecond),
                         tabId: this.tabId
                     });
                 }
@@ -156,9 +162,19 @@ class Mediator {
                  * let's invoke the experiment api in order to update the
                  * model/engine download progress in the appropiate infobar
                  */
+                // first we localize the message.
+                // eslint-disable-next-line no-case-declarations
+                let localizedMessage;
+                if (typeof message.payload[1] === "string") {
+                    localizedMessage = browser.i18n.getMessage(message.payload[1]);
+                } else if (typeof message.payload[1] === "object") {
+                    // we have a downloading message, which contains placeholders, hence this special treatment
+                    localizedMessage = browser.i18n.getMessage(message.payload[1][0], message.payload[1][1]);
+                }
+
                 browser.runtime.sendMessage({
                     command: "updateProgress",
-                    progressMessage: message.payload,
+                    progressMessage: localizedMessage,
                     tabId: this.tabId
                 });
                 break;
@@ -171,16 +187,13 @@ class Mediator {
                     this.languageDetection.pageLanguage.language
                 );
                 break;
-
             case "onError":
                 // payload is a metric name from metrics.yaml
                 this.telemetry.error(message.payload);
                 break;
-
             case "viewPortWordsNum":
                 this.telemetry.wordsInViewport(message.payload);
                 break;
-
             case "onModelEvent":
                 // eslint-disable-next-line no-case-declarations
                 let metric = null;
@@ -247,12 +260,10 @@ class Mediator {
             case "displayStatistics":
                 this.statsMode = true;
                 break;
-
             case "onInfobarEvent":
                 // 'name' is a metric name from metrics.yaml
                 this.telemetry.infobarEvent(message.name);
                 break;
-
             default:
                 // ignore
         }

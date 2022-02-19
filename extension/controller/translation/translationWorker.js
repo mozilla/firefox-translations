@@ -39,7 +39,7 @@ class TranslationHelper {
         async loadTranslationEngine(sourceLanguage, targetLanguage, withOutboundTranslation) {
             postMessage([
                 "updateProgress",
-                "Loading Translation Engine"
+                "loadingTranslationEngine"
             ]);
             const itemURL = `${engineRegistryRootURL}${engineRegistry.bergamotTranslatorWasm.fileName}`;
             // first we load the wasm engine
@@ -76,11 +76,8 @@ class TranslationHelper {
                 this.WasmEngineModule = Module;
             } catch (e) {
                 console.log("Error loading wasm module:", e);
-                postMessage([
-                    "updateProgress",
-                    "Error loading translation module (wasm)"
-                ]);
                 postMessage(["onError", "engine_load"]);
+                postMessage(["updateProgress", "errorLoadingWasm"]);
             }
         }
 
@@ -134,7 +131,7 @@ class TranslationHelper {
                             ]);
                         } catch (e) {
                             postMessage(["onError", "translation"]);
-                            postMessage(["updateProgress", "Automatic translation is enabled but we found errors."]);
+                            postMessage(["updateProgress", "translationLoadedWithErrors"]);
                             console.error("Translation error: ", e)
                             throw e;
                         }
@@ -229,21 +226,15 @@ class TranslationHelper {
             } catch (error) {
               console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
               postMessage(["onError", "model_load"]);
-              postMessage([
-                "updateProgress",
-                error.message
-            ]);
+              postMessage(["updateProgress", "errorLoadingWasm"]);
               return;
             }
             this.engineState = this.ENGINE_STATE.LOADED;
-            let notificationMessage = "Automatic Translation enabled";
             if (isReversedModelLoadingFailed) {
-                notificationMessage += ". Translation of forms is not supported for this language."
+                postMessage(["updateProgress","translationEnabledNoOT"]);
+            } else {
+                postMessage(["updateProgress","translationEnabled"]);
             }
-            postMessage([
-                "updateProgress",
-                notificationMessage
-            ]);
 
             this.consumeTranslationQueue();
             console.log("loadLanguageModel function complete");
@@ -412,7 +403,7 @@ class TranslationHelper {
                     console.log(`Error downloading translation modules. (${itemURL} not found)`);
                     postMessage([
                         "updateProgress",
-                        "Error downloading translation modules. (not found)"
+                        "notfoundErrorsDownloadingEngine"
                     ]);
                     return null;
                 }
@@ -434,7 +425,7 @@ class TranslationHelper {
                             cache.delete(itemURL);
                             postMessage([
                                 "updateProgress",
-                                "Error downloading translation engine. (timeout)"
+                                "timeoutDownloadingEngine"
                             ]);
                             return null;
                         }
@@ -455,13 +446,13 @@ class TranslationHelper {
                             console.log(`Received ${receivedLength} of ${contentLength} ${itemURL}.`);
                             postMessage([
                                 "updateProgress",
-                                `Downloaded ${receivedLength} of ${contentLength}`
+                                ["downloadProgress", [`${receivedLength}`,`${contentLength}`]]
                             ]);
                         } else {
                             cache.delete(itemURL);
                             postMessage([
                                 "updateProgress",
-                                "Error downloading translation engine. (no data)"
+                                "nodataDownloadingEngine"
                             ]);
                             return null;
                         }
@@ -476,7 +467,7 @@ class TranslationHelper {
                     cache.delete(itemURL);
                     postMessage([
                         "updateProgress",
-                        "Error downloading translation engine. (not found)"
+                        "notfoundErrorsDownloadingEngine"
                     ]);
                     return null;
                 }
@@ -487,7 +478,7 @@ class TranslationHelper {
                 cache.delete(itemURL);
                 postMessage([
                     "updateProgress",
-                    "Error downloading translation engine. (checksum)"
+                    "checksumErrorsDownloadingEngine"
                 ]);
                 return null;
             }
@@ -547,7 +538,7 @@ class TranslationHelper {
             } catch (e) {
                 console.error("Error in translation engine ", e)
                 postMessage(["onError", "marian"]);
-                postMessage(["updateProgress", "Automatic translation is enabled but we found errors."]);
+                postMessage(["updateProgress", "translationLoadedWithErrors"]);
                 throw e; // to do: Should we re-throw?
             } finally {
                 // necessary clean up

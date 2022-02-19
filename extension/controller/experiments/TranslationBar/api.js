@@ -45,7 +45,7 @@
       return {
         experiments: {
           translationbar: {
-            show: function show(tabId, detectedLanguage, navigatorLanguage) {
+            show: function show(tabId, detectedLanguage, navigatorLanguage, localizedLabels) {
               try {
 
                 // disable the legacy translation infobar
@@ -106,6 +106,7 @@
                 translationNotificationManager.notificationBox = notif;
                 translationNotificationManager.browser = tab.browser;
                 translationNotificationManager.logoIcon = context.extension.getURL("/view/icons/translation.16x16.png",)
+                translationNotificationManager.localizedLabels = localizedLabels;
 
                 notif.init(translationNotificationManager);
                 translatonNotificationManagers.set(tabId, translationNotificationManager);
@@ -117,7 +118,7 @@
              },
             updateProgress: function updateProgress(tabId, progressMessage) {
               const translatonNotificationManager = translatonNotificationManagers.get(tabId);
-              translatonNotificationManager.notificationBox.updateTranslationProgress(true, progressMessage);
+              translatonNotificationManager.notificationBox.updateTranslationProgress(progressMessage);
              },
              onTranslationRequest: new ExtensionCommon.EventManager({
               context,

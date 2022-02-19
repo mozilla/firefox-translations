@@ -80,7 +80,8 @@ const messageListener = async function(message, sender) {
             await browser.experiments.translationbar.show(
                 sender.tab.id,
                 message.languageDetection.pageLanguage.language,
-                message.languageDetection.navigatorLanguage
+                message.languageDetection.navigatorLanguage,
+                message.localizedLabels
             );
 
             break;
@@ -118,7 +119,7 @@ const messageListener = async function(message, sender) {
         case "updateProgress":
             browser.experiments.translationbar.updateProgress(
                 message.tabId,
-                message.progressMessage[1]
+                message.progressMessage
             );
             break;
         case "outBoundtranslationRequested":

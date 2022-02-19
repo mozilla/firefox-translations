@@ -22,7 +22,12 @@
               "name": "navigatorLanguage",
               "type": "string",
               "description": "navigator langauge"
-          }
+            },
+            {
+              "name": "localizedLabels",
+              "type": "any",
+              "description": "localized labels for the translation bar"
+            }
           ]
         },
         {
