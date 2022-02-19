@@ -776,7 +776,57 @@ errors:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
-
+  engine_download:
+    type: counter
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Failed to download translation engine module.
+    bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
+      - https://github.com/mozilla/firefox-translations/issues/27
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  engine_load:
+    type: counter
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Failed to load translation engine wasm module in memory.
+    bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
+      - https://github.com/mozilla/firefox-translations/issues/27
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  model_load:
+    type: counter
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Failed to load translation model in memory.
+    bugs:
+      - https://github.com/mozilla-extensions/firefox-translations/issues/42
+      - https://github.com/mozilla/firefox-translations/issues/27
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
 
 forms:
   displayed:

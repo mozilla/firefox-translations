@@ -271,6 +271,24 @@ const telemetrySchema = {
                 "send_in_pings": [
                     "custom"
                 ]
+            },
+            "engine_download": {
+                "type": "counter",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "engine_load": {
+                "type": "counter",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "model_load": {
+                "type": "counter",
+                "send_in_pings": [
+                    "custom"
+                ]
             }
         },
         "forms": {
