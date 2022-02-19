@@ -72,7 +72,7 @@
       "description": "Asks the users if they want to display the translation statistics."
     },
     "outboundTranslationsMessage": {
-      "message": " Enable translations of forms?",
+      "message": "Enable translations of forms?",
       "description": "Ask the users if they want to enable the translation of forms."
     },
     "qualityEstimationMessage": {
