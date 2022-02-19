@@ -146,7 +146,6 @@ class Mediator {
 
                 if (this.statsMode) {
                     // if the user chose to see stats in the infobar, we display them
-                    console.log("msg no mediator stats", browser.i18n.getMessage("statsMessage", wordsPerSecond));
                     browser.runtime.sendMessage({
                         command: "updateProgress",
                         progressMessage: browser.i18n.getMessage("statsMessage", wordsPerSecond),
