@@ -83,7 +83,11 @@ class Translation {
     translate(translationMessage) {
 
         if (translationMessage.type === "outbound") {
-            // if the message is from outbound translations, we skip the line.
+
+            /*
+             * if the message is from outbound translations, we skip queuing it and
+             * send for translation immediately
+             */
             if (this.translationWorker) {
                 this.translationWorker.postMessage([
                     "translate",

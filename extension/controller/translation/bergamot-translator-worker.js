@@ -1,54 +1,54 @@
 function loadEmscriptenGlueCode(Module) {
 
-    var BERGAMOT_VERSION_FULL = "v0.3.1+793d132";
+    var BERGAMOT_VERSION_FULL = "v0.4.1+9eb2437";
 
     var Module = typeof Module !== "undefined" ? Module : {};
-
+    
     var moduleOverrides = {};
-
+    
     var key;
-
+    
     for (key in Module) {
      if (Module.hasOwnProperty(key)) {
       moduleOverrides[key] = Module[key];
      }
     }
-
+    
     var arguments_ = [];
-
+    
     var thisProgram = "./this.program";
-
+    
     var quit_ = function(status, toThrow) {
      throw toThrow;
     };
-
+    
     var ENVIRONMENT_IS_WEB = false;
-
+    
     var ENVIRONMENT_IS_WORKER = false;
-
+    
     var ENVIRONMENT_IS_NODE = false;
-
+    
     var ENVIRONMENT_IS_SHELL = false;
-
+    
     ENVIRONMENT_IS_WEB = typeof window === "object";
-
+    
     ENVIRONMENT_IS_WORKER = typeof importScripts === "function";
-
+    
     ENVIRONMENT_IS_NODE = typeof process === "object" && typeof process.versions === "object" && typeof process.versions.node === "string";
-
+    
     ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIRONMENT_IS_WORKER;
-
+    
     var scriptDirectory = "";
-
+    
     function locateFile(path) {
      if (Module["locateFile"]) {
       return Module["locateFile"](path, scriptDirectory);
      }
      return scriptDirectory + path;
     }
-
+    
     var read_, readAsync, readBinary, setWindowTitle;
-
+    
     if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
      if (ENVIRONMENT_IS_WORKER) {
       scriptDirectory = self.location.href;
@@ -95,32 +95,32 @@ function loadEmscriptenGlueCode(Module) {
       document.title = title;
      };
     } else {}
-
+    
     var out = Module["print"] || console.log.bind(console);
-
+    
     var err = Module["printErr"] || console.warn.bind(console);
-
+    
     for (key in moduleOverrides) {
      if (moduleOverrides.hasOwnProperty(key)) {
       Module[key] = moduleOverrides[key];
      }
     }
-
+    
     moduleOverrides = null;
-
+    
     if (Module["arguments"]) arguments_ = Module["arguments"];
-
+    
     if (Module["thisProgram"]) thisProgram = Module["thisProgram"];
-
+    
     if (Module["quit"]) quit_ = Module["quit"];
-
+    
     var STACK_ALIGN = 16;
-
+    
     function alignMemory(size, factor) {
      if (!factor) factor = STACK_ALIGN;
      return Math.ceil(size / factor) * factor;
     }
-
+    
     function warnOnce(text) {
      if (!warnOnce.shown) warnOnce.shown = {};
      if (!warnOnce.shown[text]) {
@@ -128,7 +128,7 @@ function loadEmscriptenGlueCode(Module) {
       err(text);
      }
     }
-
+    
     function convertJsFunctionToWasm(func, sig) {
      if (typeof WebAssembly.Function === "function") {
       var typeNames = {
@@ -175,11 +175,11 @@ function loadEmscriptenGlueCode(Module) {
      var wrappedFunc = instance.exports["f"];
      return wrappedFunc;
     }
-
+    
     var freeTableIndexes = [];
-
+    
     var functionsInTableMap;
-
+    
     function getEmptyTableSlot() {
      if (freeTableIndexes.length) {
       return freeTableIndexes.pop();
@@ -194,7 +194,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      return wasmTable.length - 1;
     }
-
+    
     function addFunctionWasm(func, sig) {
      if (!functionsInTableMap) {
       functionsInTableMap = new WeakMap();
@@ -221,43 +221,43 @@ function loadEmscriptenGlueCode(Module) {
      functionsInTableMap.set(func, ret);
      return ret;
     }
-
+    
     var tempRet0 = 0;
-
+    
     var setTempRet0 = function(value) {
      tempRet0 = value;
     };
-
+    
     var wasmBinary;
-
+    
     if (Module["wasmBinary"]) wasmBinary = Module["wasmBinary"];
-
+    
     var noExitRuntime;
-
+    
     if (Module["noExitRuntime"]) noExitRuntime = Module["noExitRuntime"];
-
+    
     if (typeof WebAssembly !== "object") {
      abort("no native wasm support detected");
     }
-
+    
     var wasmMemory;
-
+    
     var ABORT = false;
-
+    
     var EXITSTATUS = 0;
-
+    
     function assert(condition, text) {
      if (!condition) {
       abort("Assertion failed: " + text);
      }
     }
-
+    
     function getCFunc(ident) {
      var func = Module["_" + ident];
      assert(func, "Cannot call unknown function " + ident + ", make sure it is exported");
      return func;
     }
-
+    
     function ccall(ident, returnType, argTypes, args, opts) {
      var toC = {
       "string": function(str) {
@@ -299,11 +299,11 @@ function loadEmscriptenGlueCode(Module) {
      if (stack !== 0) stackRestore(stack);
      return ret;
     }
-
+    
     var ALLOC_STACK = 1;
-
+    
     var UTF8Decoder = typeof TextDecoder !== "undefined" ? new TextDecoder("utf8") : undefined;
-
+    
     function UTF8ArrayToString(heap, idx, maxBytesToRead) {
      var endIdx = idx + maxBytesToRead;
      var endPtr = idx;
@@ -339,11 +339,11 @@ function loadEmscriptenGlueCode(Module) {
      }
      return str;
     }
-
+    
     function UTF8ToString(ptr, maxBytesToRead) {
      return ptr ? UTF8ArrayToString(HEAPU8, ptr, maxBytesToRead) : "";
     }
-
+    
     function stringToUTF8Array(str, heap, outIdx, maxBytesToWrite) {
      if (!(maxBytesToWrite > 0)) return 0;
      var startIdx = outIdx;
@@ -377,11 +377,11 @@ function loadEmscriptenGlueCode(Module) {
      heap[outIdx] = 0;
      return outIdx - startIdx;
     }
-
+    
     function stringToUTF8(str, outPtr, maxBytesToWrite) {
      return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
     }
-
+    
     function lengthBytesUTF8(str) {
      var len = 0;
      for (var i = 0; i < str.length; ++i) {
@@ -391,9 +391,9 @@ function loadEmscriptenGlueCode(Module) {
      }
      return len;
     }
-
+    
     var UTF16Decoder = typeof TextDecoder !== "undefined" ? new TextDecoder("utf-16le") : undefined;
-
+    
     function UTF16ToString(ptr, maxBytesToRead) {
      var endPtr = ptr;
      var idx = endPtr >> 1;
@@ -412,7 +412,7 @@ function loadEmscriptenGlueCode(Module) {
       return str;
      }
     }
-
+    
     function stringToUTF16(str, outPtr, maxBytesToWrite) {
      if (maxBytesToWrite === undefined) {
       maxBytesToWrite = 2147483647;
@@ -429,11 +429,11 @@ function loadEmscriptenGlueCode(Module) {
      HEAP16[outPtr >> 1] = 0;
      return outPtr - startPtr;
     }
-
+    
     function lengthBytesUTF16(str) {
      return str.length * 2;
     }
-
+    
     function UTF32ToString(ptr, maxBytesToRead) {
      var i = 0;
      var str = "";
@@ -450,7 +450,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      return str;
     }
-
+    
     function stringToUTF32(str, outPtr, maxBytesToWrite) {
      if (maxBytesToWrite === undefined) {
       maxBytesToWrite = 2147483647;
@@ -471,7 +471,7 @@ function loadEmscriptenGlueCode(Module) {
      HEAP32[outPtr >> 2] = 0;
      return outPtr - startPtr;
     }
-
+    
     function lengthBytesUTF32(str) {
      var len = 0;
      for (var i = 0; i < str.length; ++i) {
@@ -481,34 +481,34 @@ function loadEmscriptenGlueCode(Module) {
      }
      return len;
     }
-
+    
     function allocateUTF8(str) {
      var size = lengthBytesUTF8(str) + 1;
      var ret = _malloc(size);
      if (ret) stringToUTF8Array(str, HEAP8, ret, size);
      return ret;
     }
-
+    
     function writeArrayToMemory(array, buffer) {
      HEAP8.set(array, buffer);
     }
-
+    
     function writeAsciiToMemory(str, buffer, dontAddNull) {
      for (var i = 0; i < str.length; ++i) {
       HEAP8[buffer++ >> 0] = str.charCodeAt(i);
      }
      if (!dontAddNull) HEAP8[buffer >> 0] = 0;
     }
-
+    
     function alignUp(x, multiple) {
      if (x % multiple > 0) {
       x += multiple - x % multiple;
      }
      return x;
     }
-
+    
     var buffer, HEAP8, HEAPU8, HEAP16, HEAPU16, HEAP32, HEAPU32, HEAPF32, HEAPF64;
-
+    
     function updateGlobalBufferAndViews(buf) {
      buffer = buf;
      Module["HEAP8"] = HEAP8 = new Int8Array(buf);
@@ -520,9 +520,9 @@ function loadEmscriptenGlueCode(Module) {
      Module["HEAPF32"] = HEAPF32 = new Float32Array(buf);
      Module["HEAPF64"] = HEAPF64 = new Float64Array(buf);
     }
-
+    
     var INITIAL_MEMORY = Module["INITIAL_MEMORY"] || 16777216;
-
+    
     if (Module["wasmMemory"]) {
      wasmMemory = Module["wasmMemory"];
     } else {
@@ -531,29 +531,29 @@ function loadEmscriptenGlueCode(Module) {
       "maximum": 2147483648 / 65536
      });
     }
-
+    
     if (wasmMemory) {
      buffer = wasmMemory.buffer;
     }
-
+    
     INITIAL_MEMORY = buffer.byteLength;
-
+    
     updateGlobalBufferAndViews(buffer);
-
+    
     var wasmTable;
-
+    
     var __ATPRERUN__ = [];
-
+    
     var __ATINIT__ = [];
-
+    
     var __ATMAIN__ = [];
-
+    
     var __ATPOSTRUN__ = [];
-
+    
     var runtimeInitialized = false;
-
+    
     var runtimeExited = false;
-
+    
     function preRun() {
      if (Module["preRun"]) {
       if (typeof Module["preRun"] == "function") Module["preRun"] = [ Module["preRun"] ];
@@ -563,23 +563,23 @@ function loadEmscriptenGlueCode(Module) {
      }
      callRuntimeCallbacks(__ATPRERUN__);
     }
-
+    
     function initRuntime() {
      runtimeInitialized = true;
      if (!Module["noFSInit"] && !FS.init.initialized) FS.init();
      TTY.init();
      callRuntimeCallbacks(__ATINIT__);
     }
-
+    
     function preMain() {
      FS.ignorePermissions = false;
      callRuntimeCallbacks(__ATMAIN__);
     }
-
+    
     function exitRuntime() {
      runtimeExited = true;
     }
-
+    
     function postRun() {
      if (Module["postRun"]) {
       if (typeof Module["postRun"] == "function") Module["postRun"] = [ Module["postRun"] ];
@@ -589,36 +589,36 @@ function loadEmscriptenGlueCode(Module) {
      }
      callRuntimeCallbacks(__ATPOSTRUN__);
     }
-
+    
     function addOnPreRun(cb) {
      __ATPRERUN__.unshift(cb);
     }
-
+    
     function addOnPreMain(cb) {
      __ATMAIN__.unshift(cb);
     }
-
+    
     function addOnPostRun(cb) {
      __ATPOSTRUN__.unshift(cb);
     }
-
+    
     var runDependencies = 0;
-
+    
     var runDependencyWatcher = null;
-
+    
     var dependenciesFulfilled = null;
-
+    
     function getUniqueRunDependency(id) {
      return id;
     }
-
+    
     function addRunDependency(id) {
      runDependencies++;
      if (Module["monitorRunDependencies"]) {
       Module["monitorRunDependencies"](runDependencies);
      }
     }
-
+    
     function removeRunDependency(id) {
      runDependencies--;
      if (Module["monitorRunDependencies"]) {
@@ -636,11 +636,11 @@ function loadEmscriptenGlueCode(Module) {
       }
      }
     }
-
+    
     Module["preloadedImages"] = {};
-
+    
     Module["preloadedAudios"] = {};
-
+    
     function abort(what) {
      if (Module["onAbort"]) {
       Module["onAbort"](what);
@@ -653,25 +653,25 @@ function loadEmscriptenGlueCode(Module) {
      var e = new WebAssembly.RuntimeError(what);
      throw e;
     }
-
+    
     function hasPrefix(str, prefix) {
      return String.prototype.startsWith ? str.startsWith(prefix) : str.indexOf(prefix) === 0;
     }
-
+    
     var dataURIPrefix = "data:application/octet-stream;base64,";
-
+    
     function isDataURI(filename) {
      return hasPrefix(filename, dataURIPrefix);
     }
-
+    
     var fileURIPrefix = "file://";
-
+    
     var wasmBinaryFile = "bergamot-translator-worker.wasm";
-
+    
     if (!isDataURI(wasmBinaryFile)) {
      wasmBinaryFile = locateFile(wasmBinaryFile);
     }
-
+    
     function getBinary() {
      try {
       if (wasmBinary) {
@@ -686,7 +686,7 @@ function loadEmscriptenGlueCode(Module) {
       abort(err);
      }
     }
-
+    
     function getBinaryPromise() {
      if (!wasmBinary && (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) && typeof fetch === "function") {
       return fetch(wasmBinaryFile, {
@@ -702,7 +702,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      return Promise.resolve().then(getBinary);
     }
-
+    
     function createWasm() {
      var info = {
       "env": asmLibraryArg,
@@ -756,11 +756,11 @@ function loadEmscriptenGlueCode(Module) {
      instantiateAsync();
      return {};
     }
-
+    
     var tempDouble;
-
+    
     var tempI64;
-
+    
     function callRuntimeCallbacks(callbacks) {
      while (callbacks.length > 0) {
       var callback = callbacks.shift();
@@ -780,11 +780,11 @@ function loadEmscriptenGlueCode(Module) {
       }
      }
     }
-
+    
     function demangle(func) {
      return func;
     }
-
+    
     function demangleAll(text) {
      var regex = /\b_Z[\w\d_]+/g;
      return text.replace(regex, function(x) {
@@ -792,21 +792,21 @@ function loadEmscriptenGlueCode(Module) {
       return x === y ? x : y + " [" + x + "]";
      });
     }
-
+    
     function dynCallLegacy(sig, ptr, args) {
      if (args && args.length) {
       return Module["dynCall_" + sig].apply(null, [ ptr ].concat(args));
      }
      return Module["dynCall_" + sig].call(null, ptr);
     }
-
+    
     function dynCall(sig, ptr, args) {
      if (sig.indexOf("j") != -1) {
       return dynCallLegacy(sig, ptr, args);
      }
      return wasmTable.get(ptr).apply(null, args);
     }
-
+    
     function exportAsmFunctions(asm) {
      var asmjsMangle = function(x) {
       var unmangledSymbols = [ "setTempRet0", "getTempRet0", "stackAlloc", "stackSave", "stackRestore" ];
@@ -818,7 +818,7 @@ function loadEmscriptenGlueCode(Module) {
       global_object[jsname] = Module[jsname] = asm[__exportedFunc];
      }
     }
-
+    
     function jsStackTrace() {
      var error = new Error();
      if (!error.stack) {
@@ -833,24 +833,24 @@ function loadEmscriptenGlueCode(Module) {
      }
      return error.stack.toString();
     }
-
+    
     function ___assert_fail(condition, filename, line, func) {
      abort("Assertion failed: " + UTF8ToString(condition) + ", at: " + [ filename ? UTF8ToString(filename) : "unknown filename", line, func ? UTF8ToString(func) : "unknown function" ]);
     }
-
+    
     var _emscripten_get_now;
-
+    
     _emscripten_get_now = function() {
      return performance.now();
     };
-
+    
     var _emscripten_get_now_is_monotonic = true;
-
+    
     function setErrNo(value) {
      HEAP32[___errno_location() >> 2] = value;
      return value;
     }
-
+    
     function _clock_gettime(clk_id, tp) {
      var now;
      if (clk_id === 0) {
@@ -865,11 +865,11 @@ function loadEmscriptenGlueCode(Module) {
      HEAP32[tp + 4 >> 2] = now % 1e3 * 1e3 * 1e3 | 0;
      return 0;
     }
-
+    
     function ___clock_gettime(a0, a1) {
      return _clock_gettime(a0, a1);
     }
-
+    
     var ExceptionInfoAttrs = {
      DESTRUCTOR_OFFSET: 0,
      REFCOUNT_OFFSET: 4,
@@ -878,23 +878,23 @@ function loadEmscriptenGlueCode(Module) {
      RETHROWN_OFFSET: 13,
      SIZE: 16
     };
-
+    
     function ___cxa_allocate_exception(size) {
      return _malloc(size + ExceptionInfoAttrs.SIZE) + ExceptionInfoAttrs.SIZE;
     }
-
+    
     function _atexit(func, arg) {}
-
+    
     function ___cxa_atexit(a0, a1) {
      return _atexit(a0, a1);
     }
-
+    
     var exceptionCaught = [];
-
+    
     var exceptionLast = 0;
-
+    
     var uncaughtExceptionCount = 0;
-
+    
     function ___cxa_rethrow() {
      var catchInfo = exceptionCaught.pop();
      var info = catchInfo.get_exception_info();
@@ -910,11 +910,11 @@ function loadEmscriptenGlueCode(Module) {
      exceptionLast = ptr;
      throw ptr;
     }
-
+    
     function ___cxa_thread_atexit(a0, a1) {
      return _atexit(a0, a1);
     }
-
+    
     function ExceptionInfo(excPtr) {
      this.excPtr = excPtr;
      this.ptr = excPtr - ExceptionInfoAttrs.SIZE;
@@ -964,7 +964,7 @@ function loadEmscriptenGlueCode(Module) {
       return prev === 1;
      };
     }
-
+    
     function ___cxa_throw(ptr, type, destructor) {
      var info = new ExceptionInfo(ptr);
      info.init(type, destructor);
@@ -972,7 +972,7 @@ function loadEmscriptenGlueCode(Module) {
      uncaughtExceptionCount++;
      throw ptr;
     }
-
+    
     var PATH = {
      splitPath: function(filename) {
       var splitPathRe = /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
@@ -1041,7 +1041,7 @@ function loadEmscriptenGlueCode(Module) {
       return PATH.normalize(l + "/" + r);
      }
     };
-
+    
     function getRandomDevice() {
      if (typeof crypto === "object" && typeof crypto["getRandomValues"] === "function") {
       var randomBuffer = new Uint8Array(1);
@@ -1053,7 +1053,7 @@ function loadEmscriptenGlueCode(Module) {
       abort("randomDevice");
      };
     }
-
+    
     var PATH_FS = {
      resolve: function() {
       var resolvedPath = "", resolvedAbsolute = false;
@@ -1105,7 +1105,7 @@ function loadEmscriptenGlueCode(Module) {
       return outputParts.join("/");
      }
     };
-
+    
     var TTY = {
      ttys: [],
      init: function() {},
@@ -1228,14 +1228,14 @@ function loadEmscriptenGlueCode(Module) {
       }
      }
     };
-
+    
     function mmapAlloc(size) {
      var alignedSize = alignMemory(size, 16384);
      var ptr = _malloc(alignedSize);
      while (size < alignedSize) HEAP8[ptr + size++] = 0;
      return ptr;
     }
-
+    
     var MEMFS = {
      ops_table: null,
      mount: function(mount) {
@@ -1558,7 +1558,7 @@ function loadEmscriptenGlueCode(Module) {
       }
      }
     };
-
+    
     var FS = {
      root: null,
      mounts: [],
@@ -3183,7 +3183,7 @@ function loadEmscriptenGlueCode(Module) {
       openRequest.onerror = onerror;
      }
     };
-
+    
     var SYSCALLS = {
      mappings: {},
      DEFAULT_POLLMASK: 5,
@@ -3220,7 +3220,7 @@ function loadEmscriptenGlueCode(Module) {
       HEAP32[buf + 24 >> 2] = stat.gid;
       HEAP32[buf + 28 >> 2] = stat.rdev;
       HEAP32[buf + 32 >> 2] = 0;
-      tempI64 = [ stat.size >>> 0, (tempDouble = stat.size, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0) ],
+      tempI64 = [ stat.size >>> 0, (tempDouble = stat.size, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0) ], 
       HEAP32[buf + 40 >> 2] = tempI64[0], HEAP32[buf + 44 >> 2] = tempI64[1];
       HEAP32[buf + 48 >> 2] = 4096;
       HEAP32[buf + 52 >> 2] = stat.blocks;
@@ -3230,7 +3230,7 @@ function loadEmscriptenGlueCode(Module) {
       HEAP32[buf + 68 >> 2] = 0;
       HEAP32[buf + 72 >> 2] = stat.ctime.getTime() / 1e3 | 0;
       HEAP32[buf + 76 >> 2] = 0;
-      tempI64 = [ stat.ino >>> 0, (tempDouble = stat.ino, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0) ],
+      tempI64 = [ stat.ino >>> 0, (tempDouble = stat.ino, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0) ], 
       HEAP32[buf + 80 >> 2] = tempI64[0], HEAP32[buf + 84 >> 2] = tempI64[1];
       return 0;
      },
@@ -3252,7 +3252,7 @@ function loadEmscriptenGlueCode(Module) {
       case 4096:
       case 49152:
        break;
-
+    
       default:
        return -28;
       }
@@ -3336,7 +3336,7 @@ function loadEmscriptenGlueCode(Module) {
       return low;
      }
     };
-
+    
     function ___sys_access(path, amode) {
      try {
       path = SYSCALLS.getStr(path);
@@ -3346,7 +3346,7 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     function ___sys_fcntl64(fd, cmd, varargs) {
      SYSCALLS.varargs = varargs;
      try {
@@ -3362,21 +3362,21 @@ function loadEmscriptenGlueCode(Module) {
         newStream = FS.open(stream.path, stream.flags, 0, arg);
         return newStream.fd;
        }
-
+    
       case 1:
       case 2:
        return 0;
-
+    
       case 3:
        return stream.flags;
-
+    
       case 4:
        {
         var arg = SYSCALLS.get();
         stream.flags |= arg;
         return 0;
        }
-
+    
       case 12:
        {
         var arg = SYSCALLS.get();
@@ -3384,19 +3384,19 @@ function loadEmscriptenGlueCode(Module) {
         HEAP16[arg + offset >> 1] = 2;
         return 0;
        }
-
+    
       case 13:
       case 14:
        return 0;
-
+    
       case 16:
       case 8:
        return -28;
-
+    
       case 9:
        setErrNo(28);
        return -1;
-
+    
       default:
        {
         return -28;
@@ -3407,7 +3407,7 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     function ___sys_fstat64(fd, buf) {
      try {
       var stream = SYSCALLS.getStreamFromFD(fd);
@@ -3417,7 +3417,7 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     function ___sys_getcwd(buf, size) {
      try {
       if (size === 0) return -28;
@@ -3431,7 +3431,7 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     function ___sys_ioctl(fd, op, varargs) {
      SYSCALLS.varargs = varargs;
      try {
@@ -3443,7 +3443,7 @@ function loadEmscriptenGlueCode(Module) {
         if (!stream.tty) return -59;
         return 0;
        }
-
+    
       case 21510:
       case 21511:
       case 21512:
@@ -3454,7 +3454,7 @@ function loadEmscriptenGlueCode(Module) {
         if (!stream.tty) return -59;
         return 0;
        }
-
+    
       case 21519:
        {
         if (!stream.tty) return -59;
@@ -3462,31 +3462,31 @@ function loadEmscriptenGlueCode(Module) {
         HEAP32[argp >> 2] = 0;
         return 0;
        }
-
+    
       case 21520:
        {
         if (!stream.tty) return -59;
         return -28;
        }
-
+    
       case 21531:
        {
         var argp = SYSCALLS.get();
         return FS.ioctl(stream, op, argp);
        }
-
+    
       case 21523:
        {
         if (!stream.tty) return -59;
         return 0;
        }
-
+    
       case 21524:
        {
         if (!stream.tty) return -59;
         return 0;
        }
-
+    
       default:
        abort("bad ioctl syscall " + op);
       }
@@ -3495,7 +3495,7 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     function syscallMmap2(addr, len, prot, flags, fd, off) {
      off <<= 12;
      var ptr;
@@ -3526,7 +3526,7 @@ function loadEmscriptenGlueCode(Module) {
      };
      return ptr;
     }
-
+    
     function ___sys_mmap2(addr, len, prot, flags, fd, off) {
      try {
       return syscallMmap2(addr, len, prot, flags, fd, off);
@@ -3535,7 +3535,7 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     function syscallMunmap(addr, len) {
      if ((addr | 0) === -1 || len === 0) {
       return -28;
@@ -3555,7 +3555,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      return 0;
     }
-
+    
     function ___sys_munmap(addr, len) {
      try {
       return syscallMunmap(addr, len);
@@ -3564,7 +3564,7 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     function ___sys_open(path, flags, varargs) {
      SYSCALLS.varargs = varargs;
      try {
@@ -3577,7 +3577,7 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     function ___sys_rename(old_path, new_path) {
      try {
       old_path = SYSCALLS.getStr(old_path);
@@ -3589,7 +3589,7 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     function ___sys_rmdir(path) {
      try {
       path = SYSCALLS.getStr(path);
@@ -3600,7 +3600,7 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     function ___sys_stat64(path, buf) {
      try {
       path = SYSCALLS.getStr(path);
@@ -3610,7 +3610,7 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     function ___sys_unlink(path) {
      try {
       path = SYSCALLS.getStr(path);
@@ -3621,7 +3621,7 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     function ___sys_wait4(pid, wstart, options, rusage) {
      try {
       abort("cannot wait on child processes");
@@ -3630,9 +3630,9 @@ function loadEmscriptenGlueCode(Module) {
       return -e.errno;
      }
     }
-
+    
     var structRegistrations = {};
-
+    
     function runDestructors(destructors) {
      while (destructors.length) {
       var ptr = destructors.pop();
@@ -3640,21 +3640,21 @@ function loadEmscriptenGlueCode(Module) {
       del(ptr);
      }
     }
-
+    
     function simpleReadValueFromPointer(pointer) {
      return this["fromWireType"](HEAPU32[pointer >> 2]);
     }
-
+    
     var awaitingDependencies = {};
-
+    
     var registeredTypes = {};
-
+    
     var typeDependencies = {};
-
+    
     var char_0 = 48;
-
+    
     var char_9 = 57;
-
+    
     function makeLegalFunctionName(name) {
      if (undefined === name) {
       return "_unknown";
@@ -3667,7 +3667,7 @@ function loadEmscriptenGlueCode(Module) {
       return name;
      }
     }
-
+    
     function createNamedFunction(name, body) {
      name = makeLegalFunctionName(name);
      return function() {
@@ -3675,7 +3675,7 @@ function loadEmscriptenGlueCode(Module) {
       return body.apply(this, arguments);
      };
     }
-
+    
     function extendError(baseErrorType, errorName) {
      var errorClass = createNamedFunction(errorName, function(message) {
       this.name = errorName;
@@ -3696,13 +3696,13 @@ function loadEmscriptenGlueCode(Module) {
      };
      return errorClass;
     }
-
+    
     var InternalError = undefined;
-
+    
     function throwInternalError(message) {
      throw new InternalError(message);
     }
-
+    
     function whenDependentTypesAreResolved(myTypes, dependentTypes, getTypeConverters) {
      myTypes.forEach(function(type) {
       typeDependencies[type] = dependentTypes;
@@ -3740,7 +3740,7 @@ function loadEmscriptenGlueCode(Module) {
       onComplete(typeConverters);
      }
     }
-
+    
     function __embind_finalize_value_object(structType) {
      var reg = structRegistrations[structType];
      delete structRegistrations[structType];
@@ -3804,26 +3804,26 @@ function loadEmscriptenGlueCode(Module) {
       } ];
      });
     }
-
+    
     function getShiftFromSize(size) {
      switch (size) {
      case 1:
       return 0;
-
+    
      case 2:
       return 1;
-
+    
      case 4:
       return 2;
-
+    
      case 8:
       return 3;
-
+    
      default:
       throw new TypeError("Unknown type size: " + size);
      }
     }
-
+    
     function embind_init_charCodes() {
      var codes = new Array(256);
      for (var i = 0; i < 256; ++i) {
@@ -3831,9 +3831,9 @@ function loadEmscriptenGlueCode(Module) {
      }
      embind_charCodes = codes;
     }
-
+    
     var embind_charCodes = undefined;
-
+    
     function readLatin1String(ptr) {
      var ret = "";
      var c = ptr;
@@ -3842,13 +3842,13 @@ function loadEmscriptenGlueCode(Module) {
      }
      return ret;
     }
-
+    
     var BindingError = undefined;
-
+    
     function throwBindingError(message) {
      throw new BindingError(message);
     }
-
+    
     function registerType(rawType, registeredInstance, options) {
      options = options || {};
      if (!("argPackAdvance" in registeredInstance)) {
@@ -3875,7 +3875,7 @@ function loadEmscriptenGlueCode(Module) {
       });
      }
     }
-
+    
     function __embind_register_bool(rawType, name, size, trueValue, falseValue) {
      var shift = getShiftFromSize(size);
      name = readLatin1String(name);
@@ -3904,7 +3904,7 @@ function loadEmscriptenGlueCode(Module) {
       destructorFunction: null
      });
     }
-
+    
     function ClassHandle_isAliasOf(other) {
      if (!(this instanceof ClassHandle)) {
       return false;
@@ -3926,7 +3926,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      return leftClass === rightClass && left === right;
     }
-
+    
     function shallowCopyInternalPointer(o) {
      return {
       count: o.count,
@@ -3938,18 +3938,18 @@ function loadEmscriptenGlueCode(Module) {
       smartPtrType: o.smartPtrType
      };
     }
-
+    
     function throwInstanceAlreadyDeleted(obj) {
      function getInstanceTypeName(handle) {
       return handle.$$.ptrType.registeredClass.name;
      }
      throwBindingError(getInstanceTypeName(obj) + " instance already deleted");
     }
-
+    
     var finalizationGroup = false;
-
+    
     function detachFinalizer(handle) {}
-
+    
     function runDestructor($$) {
      if ($$.smartPtr) {
       $$.smartPtrType.rawDestructor($$.smartPtr);
@@ -3957,7 +3957,7 @@ function loadEmscriptenGlueCode(Module) {
       $$.ptrType.registeredClass.rawDestructor($$.ptr);
      }
     }
-
+    
     function releaseClassHandle($$) {
      $$.count.value -= 1;
      var toDelete = 0 === $$.count.value;
@@ -3965,7 +3965,7 @@ function loadEmscriptenGlueCode(Module) {
       runDestructor($$);
      }
     }
-
+    
     function attachFinalizer(handle) {
      if ("undefined" === typeof FinalizationGroup) {
       attachFinalizer = function(handle) {
@@ -3992,7 +3992,7 @@ function loadEmscriptenGlueCode(Module) {
      };
      return attachFinalizer(handle);
     }
-
+    
     function ClassHandle_clone() {
      if (!this.$$.ptr) {
       throwInstanceAlreadyDeleted(this);
@@ -4011,7 +4011,7 @@ function loadEmscriptenGlueCode(Module) {
       return clone;
      }
     }
-
+    
     function ClassHandle_delete() {
      if (!this.$$.ptr) {
       throwInstanceAlreadyDeleted(this);
@@ -4026,15 +4026,15 @@ function loadEmscriptenGlueCode(Module) {
       this.$$.ptr = undefined;
      }
     }
-
+    
     function ClassHandle_isDeleted() {
      return !this.$$.ptr;
     }
-
+    
     var delayFunction = undefined;
-
+    
     var deletionQueue = [];
-
+    
     function flushPendingDeletes() {
      while (deletionQueue.length) {
       var obj = deletionQueue.pop();
@@ -4042,7 +4042,7 @@ function loadEmscriptenGlueCode(Module) {
       obj["delete"]();
      }
     }
-
+    
     function ClassHandle_deleteLater() {
      if (!this.$$.ptr) {
       throwInstanceAlreadyDeleted(this);
@@ -4057,7 +4057,7 @@ function loadEmscriptenGlueCode(Module) {
      this.$$.deleteScheduled = true;
      return this;
     }
-
+    
     function init_ClassHandle() {
      ClassHandle.prototype["isAliasOf"] = ClassHandle_isAliasOf;
      ClassHandle.prototype["clone"] = ClassHandle_clone;
@@ -4065,11 +4065,11 @@ function loadEmscriptenGlueCode(Module) {
      ClassHandle.prototype["isDeleted"] = ClassHandle_isDeleted;
      ClassHandle.prototype["deleteLater"] = ClassHandle_deleteLater;
     }
-
+    
     function ClassHandle() {}
-
+    
     var registeredPointers = {};
-
+    
     function ensureOverloadTable(proto, methodName, humanName) {
      if (undefined === proto[methodName].overloadTable) {
       var prevFunc = proto[methodName];
@@ -4083,7 +4083,7 @@ function loadEmscriptenGlueCode(Module) {
       proto[methodName].overloadTable[prevFunc.argCount] = prevFunc;
      }
     }
-
+    
     function exposePublicSymbol(name, value, numArguments) {
      if (Module.hasOwnProperty(name)) {
       if (undefined === numArguments || undefined !== Module[name].overloadTable && undefined !== Module[name].overloadTable[numArguments]) {
@@ -4101,7 +4101,7 @@ function loadEmscriptenGlueCode(Module) {
       }
      }
     }
-
+    
     function RegisteredClass(name, constructor, instancePrototype, rawDestructor, baseClass, getActualType, upcast, downcast) {
      this.name = name;
      this.constructor = constructor;
@@ -4113,7 +4113,7 @@ function loadEmscriptenGlueCode(Module) {
      this.downcast = downcast;
      this.pureVirtualFunctions = [];
     }
-
+    
     function upcastPointer(ptr, ptrClass, desiredClass) {
      while (ptrClass !== desiredClass) {
       if (!ptrClass.upcast) {
@@ -4124,7 +4124,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      return ptr;
     }
-
+    
     function constNoSmartPtrRawPointerToWireType(destructors, handle) {
      if (handle === null) {
       if (this.isReference) {
@@ -4142,7 +4142,7 @@ function loadEmscriptenGlueCode(Module) {
      var ptr = upcastPointer(handle.$$.ptr, handleClass, this.registeredClass);
      return ptr;
     }
-
+    
     function genericPointerToWireType(destructors, handle) {
      var ptr;
      if (handle === null) {
@@ -4182,11 +4182,11 @@ function loadEmscriptenGlueCode(Module) {
         throwBindingError("Cannot convert argument of type " + (handle.$$.smartPtrType ? handle.$$.smartPtrType.name : handle.$$.ptrType.name) + " to parameter type " + this.name);
        }
        break;
-
+    
       case 1:
        ptr = handle.$$.smartPtr;
        break;
-
+    
       case 2:
        if (handle.$$.smartPtrType === this) {
         ptr = handle.$$.smartPtr;
@@ -4200,14 +4200,14 @@ function loadEmscriptenGlueCode(Module) {
         }
        }
        break;
-
+    
       default:
        throwBindingError("Unsupporting sharing policy");
       }
      }
      return ptr;
     }
-
+    
     function nonConstNoSmartPtrRawPointerToWireType(destructors, handle) {
      if (handle === null) {
       if (this.isReference) {
@@ -4228,26 +4228,26 @@ function loadEmscriptenGlueCode(Module) {
      var ptr = upcastPointer(handle.$$.ptr, handleClass, this.registeredClass);
      return ptr;
     }
-
+    
     function RegisteredPointer_getPointee(ptr) {
      if (this.rawGetPointee) {
       ptr = this.rawGetPointee(ptr);
      }
      return ptr;
     }
-
+    
     function RegisteredPointer_destructor(ptr) {
      if (this.rawDestructor) {
       this.rawDestructor(ptr);
      }
     }
-
+    
     function RegisteredPointer_deleteObject(handle) {
      if (handle !== null) {
       handle["delete"]();
      }
     }
-
+    
     function downcastPointer(ptr, ptrClass, desiredClass) {
      if (ptrClass === desiredClass) {
       return ptr;
@@ -4261,11 +4261,11 @@ function loadEmscriptenGlueCode(Module) {
      }
      return desiredClass.downcast(rv);
     }
-
+    
     function getInheritedInstanceCount() {
      return Object.keys(registeredInstances).length;
     }
-
+    
     function getLiveInheritedInstances() {
      var rv = [];
      for (var k in registeredInstances) {
@@ -4275,23 +4275,23 @@ function loadEmscriptenGlueCode(Module) {
      }
      return rv;
     }
-
+    
     function setDelayFunction(fn) {
      delayFunction = fn;
      if (deletionQueue.length && delayFunction) {
       delayFunction(flushPendingDeletes);
      }
     }
-
+    
     function init_embind() {
      Module["getInheritedInstanceCount"] = getInheritedInstanceCount;
      Module["getLiveInheritedInstances"] = getLiveInheritedInstances;
      Module["flushPendingDeletes"] = flushPendingDeletes;
      Module["setDelayFunction"] = setDelayFunction;
     }
-
+    
     var registeredInstances = {};
-
+    
     function getBasestPointer(class_, ptr) {
      if (ptr === undefined) {
       throwBindingError("ptr should not be undefined");
@@ -4302,12 +4302,12 @@ function loadEmscriptenGlueCode(Module) {
      }
      return ptr;
     }
-
+    
     function getInheritedInstance(class_, ptr) {
      ptr = getBasestPointer(class_, ptr);
      return registeredInstances[ptr];
     }
-
+    
     function makeClassHandle(prototype, record) {
      if (!record.ptrType || !record.ptr) {
       throwInternalError("makeClassHandle requires ptr and ptrType");
@@ -4326,7 +4326,7 @@ function loadEmscriptenGlueCode(Module) {
       }
      }));
     }
-
+    
     function RegisteredPointer_fromWireType(ptr) {
      var rawPointer = this.getPointee(ptr);
      if (!rawPointer) {
@@ -4389,7 +4389,7 @@ function loadEmscriptenGlueCode(Module) {
       });
      }
     }
-
+    
     function init_RegisteredPointer() {
      RegisteredPointer.prototype.getPointee = RegisteredPointer_getPointee;
      RegisteredPointer.prototype.destructor = RegisteredPointer_destructor;
@@ -4398,7 +4398,7 @@ function loadEmscriptenGlueCode(Module) {
      RegisteredPointer.prototype["deleteObject"] = RegisteredPointer_deleteObject;
      RegisteredPointer.prototype["fromWireType"] = RegisteredPointer_fromWireType;
     }
-
+    
     function RegisteredPointer(name, registeredClass, isReference, isConst, isSmartPointer, pointeeType, sharingPolicy, rawGetPointee, rawConstructor, rawShare, rawDestructor) {
      this.name = name;
      this.registeredClass = registeredClass;
@@ -4423,7 +4423,7 @@ function loadEmscriptenGlueCode(Module) {
       this["toWireType"] = genericPointerToWireType;
      }
     }
-
+    
     function replacePublicSymbol(name, value, numArguments) {
      if (!Module.hasOwnProperty(name)) {
       throwInternalError("Replacing nonexistant public symbol");
@@ -4435,7 +4435,7 @@ function loadEmscriptenGlueCode(Module) {
       Module[name].argCount = numArguments;
      }
     }
-
+    
     function getDynCaller(sig, ptr) {
      assert(sig.indexOf("j") >= 0, "getDynCaller should only be called with i64 sigs");
      var argCache = [];
@@ -4447,7 +4447,7 @@ function loadEmscriptenGlueCode(Module) {
       return dynCall(sig, ptr, argCache);
      };
     }
-
+    
     function embind__requireFunction(signature, rawFunction) {
      signature = readLatin1String(signature);
      function makeDynCaller() {
@@ -4462,16 +4462,16 @@ function loadEmscriptenGlueCode(Module) {
      }
      return fp;
     }
-
+    
     var UnboundTypeError = undefined;
-
+    
     function getTypeName(type) {
      var ptr = ___getTypeName(type);
      var rv = readLatin1String(ptr);
      _free(ptr);
      return rv;
     }
-
+    
     function throwUnboundTypeError(message, types) {
      var unboundTypes = [];
      var seen = {};
@@ -4492,7 +4492,7 @@ function loadEmscriptenGlueCode(Module) {
      types.forEach(visit);
      throw new UnboundTypeError(message + ": " + unboundTypes.map(getTypeName).join([ ", " ]));
     }
-
+    
     function __embind_register_class(rawType, rawPointerType, rawConstPointerType, baseClassRawType, getActualTypeSignature, getActualType, upcastSignature, upcast, downcastSignature, downcast, name, destructorSignature, rawDestructor) {
      name = readLatin1String(name);
      getActualType = embind__requireFunction(getActualTypeSignature, getActualType);
@@ -4548,7 +4548,7 @@ function loadEmscriptenGlueCode(Module) {
       return [ referenceConverter, pointerConverter, constPointerConverter ];
      });
     }
-
+    
     function heap32VectorToArray(count, firstElement) {
      var array = [];
      for (var i = 0; i < count; i++) {
@@ -4556,7 +4556,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      return array;
     }
-
+    
     function __embind_register_class_constructor(rawClassType, argCount, rawArgTypesAddr, invokerSignature, invoker, rawConstructor) {
      assert(argCount > 0);
      var rawArgTypes = heap32VectorToArray(argCount, rawArgTypesAddr);
@@ -4594,7 +4594,7 @@ function loadEmscriptenGlueCode(Module) {
       return [];
      });
     }
-
+    
     function craftInvokerFunction(humanName, argTypes, classType, cppInvokerFunc, cppTargetFunc) {
      var argCount = argTypes.length;
      if (argCount < 2) {
@@ -4645,7 +4645,7 @@ function loadEmscriptenGlueCode(Module) {
       }
      };
     }
-
+    
     function __embind_register_class_function(rawClassType, methodName, argCount, rawArgTypesAddr, invokerSignature, rawInvoker, context, isPureVirtual) {
      var rawArgTypes = heap32VectorToArray(argCount, rawArgTypesAddr);
      methodName = readLatin1String(methodName);
@@ -4682,9 +4682,9 @@ function loadEmscriptenGlueCode(Module) {
       return [];
      });
     }
-
+    
     var emval_free_list = [];
-
+    
     var emval_handle_array = [ {}, {
      value: undefined
     }, {
@@ -4694,14 +4694,14 @@ function loadEmscriptenGlueCode(Module) {
     }, {
      value: false
     } ];
-
+    
     function __emval_decref(handle) {
      if (handle > 4 && 0 === --emval_handle_array[handle].refcount) {
       emval_handle_array[handle] = undefined;
       emval_free_list.push(handle);
      }
     }
-
+    
     function count_emval_handles() {
      var count = 0;
      for (var i = 5; i < emval_handle_array.length; ++i) {
@@ -4711,7 +4711,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      return count;
     }
-
+    
     function get_first_emval() {
      for (var i = 5; i < emval_handle_array.length; ++i) {
       if (emval_handle_array[i] !== undefined) {
@@ -4720,34 +4720,34 @@ function loadEmscriptenGlueCode(Module) {
      }
      return null;
     }
-
+    
     function init_emval() {
      Module["count_emval_handles"] = count_emval_handles;
      Module["get_first_emval"] = get_first_emval;
     }
-
+    
     function __emval_register(value) {
      switch (value) {
      case undefined:
       {
        return 1;
       }
-
+    
      case null:
       {
        return 2;
       }
-
+    
      case true:
       {
        return 3;
       }
-
+    
      case false:
       {
        return 4;
       }
-
+    
      default:
       {
        var handle = emval_free_list.length ? emval_free_list.pop() : emval_handle_array.length;
@@ -4759,7 +4759,7 @@ function loadEmscriptenGlueCode(Module) {
       }
      }
     }
-
+    
     function __embind_register_emval(rawType, name) {
      name = readLatin1String(name);
      registerType(rawType, {
@@ -4777,7 +4777,7 @@ function loadEmscriptenGlueCode(Module) {
       destructorFunction: null
      });
     }
-
+    
     function _embind_repr(v) {
      if (v === null) {
       return "null";
@@ -4789,24 +4789,24 @@ function loadEmscriptenGlueCode(Module) {
       return "" + v;
      }
     }
-
+    
     function floatReadValueFromPointer(name, shift) {
      switch (shift) {
      case 2:
       return function(pointer) {
        return this["fromWireType"](HEAPF32[pointer >> 2]);
       };
-
+    
      case 3:
       return function(pointer) {
        return this["fromWireType"](HEAPF64[pointer >> 3]);
       };
-
+    
      default:
       throw new TypeError("Unknown float type: " + name);
      }
     }
-
+    
     function __embind_register_float(rawType, name, size) {
      var shift = getShiftFromSize(size);
      name = readLatin1String(name);
@@ -4826,7 +4826,7 @@ function loadEmscriptenGlueCode(Module) {
       destructorFunction: null
      });
     }
-
+    
     function integerReadValueFromPointer(name, shift, signed) {
      switch (shift) {
      case 0:
@@ -4835,26 +4835,26 @@ function loadEmscriptenGlueCode(Module) {
       } : function readU8FromPointer(pointer) {
        return HEAPU8[pointer];
       };
-
+    
      case 1:
       return signed ? function readS16FromPointer(pointer) {
        return HEAP16[pointer >> 1];
       } : function readU16FromPointer(pointer) {
        return HEAPU16[pointer >> 1];
       };
-
+    
      case 2:
       return signed ? function readS32FromPointer(pointer) {
        return HEAP32[pointer >> 2];
       } : function readU32FromPointer(pointer) {
        return HEAPU32[pointer >> 2];
       };
-
+    
      default:
       throw new TypeError("Unknown integer type: " + name);
      }
     }
-
+    
     function __embind_register_integer(primitiveType, name, size, minRange, maxRange) {
      name = readLatin1String(name);
      if (maxRange === -1) {
@@ -4888,7 +4888,7 @@ function loadEmscriptenGlueCode(Module) {
       destructorFunction: null
      });
     }
-
+    
     function __embind_register_memory_view(rawType, dataTypeIndex, name) {
      var typeMapping = [ Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array, Float64Array ];
      var TA = typeMapping[dataTypeIndex];
@@ -4909,7 +4909,7 @@ function loadEmscriptenGlueCode(Module) {
       ignoreDuplicateRegistrations: true
      });
     }
-
+    
     function __embind_register_smart_ptr(rawType, rawPointeeType, name, sharingPolicy, getPointeeSignature, rawGetPointee, constructorSignature, rawConstructor, shareSignature, rawShare, destructorSignature, rawDestructor) {
      name = readLatin1String(name);
      rawGetPointee = embind__requireFunction(getPointeeSignature, rawGetPointee);
@@ -4922,7 +4922,7 @@ function loadEmscriptenGlueCode(Module) {
       return [ registeredPointer ];
      });
     }
-
+    
     function __embind_register_std_string(rawType, name) {
      name = readLatin1String(name);
      var stdStringIsUTF8 = name === "std::string";
@@ -5008,7 +5008,7 @@ function loadEmscriptenGlueCode(Module) {
       }
      });
     }
-
+    
     function __embind_register_std_wstring(rawType, charSize, name) {
      name = readLatin1String(name);
      var decodeString, encodeString, getHeap, lengthBytesUTF, shift;
@@ -5073,7 +5073,7 @@ function loadEmscriptenGlueCode(Module) {
       }
      });
     }
-
+    
     function __embind_register_value_object(rawType, name, constructorSignature, rawConstructor, destructorSignature, rawDestructor) {
      structRegistrations[rawType] = {
       name: readLatin1String(name),
@@ -5082,7 +5082,7 @@ function loadEmscriptenGlueCode(Module) {
       fields: []
      };
     }
-
+    
     function __embind_register_value_object_field(structType, fieldName, getterReturnType, getterSignature, getter, getterContext, setterArgumentType, setterSignature, setter, setterContext) {
      structRegistrations[structType].fields.push({
       fieldName: readLatin1String(fieldName),
@@ -5094,7 +5094,7 @@ function loadEmscriptenGlueCode(Module) {
       setterContext: setterContext
      });
     }
-
+    
     function __embind_register_void(rawType, name) {
      name = readLatin1String(name);
      registerType(rawType, {
@@ -5109,7 +5109,7 @@ function loadEmscriptenGlueCode(Module) {
       }
      });
     }
-
+    
     function requireRegisteredType(rawType, humanName) {
      var impl = registeredTypes[rawType];
      if (undefined === impl) {
@@ -5117,7 +5117,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      return impl;
     }
-
+    
     function __emval_lookupTypes(argCount, argTypes) {
      var a = new Array(argCount);
      for (var i = 0; i < argCount; ++i) {
@@ -5125,14 +5125,14 @@ function loadEmscriptenGlueCode(Module) {
      }
      return a;
     }
-
+    
     function requireHandle(handle) {
      if (!handle) {
       throwBindingError("Cannot use deleted val. handle = " + handle);
      }
      return emval_handle_array[handle].value;
     }
-
+    
     function __emval_call(handle, argCount, argTypes, argv) {
      handle = requireHandle(handle);
      var types = __emval_lookupTypes(argCount, argTypes);
@@ -5145,31 +5145,31 @@ function loadEmscriptenGlueCode(Module) {
      var rv = handle.apply(undefined, args);
      return __emval_register(rv);
     }
-
+    
     function __emval_incref(handle) {
      if (handle > 4) {
       emval_handle_array[handle].refcount += 1;
      }
     }
-
+    
     function __emval_take_value(type, argv) {
      type = requireRegisteredType(type, "_emval_take_value");
      var v = type["readValueFromPointer"](argv);
      return __emval_register(v);
     }
-
+    
     function _abort() {
      abort();
     }
-
+    
     function _emscripten_memcpy_big(dest, src, num) {
      HEAPU8.copyWithin(dest, src, src + num);
     }
-
+    
     function _emscripten_get_heap_size() {
      return HEAPU8.length;
     }
-
+    
     function emscripten_realloc_buffer(size) {
      try {
       wasmMemory.grow(size - buffer.byteLength + 65535 >>> 16);
@@ -5177,7 +5177,7 @@ function loadEmscriptenGlueCode(Module) {
       return 1;
      } catch (e) {}
     }
-
+    
     function _emscripten_resize_heap(requestedSize) {
      requestedSize = requestedSize >>> 0;
      var oldSize = _emscripten_get_heap_size();
@@ -5197,13 +5197,13 @@ function loadEmscriptenGlueCode(Module) {
      }
      return false;
     }
-
+    
     var ENV = {};
-
+    
     function getExecutableName() {
      return thisProgram || "./this.program";
     }
-
+    
     function getEnvStrings() {
      if (!getEnvStrings.strings) {
       var lang = (typeof navigator === "object" && navigator.languages && navigator.languages[0] || "C").replace("-", "_") + ".UTF-8";
@@ -5227,7 +5227,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      return getEnvStrings.strings;
     }
-
+    
     function _environ_get(__environ, environ_buf) {
      try {
       var bufSize = 0;
@@ -5243,7 +5243,7 @@ function loadEmscriptenGlueCode(Module) {
       return e.errno;
      }
     }
-
+    
     function _environ_sizes_get(penviron_count, penviron_buf_size) {
      try {
       var strings = getEnvStrings();
@@ -5259,11 +5259,11 @@ function loadEmscriptenGlueCode(Module) {
       return e.errno;
      }
     }
-
+    
     function _exit(status) {
      exit(status);
     }
-
+    
     function _fd_close(fd) {
      try {
       var stream = SYSCALLS.getStreamFromFD(fd);
@@ -5274,7 +5274,7 @@ function loadEmscriptenGlueCode(Module) {
       return e.errno;
      }
     }
-
+    
     function _fd_fdstat_get(fd, pbuf) {
      try {
       var stream = SYSCALLS.getStreamFromFD(fd);
@@ -5286,7 +5286,7 @@ function loadEmscriptenGlueCode(Module) {
       return e.errno;
      }
     }
-
+    
     function _fd_read(fd, iov, iovcnt, pnum) {
      try {
       var stream = SYSCALLS.getStreamFromFD(fd);
@@ -5298,7 +5298,7 @@ function loadEmscriptenGlueCode(Module) {
       return e.errno;
      }
     }
-
+    
     function _fd_seek(fd, offset_low, offset_high, whence, newOffset) {
      try {
       var stream = SYSCALLS.getStreamFromFD(fd);
@@ -5309,7 +5309,7 @@ function loadEmscriptenGlueCode(Module) {
        return -61;
       }
       FS.llseek(stream, offset, whence);
-      tempI64 = [ stream.position >>> 0, (tempDouble = stream.position, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0) ],
+      tempI64 = [ stream.position >>> 0, (tempDouble = stream.position, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0) ], 
       HEAP32[newOffset >> 2] = tempI64[0], HEAP32[newOffset + 4 >> 2] = tempI64[1];
       if (stream.getdents && offset === 0 && whence === 0) stream.getdents = null;
       return 0;
@@ -5318,7 +5318,7 @@ function loadEmscriptenGlueCode(Module) {
       return e.errno;
      }
     }
-
+    
     function _fd_write(fd, iov, iovcnt, pnum) {
      try {
       var stream = SYSCALLS.getStreamFromFD(fd);
@@ -5330,7 +5330,7 @@ function loadEmscriptenGlueCode(Module) {
       return e.errno;
      }
     }
-
+    
     function _getentropy(buffer, size) {
      if (!_getentropy.randomDevice) {
       _getentropy.randomDevice = getRandomDevice();
@@ -5340,42 +5340,42 @@ function loadEmscriptenGlueCode(Module) {
      }
      return 0;
     }
-
+    
     function _int8_multiply_and_add_bias() {
      err("missing function: int8_multiply_and_add_bias");
      abort(-1);
     }
-
+    
     function _int8_prepare_a() {
      err("missing function: int8_prepare_a");
      abort(-1);
     }
-
+    
     function _int8_prepare_b() {
      err("missing function: int8_prepare_b");
      abort(-1);
     }
-
+    
     function _int8_prepare_b_from_quantized_transposed() {
      err("missing function: int8_prepare_b_from_quantized_transposed");
      abort(-1);
     }
-
+    
     function _int8_prepare_b_from_transposed() {
      err("missing function: int8_prepare_b_from_transposed");
      abort(-1);
     }
-
+    
     function _int8_prepare_bias() {
      err("missing function: int8_prepare_bias");
      abort(-1);
     }
-
+    
     function _int8_select_columns_of_b() {
      err("missing function: int8_select_columns_of_b");
      abort(-1);
     }
-
+    
     function _tzset() {
      if (_tzset.called) return;
      _tzset.called = true;
@@ -5403,7 +5403,7 @@ function loadEmscriptenGlueCode(Module) {
       HEAP32[__get_tzname() + 4 >> 2] = winterNamePtr;
      }
     }
-
+    
     function _localtime_r(time, tmPtr) {
      _tzset();
      var date = new Date(HEAP32[time >> 2] * 1e3);
@@ -5426,12 +5426,12 @@ function loadEmscriptenGlueCode(Module) {
      HEAP32[tmPtr + 40 >> 2] = zonePtr;
      return tmPtr;
     }
-
+    
     function _usleep(useconds) {
      var start = _emscripten_get_now();
      while (_emscripten_get_now() - start < useconds / 1e3) {}
     }
-
+    
     function _nanosleep(rqtp, rmtp) {
      if (rqtp === 0) {
       setErrNo(28);
@@ -5449,40 +5449,40 @@ function loadEmscriptenGlueCode(Module) {
      }
      return _usleep(seconds * 1e6 + nanoseconds / 1e3);
     }
-
+    
     function _pthread_create() {
      return 6;
     }
-
+    
     function _pthread_join() {}
-
+    
     function _setTempRet0($i) {
      setTempRet0($i | 0);
     }
-
+    
     function _sigaction(signum, act, oldact) {
      return 0;
     }
-
+    
     function _sigemptyset(set) {
      HEAP32[set >> 2] = 0;
      return 0;
     }
-
+    
     function __isLeapYear(year) {
      return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
     }
-
+    
     function __arraySum(array, index) {
      var sum = 0;
      for (var i = 0; i <= index; sum += array[i++]) {}
      return sum;
     }
-
+    
     var __MONTH_DAYS_LEAP = [ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ];
-
+    
     var __MONTH_DAYS_REGULAR = [ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ];
-
+    
     function __addDays(date, days) {
      var newDate = new Date(date.getTime());
      while (days > 0) {
@@ -5505,7 +5505,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      return newDate;
     }
-
+    
     function _strftime(s, maxsize, format, tm) {
      var tm_zone = HEAP32[tm + 40 >> 2];
      var date = {
@@ -5583,22 +5583,22 @@ function loadEmscriptenGlueCode(Module) {
       switch (janFourth.getDay()) {
       case 0:
        return new Date(janFourth.getFullYear() - 1, 11, 29);
-
+    
       case 1:
        return janFourth;
-
+    
       case 2:
        return new Date(janFourth.getFullYear(), 0, 3);
-
+    
       case 3:
        return new Date(janFourth.getFullYear(), 0, 2);
-
+    
       case 4:
        return new Date(janFourth.getFullYear(), 0, 1);
-
+    
       case 5:
        return new Date(janFourth.getFullYear() - 1, 11, 31);
-
+    
       case 6:
        return new Date(janFourth.getFullYear() - 1, 11, 30);
       }
@@ -5763,20 +5763,20 @@ function loadEmscriptenGlueCode(Module) {
      writeArrayToMemory(bytes, s);
      return bytes.length - 1;
     }
-
+    
     function _strftime_l(s, maxsize, format, tm) {
      return _strftime(s, maxsize, format, tm);
     }
-
+    
     function _sysconf(name) {
      switch (name) {
      case 30:
       return 16384;
-
+    
      case 85:
       var maxHeapSize = 2147483648;
       return maxHeapSize / 16384;
-
+    
      case 132:
      case 133:
      case 12:
@@ -5819,7 +5819,7 @@ function loadEmscriptenGlueCode(Module) {
      case 46:
      case 79:
       return 200809;
-
+    
      case 27:
      case 246:
      case 127:
@@ -5853,7 +5853,7 @@ function loadEmscriptenGlueCode(Module) {
      case 173:
      case 35:
       return -1;
-
+    
      case 176:
      case 177:
      case 7:
@@ -5870,81 +5870,81 @@ function loadEmscriptenGlueCode(Module) {
      case 94:
      case 91:
       return 1;
-
+    
      case 74:
      case 60:
      case 69:
      case 70:
      case 4:
       return 1024;
-
+    
      case 31:
      case 42:
      case 72:
       return 32;
-
+    
      case 87:
      case 26:
      case 33:
       return 2147483647;
-
+    
      case 34:
      case 1:
       return 47839;
-
+    
      case 38:
      case 36:
       return 99;
-
+    
      case 43:
      case 37:
       return 2048;
-
+    
      case 0:
       return 2097152;
-
+    
      case 3:
       return 65536;
-
+    
      case 28:
       return 32768;
-
+    
      case 44:
       return 32767;
-
+    
      case 75:
       return 16384;
-
+    
      case 39:
       return 1e3;
-
+    
      case 89:
       return 700;
-
+    
      case 71:
       return 256;
-
+    
      case 40:
       return 255;
-
+    
      case 2:
       return 100;
-
+    
      case 180:
       return 64;
-
+    
      case 25:
       return 20;
-
+    
      case 5:
       return 16;
-
+    
      case 6:
       return 6;
-
+    
      case 73:
       return 4;
-
+    
      case 84:
       {
        if (typeof navigator === "object") return navigator["hardwareConcurrency"] || 1;
@@ -5954,7 +5954,7 @@ function loadEmscriptenGlueCode(Module) {
      setErrNo(28);
      return -1;
     }
-
+    
     function _time(ptr) {
      var ret = Date.now() / 1e3 | 0;
      if (ptr) {
@@ -5962,7 +5962,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      return ret;
     }
-
+    
     var FSNode = function(parent, name, mode, rdev) {
      if (!parent) {
       parent = this;
@@ -5977,11 +5977,11 @@ function loadEmscriptenGlueCode(Module) {
      this.stream_ops = {};
      this.rdev = rdev;
     };
-
+    
     var readMode = 292 | 73;
-
+    
     var writeMode = 146;
-
+    
     Object.defineProperties(FSNode.prototype, {
      read: {
       get: function() {
@@ -6010,29 +6010,29 @@ function loadEmscriptenGlueCode(Module) {
       }
      }
     });
-
+    
     FS.FSNode = FSNode;
-
+    
     FS.staticInit();
-
+    
     InternalError = Module["InternalError"] = extendError(Error, "InternalError");
-
+    
     embind_init_charCodes();
-
+    
     BindingError = Module["BindingError"] = extendError(Error, "BindingError");
-
+    
     init_ClassHandle();
-
+    
     init_RegisteredPointer();
-
+    
     init_embind();
-
+    
     UnboundTypeError = Module["UnboundTypeError"] = extendError(Error, "UnboundTypeError");
-
+    
     init_emval();
-
+    
     var ASSERTIONS = false;
-
+    
     function intArrayFromString(stringy, dontAddNull, length) {
      var len = length > 0 ? length : lengthBytesUTF8(stringy) + 1;
      var u8array = new Array(len);
@@ -6040,13 +6040,13 @@ function loadEmscriptenGlueCode(Module) {
      if (dontAddNull) u8array.length = numBytesWritten;
      return u8array;
     }
-
+    
     __ATINIT__.push({
      func: function() {
       ___wasm_call_ctors();
      }
     });
-
+    
     var asmLibraryArg = {
      "__assert_fail": ___assert_fail,
      "__clock_gettime": ___clock_gettime,
@@ -6120,24 +6120,24 @@ function loadEmscriptenGlueCode(Module) {
      "time": _time,
      "tzset": _tzset
     };
-
+    
     var asm = createWasm();
-
+    
     Module["addOnPreMain"] = addOnPreMain;
-
+    
     var calledRun;
-
+    
     function ExitStatus(status) {
      this.name = "ExitStatus";
      this.message = "Program terminated with exit(" + status + ")";
      this.status = status;
     }
-
+    
     dependenciesFulfilled = function runCaller() {
      if (!calledRun) run();
      if (!calledRun) dependenciesFulfilled = runCaller;
     };
-
+    
     function run(args) {
      args = args || arguments_;
      if (runDependencies > 0) {
@@ -6167,9 +6167,9 @@ function loadEmscriptenGlueCode(Module) {
       doRun();
      }
     }
-
+    
     Module["run"] = run;
-
+    
     function exit(status, implicit) {
      if (implicit && noExitRuntime && status === 0) {
       return;
@@ -6182,18 +6182,18 @@ function loadEmscriptenGlueCode(Module) {
      }
      quit_(status, new ExitStatus(status));
     }
-
+    
     if (Module["preInit"]) {
      if (typeof Module["preInit"] == "function") Module["preInit"] = [ Module["preInit"] ];
      while (Module["preInit"].length > 0) {
       Module["preInit"].pop()();
      }
     }
-
+    
     noExitRuntime = true;
-
+    
     run();
-
+    
     /* Use an optimized gemm implementation if available, otherwise use the fallback
      * implementation.
      */
@@ -6208,36 +6208,30 @@ function loadEmscriptenGlueCode(Module) {
             "int8_multiply_and_add_bias": "int8MultiplyAndAddBiasFallback",
             "int8_select_columns_of_b": "int8SelectColumnsOfBFallback"
         };
-
-        // ToDo: Activate the if code and remove else code once optimized gemm can work without shared array buffer.
-        if (0) {
-            // Name of the optimized gemm implementation.
-            const OPTIMIZED_GEMM = "mozIntGemm";
-
-            const optimizedGemmModule = WebAssembly[OPTIMIZED_GEMM];
-            if (!optimizedGemmModule) {
-                return fallbackGemm(GEMM_TO_FALLBACK_FUNCTIONS_MAP);
-            }
-
-            const optimizedGemmModuleExports = new WebAssembly.Instance(optimizedGemmModule(), {"": {memory: wasmMemory}}).exports;
-            for (let key in GEMM_TO_FALLBACK_FUNCTIONS_MAP) {
-                if (!optimizedGemmModuleExports[key]) {
-                    return fallbackGemm(GEMM_TO_FALLBACK_FUNCTIONS_MAP);
-                }
-            }
-            console.log(`Using optimized gemm (${OPTIMIZED_GEMM}) implementation`);
-            return optimizedGemmModuleExports;
-        }
-        else {
+    
+        // Name of the optimized gemm implementation.
+        const OPTIMIZED_GEMM = "mozIntGemm";
+    
+        const optimizedGemmModule = WebAssembly[OPTIMIZED_GEMM];
+        if (!optimizedGemmModule) {
             return fallbackGemm(GEMM_TO_FALLBACK_FUNCTIONS_MAP);
         }
+    
+        const optimizedGemmModuleExports = new WebAssembly.Instance(optimizedGemmModule(), {"": {memory: wasmMemory}}).exports;
+        for (let key in GEMM_TO_FALLBACK_FUNCTIONS_MAP) {
+            if (!optimizedGemmModuleExports[key]) {
+                return fallbackGemm(GEMM_TO_FALLBACK_FUNCTIONS_MAP);
+            }
+        }
+        console.log(`Using optimized gemm (${OPTIMIZED_GEMM}) implementation`);
+        return optimizedGemmModuleExports;
     }
-
+    
     // Return the fallback gemm implementation.
     function fallbackGemm(gemmToFallbackFunctionsMap) {
         // The fallback gemm implementation
         const FALLBACK_GEMM = "asm";
-
+    
         let fallbackGemmModuleExports = {};
         for (let key in gemmToFallbackFunctionsMap) {
             fallbackGemmModuleExports[key] = (...a) => Module[FALLBACK_GEMM][gemmToFallbackFunctionsMap[key]](...a)
@@ -6245,7 +6239,6 @@ function loadEmscriptenGlueCode(Module) {
         console.log(`Using fallback gemm implementation`);
         return fallbackGemmModuleExports;
     }
-
 
   return { addOnPreMain, Module };
 }

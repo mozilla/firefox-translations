@@ -60,7 +60,7 @@ add_task(async function testTranslationBarDisplayed() {
 
     is(
       content.document.getElementById("translationDiv").innerHTML,
-      "Hello world. That's a test of translations.",
+      "Hello world. That's a test of translation tests.",
       "Text was correctly translated."
     );
   });
