@@ -115,6 +115,8 @@ class Mediator {
                 this.translation.translate(translationMessage);
                 // console.log("new translation message sent:", translationMessage, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
 
+                this.telemetry.infobarState("outbound_enabled", message.payload.withOutboundTranslation === true);
+
                 if (message.payload.type === "outbound") {
                     this.telemetry.addOutboundTranslation(sender.selectedTextArea, message.payload.text);
                 }

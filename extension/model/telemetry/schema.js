@@ -214,7 +214,13 @@ const telemetrySchema = {
                     "custom"
                 ]
             },
-            "accept_outbound": {
+            "outbound_checked": {
+                "type": "event",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "outbound_unchecked": {
                 "type": "event",
                 "send_in_pings": [
                     "custom"

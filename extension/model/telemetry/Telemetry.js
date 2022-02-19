@@ -90,9 +90,15 @@ class Telemetry {
         this._updateUsageTime();
 
         /* event corresponds to user action, but boolean value is useful to report the state and to filter */
-        if (name === "accept_outbound") {
-            this._client.boolean("infobar", "outbound_enabled", true);
+        if (name === "outbound_checked") {
+            this.infobarState("outbound_enabled", true);
+        } else if (name === "outbound_unchecked") {
+            this.infobarState("outbound_enabled", false);
         }
+    }
+
+    infobarState(name, val) {
+        this._client.boolean("infobar", name, val);
     }
 
     formsEvent(name) {

@@ -622,16 +622,15 @@ infobar:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
-  accept_outbound:
+  outbound_checked:
     type: event
     lifetime: ping
     send_in_pings:
       - custom
     description: |
-      User accepts translation of forms by clicking "yes" button.
+      User accepts translation of forms by checking the checkbox.
     bugs:
-      - https://github.com/mozilla-extensions/firefox-translations/issues/42
-      - https://github.com/mozilla/firefox-translations/issues/27
+      - https://github.com/mozilla/firefox-translations/issues/43
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
@@ -639,7 +638,22 @@ infobar:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
-
+  outbound_unchecked:
+    type: event
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      User disables translation of forms by unchecking the checkbox.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/43
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
   outbound_enabled:
     type: boolean
     lifetime: ping
