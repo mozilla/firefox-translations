@@ -47,7 +47,7 @@ function render(state) {
 		'lang-to': state.to ? regionNamesInEnglish.of(state.to) : '',
 		'lang-from-options': new Map(state.page.models.map(({from}) => [from, regionNamesInEnglish.of(from)])),
 		'lang-to-options': new Map(state.page.models.map(({to}) => [to, regionNamesInEnglish.of(to)])),
-		'completedTranslationRequests': state.totalTranslationRequests - state.pendingTranslationRequests
+		'completedTranslationRequests': state.totalTranslationRequests - state.pendingTranslationRequests || undefined
 	};
 
 	// Toggle "hidden" state of all <div data-state=""> elements
