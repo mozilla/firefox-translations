@@ -113,6 +113,9 @@ class Channel {
     constructor() {
         // registry of all available models and their urls: Promise<List<Model>>
         this.registry = lazy(this.loadModelRegistery.bind(this));
+
+        // Map<{from:str,to:str}, Promise<Map<name:str,buffer:ArrayBuffer>>>
+        this.buffers = new Map();
         
         // a map of language-pairs to a list of models you need for it: Map<{from:str,to:str}, Promise<List<{from:str,to:str}>>>
         this.models = new Map();
@@ -185,6 +188,19 @@ class Channel {
 
             resolve(registry);
         });
+    }
+
+    /**
+     * Gets or loads translation model data. Caching wrapper around
+     * `loadTranslationModel()`. Returns the same promise type.
+     */
+    getTranslationModel({from, to}) {
+        const key = JSON.stringify({from, to});
+
+        if (!this.buffers.has(key))
+            this.buffers.set(key, this.loadTranslationModel({from, to}));
+
+        return this.buffers.get(key);
     }
 
     /**
@@ -300,50 +316,51 @@ class Channel {
      * });
      * ```
      */
-    async getModels(from, to) {
+    getModels(from, to) {
         const key = JSON.stringify({from, to});
 
         // Note that the `this.models` map stores Promises. This so that
         // multiple calls to `getModels` that ask for the same model will
         // return the same promise, and the actual lookup is only done once.
         // The lookup is async because we need to await `this.registry`
-        if (!this.models.has(key)) {
-            this.models.set(key, new Promise(async (resolve, reject) => {
-                const registry = await this.registry;
+        if (!this.models.has(key))
+            this.models.set(key, this.loadModels(from, to));
 
-                // TODO: This all scales really badly.
+        return this.models.get(key);
+    }
 
-                let direct = [], outbound = [], inbound = [];
+    async loadModels(from, to) {
+        const registry = await this.registry;
 
-                registry.forEach(model => {
-                    if (model.from === from && model.to === to)
-                        direct.push(model);
-                    else if (model.from === from)
-                        outbound.push(model);
-                    else if (model.to === to)
-                        inbound.push(model);
-                });
+        // TODO: This all scales really badly.
 
-                if (direct.length)
-                    return resolve([direct[0]]);
+        let direct = [], outbound = [], inbound = [];
 
-                // Find the pivot language
-                const shared = intersect(
-                    outbound.map(model => model.to),
-                    inbound.map(model => model.from)
-                );
+        registry.forEach(model => {
+            if (model.from === from && model.to === to)
+                direct.push(model);
+            else if (model.from === from)
+                outbound.push(model);
+            else if (model.to === to)
+                inbound.push(model);
+        });
 
-                if (!shared.size)
-                    throw new Error(`No model available to translate from ${from} to ${to}`);
+        if (direct.length)
+            return [direct[0]];
 
-                resolve([
-                    outbound.find(model => shared.has(model.to)),
-                    inbound.find(model => shared.has(model.from))
-                ]);
-            }));
-        }
+        // Find the pivot language
+        const shared = intersect(
+            outbound.map(model => model.to),
+            inbound.map(model => model.from)
+        );
 
-        return await this.models.get(key);
+        if (!shared.size)
+            throw new Error(`No model available to translate from ${from} to ${to}`);
+
+        return [
+            outbound.find(model => shared.has(model.to)),
+            inbound.find(model => shared.has(model.from))
+        ];
     }
 
     /**
@@ -493,7 +510,7 @@ class Channel {
         // first to load them.
         await Promise.all(batch.models.map(async ({from, to}) => {
             if (!await worker.hasTranslationModel({from, to})) {
-                const buffers = await this.loadTranslationModel({from, to});
+                const buffers = await this.getTranslationModel({from, to});
                 await worker.loadTranslationModel({from, to}, buffers);
             }
         }));
