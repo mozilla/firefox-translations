@@ -66,7 +66,11 @@ function render(state) {
 					renderSelect(el, renderState[value]);
 					break;
 				default:
-					el[match[1]] = renderState[value];
+					// Special case for <progress value=undefined> to get an indeterminate progress bar
+					if (match[1] === 'value' && el instanceof HTMLProgressElement && typeof renderState[value] !== 'number')
+						el.removeAttribute('value');
+					else
+						el[match[1]] = renderState[value];
 					break;
 			}
 		});
