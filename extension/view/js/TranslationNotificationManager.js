@@ -56,6 +56,14 @@ class TranslationNotificationManager {
           };
     }
 
+    set localizedLabels(val) {
+        this._localizedLabels = val;
+    }
+
+    get localizedLabels() {
+        return this._localizedLabels;
+    }
+
     loadLanguages() {
         for (const languagePair of Object.keys(this.modelRegistry)){
             const firstLang = languagePair.substring(0,2);

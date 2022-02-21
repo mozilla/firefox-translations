@@ -21,8 +21,8 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             </menulist>
             <label value="&translation.translateThisPage.label;"/>
             <button class="notification-button primary" label="&translation.translate.button;" anonid="translate" oncommand="this.closest('notification').translate();"/>
-            <checkbox anonid="outboundtranslations-check" label="Enable translations of forms?" style="padding-left:5px" oncommand="this.closest('notification').onOutboundClick();"/>
-            <checkbox anonid="qualityestimations-check" label="Enable quality estimation?" style="padding-left:5px"/>
+            <checkbox anonid="outboundtranslations-check" label="" style="padding-left:5px"/>
+            <checkbox anonid="qualityestimations-check" label="" style="padding-left:5px"/>
           </hbox>
           <vbox class="translating-box" pack="center">
             <hbox>
@@ -39,7 +39,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             <menuseparator/>
             <menuitem oncommand="openPreferences('paneGeneral');" label="&translation.options.preferences.label;" accesskey="&translation.options.preferences.accesskey;"/>
             <menuseparator/>
-            <menuitem oncommand="this.closest('notification').displayStatistics();" label="Display Statistics"/>
+            <menuitem anonid="displayStatistics" oncommand="this.closest('notification').displayStatistics();" label=""/>
             </menupopup>
         </button>
       </hbox>
@@ -57,19 +57,11 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     ];
   }
 
-  updateTranslationProgress(
-    shouldShowTranslationProgress,
-    localizedTranslationProgressText
-  ) {
-    if (localizedTranslationProgressText !== "outboundTranslationLoaded") {
-      const progressLabelValue = shouldShowTranslationProgress
-      ? localizedTranslationProgressText
-      : "";
-      this._getAnonElt("progress-label").setAttribute(
-        "value",
-        progressLabelValue,
-      );
-    }
+  updateTranslationProgress(localizedMessage) {
+    this._getAnonElt("progress-label").setAttribute(
+      "value",
+      localizedMessage,
+    );
   }
 
   set state(val) {
@@ -98,6 +90,9 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   init(translationNotificationManager) {
     // set icon in the infobar. we should move this to a css file.
     this._getAnonElt("logoIcon").setAttribute("src", translationNotificationManager.logoIcon);
+    this._getAnonElt("outboundtranslations-check").setAttribute("label", translationNotificationManager.localizedLabels.outboundTranslationsMessage);
+    this._getAnonElt("qualityestimations-check").setAttribute("label", translationNotificationManager.localizedLabels.qualityEstimationMessage);
+    this._getAnonElt("displayStatistics").setAttribute("label", translationNotificationManager.localizedLabels.displayStatisticsMessage);
 
     this.translationNotificationManager = translationNotificationManager;
     this.localizedLanguagesByCode = {};
