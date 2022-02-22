@@ -51,9 +51,9 @@ class Telemetry {
             charLengthSum += v.chars;
             wordLengthSum += v.words;
         });
-        this._client.quantity("forms", "characters", charLengthSum)
-        this._client.quantity("forms", "words", wordLengthSum)
-        this._client.quantity("forms", "fields", this._otLenthPerTextArea.size)
+        this._client.quantity("forms", "character_count", charLengthSum)
+        this._client.quantity("forms", "word_count", wordLengthSum)
+        this._client.quantity("forms", "field_count", this._otLenthPerTextArea.size)
         this._updateUsageTime();
     }
 

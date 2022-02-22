@@ -304,19 +304,19 @@ const telemetrySchema = {
                     "custom"
                 ]
             },
-            "fields": {
+            "field_count": {
                 "type": "quantity",
                 "send_in_pings": [
                     "custom"
                 ]
             },
-            "characters": {
+            "character_count": {
                 "type": "quantity",
                 "send_in_pings": [
                     "custom"
                 ]
             },
-            "words": {
+            "word_count": {
                 "type": "quantity",
                 "send_in_pings": [
                     "custom"

@@ -863,9 +863,10 @@ forms:
       - anatal-all@mozilla.com
     expires: 2022-08-10
 
-  fields:
+  field_count:
     type: quantity
     lifetime: ping
+    unit: fields
     send_in_pings:
       - custom
     description: |
@@ -880,9 +881,10 @@ forms:
       - anatal-all@mozilla.com
     expires: 2022-08-10
 
-  characters:
+  character_count:
     type: quantity
     lifetime: ping
+    unit: characters
     send_in_pings:
       - custom
     description: |
@@ -897,9 +899,10 @@ forms:
       - anatal-all@mozilla.com
     expires: 2022-08-10
 
-  words:
+  word_count:
     type: quantity
     lifetime: ping
+    unit: words
     send_in_pings:
       - custom
     description: |
