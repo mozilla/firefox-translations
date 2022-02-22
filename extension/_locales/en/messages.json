@@ -1,14 +1,14 @@
 {
     "extensionName": {
       "message": "Firefox Translations",
-      "description": "Name of the extension"
+      "description": "Name of the extension. This name should stay the same for all locales."
     },
     "extensionDescription": {
       "message": "Translate websites in your browser without using the cloud.",
       "description": "Description of the extension."
     },
     "loadingTranslationEngine": {
-      "message": "Loading Translation Engine",
+      "message": "Loading Translation Engine...",
       "description": "Tells the user the translation engine is being loaded."
     },
     "translationLoadedWithErrors": {
@@ -44,7 +44,7 @@
       "description": "Tells the user we found and error loading the translation engine."
     },
     "statsMessage": {
-      "message": "Translation enabled. Words translated-per-second: $WORDSPERSECOND$.",
+      "message": "Translation enabled. Words translated per second: $WORDSPERSECOND$.",
       "description": "Tells the user that translation is enabled and the current performance metric of words translated per second.",
       "placeholders": {
         "wordspersecond" : {
@@ -68,7 +68,7 @@
       }
     },
     "displayStatisticsMessage": {
-      "message": "Display Statistics",
+      "message": "Display Statistics?",
       "description": "Asks the users if they want to display the translation statistics."
     },
     "outboundTranslationsMessage": {
