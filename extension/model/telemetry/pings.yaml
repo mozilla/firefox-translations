@@ -11,7 +11,7 @@ $schema: moz://mozilla.org/schemas/glean/pings/2-0-0
 
 custom:
   description: |
-    A custom ping, sending time is fully controlled by the application.
+    Sending time is fully controlled by the application.
   include_client_id: true
   send_if_empty: false
   bugs:

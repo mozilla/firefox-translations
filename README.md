@@ -18,7 +18,7 @@ Firefox Translations is a webextension that enables client side in-page translat
 
 After adding new metrics to `extension/model/telemetry/metrics.yaml` or pings to `extension/model/telemetry/pings.yaml`, run 
 ```
-python scripts/update-telemetry-schema.py
+bash scripts/update-telemetry-schema.sh
 ```
 to regenerate JS telemetry schema.
 
