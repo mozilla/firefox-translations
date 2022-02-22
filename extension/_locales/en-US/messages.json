@@ -54,7 +54,7 @@
       }
     },
     "downloadProgress": {
-      "message": "Downloaded $RECEIVEDLENGTH$ of $CONTENTLENGTH$.",
+      "message": "Downloaded (bytes): $RECEIVEDLENGTH$ of $CONTENTLENGTH$.",
       "description": "Tells the user the download progress of the engine artifacts.",
       "placeholders": {
         "receivedlength" : {
@@ -68,7 +68,7 @@
       }
     },
     "displayStatisticsMessage": {
-      "message": "Display Statistics?",
+      "message": "Command used to show statistics",
       "description": "Asks the users if they want to display the translation statistics."
     },
     "outboundTranslationsMessage": {
