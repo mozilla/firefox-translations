@@ -69,7 +69,7 @@
     },
     "displayStatisticsMessage": {
       "message": "Display statistics",
-      "description": "Command used to show statistics (display is intended as a verb)."
+      "description": "Option to show statistics in the infobar (display is intended as a verb)."
     },
     "outboundTranslationsMessage": {
       "message": "Enable translations of forms?",
