@@ -68,8 +68,8 @@
       }
     },
     "displayStatisticsMessage": {
-      "message": "Command used to show statistics",
-      "description": "Asks the users if they want to display the translation statistics."
+      "message": "Display statistics",
+      "description": "Command used to show statistics (display is intended as a verb)."
     },
     "outboundTranslationsMessage": {
       "message": "Enable translations of forms?",
