@@ -1,14 +1,14 @@
 {
     "extensionName": {
       "message": "Firefox Translations",
-      "description": "Name of the extension"
+      "description": "Name of the extension. Do NOT translate, keep the name in English."
     },
     "extensionDescription": {
       "message": "Translate websites in your browser without using the cloud.",
       "description": "Description of the extension."
     },
     "loadingTranslationEngine": {
-      "message": "Loading Translation Engine",
+      "message": "Loading Translation Engine…",
       "description": "Tells the user the translation engine is being loaded."
     },
     "translationLoadedWithErrors": {
@@ -44,7 +44,7 @@
       "description": "Tells the user we found and error loading the translation engine."
     },
     "statsMessage": {
-      "message": "Translation enabled. Words translated-per-second: $WORDSPERSECOND$.",
+      "message": "Translation enabled. Words translated per second: $WORDSPERSECOND$.",
       "description": "Tells the user that translation is enabled and the current performance metric of words translated per second.",
       "placeholders": {
         "wordspersecond" : {
@@ -54,7 +54,7 @@
       }
     },
     "downloadProgress": {
-      "message": "Downloaded $RECEIVEDLENGTH$ of $CONTENTLENGTH$.",
+      "message": "Downloaded (bytes): $RECEIVEDLENGTH$ of $CONTENTLENGTH$.",
       "description": "Tells the user the download progress of the engine artifacts.",
       "placeholders": {
         "receivedlength" : {
@@ -68,8 +68,8 @@
       }
     },
     "displayStatisticsMessage": {
-      "message": "Display Statistics",
-      "description": "Asks the users if they want to display the translation statistics."
+      "message": "Display statistics",
+      "description": "Option to show statistics in the infobar (display is intended as a verb)."
     },
     "outboundTranslationsMessage": {
       "message": "Enable translations of forms?",
