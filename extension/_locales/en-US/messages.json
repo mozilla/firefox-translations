@@ -1,7 +1,7 @@
 {
     "extensionName": {
       "message": "Firefox Translations",
-      "description": "Name of the extension. This name should stay the same for all locales."
+      "description": "Name of the extension. Do NOT translate, keep the name in English."
     },
     "extensionDescription": {
       "message": "Translate websites in your browser without using the cloud.",
