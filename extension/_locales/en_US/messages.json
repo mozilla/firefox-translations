@@ -69,14 +69,14 @@
     },
     "displayStatisticsMessage": {
       "message": "Display statistics",
-      "description": "Option to show statistics in the infobar (display is intended as a verb)."
+      "description": "Option in menu to show statistics in the infobar (display is intended as a verb)."
     },
     "outboundTranslationsMessage": {
-      "message": "Enable translations of forms?",
-      "description": "Ask the users if they want to enable the translation of forms."
+      "message": "Enable translations of forms",
+      "description": "Checkbox to enable the translation of forms."
     },
     "qualityEstimationMessage": {
-      "message": "Enable quality estimation?",
-      "description":"Ask the users if they want to enable the quality estimation of the translation."
+      "message": "Enable quality estimation",
+      "description":"Checkbox to enable the quality estimation of the translation."
     }
 }
