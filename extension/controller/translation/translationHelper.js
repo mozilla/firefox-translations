@@ -61,7 +61,7 @@ const CACHE_NAME = "bergamot-translations";
 
 const MAX_DOWNLOAD_TIME = 60000; // TODO move this
 
-const MAX_WORKERS = 4;
+const MAX_WORKERS = 1;
 
 /**
  * Little wrapper around the message passing API to keep track of messages and

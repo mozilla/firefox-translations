@@ -44,7 +44,7 @@ class TranslationWorker {
      */
     async loadTranslationService() {
         const Module = await this.module;
-        return new Module.BlockingService({});
+        return new Module.BlockingService({cacheSize: 20000});
     }
 
     /**
