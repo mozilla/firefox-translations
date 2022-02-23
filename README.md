@@ -40,7 +40,7 @@ One can test preliminary versions of the extension in Firefox Nightly since an a
 - Download [Firefox Nightly](https://www.mozilla.org/en-US/firefox/all/#product-desktop-nightly)
 - Type `about:addons` in the navigation bar, click on the gear to he right, then on `install from a file` and load the saved zip file.
 - Type `about:config` in the navigation bar again, and switch the following preferences:
-  * `extensions.translations.disabled` to `true`
+  * `extensions.translations.disabled` to `false`
   * `extensions.experiments.enabled` to `true` 
   * `javascript.options.wasm_simd_wormhole` to `true`
   * `xpinstall.signatures.required` to `false`
