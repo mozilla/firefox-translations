@@ -6,16 +6,6 @@
 /* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts */
 
 /**
- * Converts the hexadecimal hashes from the registry to something we can use with
- * the fetch() method.
- */
-function hexToBase64(hexstring) {
-    return btoa(hexstring.match(/\w{2}/g).map(function(a) {
-        return String.fromCharCode(parseInt(a, 16));
-    }).join(""));
-}
-
-/**
  * Little wrapper to delay a promise to be made only once it is first awaited on
  */
 function lazy(factory) {
@@ -40,66 +30,41 @@ function intersect(a, b) {
 }
 
 /**
- * Hash function for strings because sometimes you just need to have something
- * unique but not immensely long.
- */
-function cyrb53(str, seed = 0) {
-    let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
-    for (let i = 0, ch; i < str.length; i++) {
-        ch = str.charCodeAt(i);
-        h1 = Math.imul(h1 ^ ch, 2654435761);
-        h2 = Math.imul(h2 ^ ch, 1597334677);
-    }
-    h1 = Math.imul(h1 ^ (h1>>>16), 2246822507) ^ Math.imul(h2 ^ (h2>>>13), 3266489909);
-    h2 = Math.imul(h2 ^ (h2>>>16), 2246822507) ^ Math.imul(h1 ^ (h1>>>13), 3266489909);
-    return 4294967296 * (2097151 & h2) + (h1>>>0);
-}
-
-const BATCH_SIZE = 8; // number of requested translations
-
-const CACHE_NAME = "bergamot-translations";
-
-const MAX_DOWNLOAD_TIME = 60000; // TODO move this
-
-const MAX_WORKERS = 4;
-
-/**
  * Little wrapper around the message passing API to keep track of messages and
  * their responses in such a way that you can just wait for them by awaiting
  * the promise returned by `request()`.
  */
 class Channel {
-    constructor(worker) {
-        this.worker = worker;
-        this.worker.onerror = this.onerror.bind(this);
-        this.worker.onmessage = this.onmessage.bind(this);
+    constructor(port) {
+        this.port = port;
+        this.port.onMessage.addListener(this.onMessage.bind(this));
         this.serial = 0;
         this.pending = new Map();
     }
 
-    request(message) {
+    request(command, data) {
         return new Promise((resolve, reject) => {
             const id = ++this.serial;
             this.pending.set(id, {resolve, reject});
-            this.worker.postMessage({id, message});
+            console.log('Sending', {id, command, data})
+            this.port.postMessage({id, command, data});
         })
     }
 
-    onerror(error) {
-        throw new Error(`Error in worker: ${error.message}`);
-    }
+    onMessage(message) {
+        console.log('Received', message);
+        
+        if (message.id === undefined) {
+            console.warning('Ignoring message from translateLocally that was missing the id', message);
+        }
 
-    onmessage({data: {id, message, error}}) {
-        if (id === undefined)
-            return;
+        const {resolve, reject} = this.pending.get(message.id);
+        this.pending.delete(message.id);
 
-        const {resolve, reject} = this.pending.get(id);
-        this.pending.delete(id);
-
-        if (error !== undefined)
-            reject(error);
+        if (!message.success)
+            reject(message.error);
         else
-            resolve(message); // Note: message can be undefined
+            resolve(message.data);
     }
 }
 
@@ -111,6 +76,8 @@ class Channel {
  class TranslationHelper {
     
     constructor() {
+        this.client = lazy(this.loadNativeClient.bind(this));
+
         // registry of all available models and their urls: Promise<List<Model>>
         this.registry = lazy(this.loadModelRegistery.bind(this));
         
@@ -127,109 +94,31 @@ class Channel {
         this.batchSerial = 0;
     }
 
+    async loadNativeClient() {
+        return new Promise((resolve, reject) => {
+            const port = browser.runtime.connectNative('translateLocally');
+
+            port.onDisconnect.addListener((e) => {
+                console.log('translateLocally disconnected', port.error);
+            });
+
+            resolve(new Channel(port));
+        });
+    }
+
     /**
      * Loads the model registry. Uses the registry shipped with this extension,
      * but formatted a bit easier to use, and future-proofed to be swapped out
      * with a TranslateLocally type registry. Returns Promise<List<Model>>
      */
     async loadModelRegistery() {
-        // I know doesn't need to be async but at some point we might want to use fetch() here.
-        return new Promise((resolve, reject) => {
-            // I don't like the format of this JSON but for now want to be able to
-            // sync it upstream. At some point I'd rather have the format of
-            // TranslateLocally and ideally be able to consume its tar.gz files
-            // directly.
+        const client = await this.client;
+        const response = await client.request('ListModels', {includeRemote: false});
 
-            const registry = Object.entries(modelRegistry).map(([languagePair, files]) => ({
-                from: languagePair.substr(0, 2),
-                to: languagePair.substr(2, 2),
-                files: Object.fromEntries(Object.entries(files).map(([filename, properties]) => (
-                    [
-                        filename,
-                        {
-                            ...properties,
-                            url: `${modelRegistryRootURL}/${languagePair}/${properties.name}`
-                        }
-                    ]
-                )))
-            }));
-
-            resolve(registry);
+        return response.map(model => {
+            const [from, to, ...rest] = model.shortname.split('-', 3);
+            return {from, to, model};
         });
-    }
-
-    /**
-     * Helper to either get a URL remote or from cache. Downloaded file is
-     * always checked against checksum. Returns Promise<ArrayBuffer>.
-     */
-    async getItemFromCacheOrWeb(url, size, checksum) {
-        const cache = await caches.open(CACHE_NAME);
-        const match = await cache.match(url);
-
-        // It's not already in the cache? Then return the downloaded version
-        // (but also put it in the cache)
-        if (!match)
-            return this.getItemFromWeb(url, size, checksum, cache);
-
-        // Found it in the cache, let's check whether it (still) matches the
-        // checksum.
-        const buffer = await match.arrayBuffer();
-        if (await this.digestSha256AsHex(buffer) !== checksum) {
-            cache.delete(url);
-            throw new Error("Error downloading translation engine. (checksum)")
-        }
-
-        return buffer;
-    }
-
-    /**
-     * Helper to download file from the web (and store it in the cache if that
-     * is passed in as well). Verifies the checksum.
-     * Returns Promise<ArrayBuffer>.
-     */
-    async getItemFromWeb(url, size, checksum, cache) {
-        try {
-            // Rig up a timeout cancel signal for our fetch
-            const abort = new AbortController();
-            const timeout = setTimeout(() => abort.abort(), MAX_DOWNLOAD_TIME);
-
-            // Start downloading the url, using the hex checksum to ask
-            // `fetch()` to verify the download using subresource integrity 
-            const response = await fetch(url, {
-                integrity: `sha256-${hexToBase64(checksum)}`,
-                signal: abort.signal
-            });
-
-            // Also stream it to cache
-            if (cache)
-                await cache.put(url, response.clone());
-
-            // Finish downloading (or crash due to timeout)
-            const buffer = await response.arrayBuffer();
-
-            // Download finished, remove the abort timer
-            clearTimeout(timeout);
-
-            return buffer;
-        } catch (e) {
-            // If the download timed out or didn't pass muster, make sure it
-            // doesn't end up in the cache in a bad way.
-            if (cache)
-                cache.delete(url);
-            throw e;
-        }
-    }
-
-    /**
-     * Expects ArrayBuffer, returns String.
-     */
-    async digestSha256AsHex(buffer) {
-        // hash the message
-        const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-        // convert buffer to byte array
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        // convert bytes to hex string
-        return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
     /**
@@ -304,46 +193,15 @@ class Channel {
      * })
      * ```
      */
-    translate(request) {
-        const {text} = request;
-
-        if (!this._port) {
-            this._port = browser.runtime.connectNative('translateLocally');
-
-            this._callbacks = new Map();
-            this._serial = 0;
-
-            this._port.onMessage.addListener(message => {
-                console.log('translateLocally responded with', message);
-                const promise = this._callbacks.get(message.id);
-                try {
-                    promise.resolve(message);
-                } catch (e) {
-                    promise.reject(e);
-                } finally {
-                    this._callbacks.delete(message.id);
-                }
-            });
-
-            this._port.onDisconnect.addListener((e) => {
-                console.log('translateLocally disconnected', e);
-                this._port = null;
-            });
-        }
-
-        return new Promise((resolve, reject) => {
-            const id = ++this._serial;
-            this._callbacks.set(id, {
-                resolve: response => resolve({request, translation: response.target.text}),
-                reject
-            });
-            this._port.postMessage({
-                id,
-                text,
-                html: true,
-                die: false
-            });
+    async translate(request) {
+        const client = await this.client;
+        const response = await client.request('Translate', {
+            src: request.from,
+            trg: request.to,
+            text: request.text,
+            html: request.html
         });
+        return Object.assign(response, {request})
     }
 
     /**
