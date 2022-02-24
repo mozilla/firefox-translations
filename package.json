@@ -9,7 +9,7 @@
     "package": "npm run build && mv web-ext-artifacts/*.zip addon.xpi",
     "setup-webext": "npm install -g web-ext",
     "clean-localization-folder": "rm -rf extension/_locales/.github",
-    "update-localization": "git submodule init && git submodule update --remote --depth 1 extension/_locales; npm run clean-localization-folder"
+    "update-localization": "git submodule init && git submodule update --remote --depth 1 extension/_locales; npm run clean-localization-folder",
     "update-telemetry-schema": "bash scripts/update-telemetry-schema.sh",
     "update-bergamot-version": "bash scripts/update-begamot-version.sh"
   },
