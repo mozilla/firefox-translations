@@ -2,10 +2,13 @@
  * class responsible for all telemetry and performance statistics related operations
  */
 
+/* global GleanClient, settings */
+
 // eslint-disable-next-line
 class Telemetry {
-    constructor(client) {
-        this._client = client;
+    constructor() {
+        // always disable uploading by default unless it is explicitly enabled in the preference
+        this._client = new GleanClient(false, settings.sendDebugPing, settings.logTelemetry);
         this._totalWords = 0;
         this._totalEngineMs = 0;
         this._translationStartTimestamp = null;
@@ -20,6 +23,15 @@ class Telemetry {
 
     pageClosed() {
         this._client.submit("custom");
+    }
+
+    onUploadPrefChanged(val) {
+        if (!settings.uploadTelemetry) return;
+
+        if (!val) {
+            this._client.sendDeletionRequest();
+        }
+        this._client.setUploadEnabled(val);
     }
 
     addAndGetTranslationTimeStamp(numWords, engineTimeElapsed) {
@@ -63,6 +75,8 @@ class Telemetry {
     }
 
     environment(env) {
+        this._client.setBrowserEnv(env);
+
         this._client.quantity("metadata", "system_memory", env.systemMemoryMb);
         this._client.quantity("metadata", "cpu_count", env.systemCpuCount);
         this._client.quantity("metadata", "cpu_cores_count", env.systemCpuCores);

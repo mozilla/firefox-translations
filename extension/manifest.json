@@ -35,6 +35,7 @@
         "<all_urls>"
       ],
       "js": [
+        "settings.js",
         "controller/LanguageDetection.js",
         "model/Queue.js",
         "controller/translation/Translation.js",

@@ -4,7 +4,7 @@
  */
 
 /* global LanguageDetection, OutboundTranslation, Translation , browser,
-InPageTranslation, browser, GleanClient, Telemetry, BERGAMOT_VERSION_FULL */
+InPageTranslation, browser, Telemetry, BERGAMOT_VERSION_FULL */
 
 class Mediator {
 
@@ -14,9 +14,7 @@ class Mediator {
         this.translationsCounter = 0;
         this.languageDetection = new LanguageDetection();
         this.inPageTranslation = new InPageTranslation(this);
-
-        this.gleanClient = new GleanClient(false, false, false);
-        this.telemetry = new Telemetry(this.gleanClient);
+        this.telemetry = new Telemetry();
         this.telemetry.versions(browser.runtime.getManifest().version, "?", BERGAMOT_VERSION_FULL);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
@@ -232,10 +230,9 @@ class Mediator {
                 break;
             case "telemetryInfoLoaded":
                 this.telemetry.environment(message.env);
-                this.gleanClient.setBrowserEnv(message.env);
                 break;
             case "telemetryUploadPrefLoaded":
-                this.gleanClient.setUploadEnabled(message.uploadEnabled);
+                this.telemetry.onUploadPrefChanged(message.uploadEnabled);
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
