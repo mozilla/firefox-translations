@@ -1,4 +1,4 @@
-/* global LanguageDetection, browser */
+/* global LanguageDetection, browser, settings, GleanClient */
 
 /*
  * we need the background script in order to have full access to the
@@ -9,6 +9,7 @@
  */
 
 let cachedEnvInfo = null;
+let dataDeletionRequestSent = false;
 
 // eslint-disable-next-line max-lines-per-function
 const messageListener = async function(message, sender) {
@@ -101,6 +102,23 @@ const messageListener = async function(message, sender) {
        case "loadTelemetryUploadPref": {
            let uploadEnabled = await browser.experiments.telemetryPreferences.getUploadEnabledPref();
            browser.tabs.sendMessage(sender.tab.id, { command: "telemetryUploadPrefLoaded", uploadEnabled })
+           if (uploadEnabled) {
+               dataDeletionRequestSent = false;
+           } else if (!dataDeletionRequestSent) {
+               // wait until environment info is loaded and send deletion request
+               let waitAndSend = () => {
+                   if (cachedEnvInfo === null) {
+                       setTimeout(waitAndSend,30);
+                       return;
+                   }
+                   if (dataDeletionRequestSent) return;
+                   let glean = new GleanClient(settings.uploadTelemetry, settings.sendDebugPing, settings.logTelemetry);
+                   glean.setBrowserEnv(cachedEnvInfo)
+                   glean.sendDeletionRequest();
+                   dataDeletionRequestSent = true;
+               };
+               waitAndSend();
+           }
            break;
        }
 

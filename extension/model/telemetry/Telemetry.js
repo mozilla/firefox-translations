@@ -7,8 +7,7 @@
 // eslint-disable-next-line
 class Telemetry {
     constructor() {
-        // always disable uploading by default unless it is explicitly enabled in the preference
-        this._client = new GleanClient(false, settings.sendDebugPing, settings.logTelemetry);
+        this._client = new GleanClient(settings.uploadTelemetry, settings.sendDebugPing, settings.logTelemetry);
         this._totalWords = 0;
         this._totalEngineMs = 0;
         this._translationStartTimestamp = null;
@@ -26,11 +25,8 @@ class Telemetry {
     }
 
     onUploadPrefChanged(val) {
+        // settings override preferences
         if (!settings.uploadTelemetry) return;
-
-        if (!val) {
-            this._client.sendDeletionRequest();
-        }
         this._client.setUploadEnabled(val);
     }
 

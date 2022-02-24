@@ -24,6 +24,9 @@
   ],
   "background": {
     "scripts": [
+      "settings.js",
+      "model/telemetry/schema.js",
+      "model/telemetry/GleanClient.js",
       "controller/LanguageDetection.js",
       "view/js/TranslationNotificationManager.js",
       "controller/backgroundScript.js"
