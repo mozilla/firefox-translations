@@ -4,10 +4,12 @@
 
 /* global telemetrySchema */
 
+const DELETION_REQUEST_PING = "deletion-request";
+
 // eslint-disable-next-line
 class GleanClient {
 
-    constructor(uploadEnabled= false, debug= true, enableLogging = false) {
+    constructor(uploadEnabled, debug, enableLogging) {
         this._telemetryId = "firefox-translations";
         this._uploadEnabled = uploadEnabled;
         this._debug = debug;
@@ -29,6 +31,11 @@ class GleanClient {
         } else {
             this._log("uploading is disabled in preferences");
         }
+    }
+
+    sendDeletionRequest() {
+        this._build_ping(DELETION_REQUEST_PING);
+        this.submit(DELETION_REQUEST_PING)
     }
 
     increment(category, name) {
@@ -128,9 +135,7 @@ class GleanClient {
 
     // eslint-disable-next-line max-lines-per-function
     submit(pingName) {
-        if (!telemetrySchema.pings.includes(pingName)) {
-            throw new Error(`Telemetry: wrong ping name ${pingName}`)
-        }
+        this._validatePing(pingName);
         if (!(pingName in this._pings)) {
             this._log(`ping ${pingName} is empty, skipping sending`);
             return;
@@ -195,9 +200,7 @@ class GleanClient {
     }
 
     _build_ping(pingName) {
-        if (!telemetrySchema.pings.includes(pingName)) {
-            throw new Error(`wrong ping name ${pingName}`)
-        }
+        this._validatePing(pingName);
         if (pingName in this._pings) {
             return this._pings[pingName];
         }
@@ -225,6 +228,12 @@ class GleanClient {
         return ping;
     }
 
+    _validatePing(pingName) {
+        if (!telemetrySchema.pings.includes(pingName) && pingName !== DELETION_REQUEST_PING) {
+            throw new Error(`Telemetry: wrong ping name ${pingName}`)
+        }
+    }
+
     _log(...args) {
         if (!this._enableLogging) return;
         console.debug("Telemetry: ", ...args)
@@ -233,19 +242,19 @@ class GleanClient {
     static _osToGlean(os) {
         switch (os) {
             case "mac":
-              return "Darwin";
+                return "Darwin";
             case "win":
-              return "Windows";
+                return "Windows";
             case "android":
-              return "Android";
+                return "Android";
             case "cros":
-              return "ChromeOS";
+                return "ChromeOS";
             case "linux":
-              return "Linux";
+                return "Linux";
             case "openbsd":
-              return "OpenBSD";
+                return "OpenBSD";
             default:
-              return "Unknown";
-            }
+                return "Unknown";
+        }
     }
 }

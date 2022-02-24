@@ -12,6 +12,8 @@ root = os.getcwd()
 
 # Remove old gecko
 subprocess.call("rm -rf gecko".split(), cwd=root)
+# Copy config
+subprocess.call("cp extension/settings/test.js extension/settings.js ".split(), cwd=root)
 # First we build the extension
 subprocess.call("npm run build".split(), cwd=root)
 # the nwe clone gecko
