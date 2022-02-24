@@ -106,6 +106,10 @@ class InPageTranslation {
             // Let's stay away from translating prefilled forms
             'textarea',
 
+            // Don't enter templates. We'll translate them once they become
+            // part of the page proper.
+            'template',
+
             // handled in isExcludedNode
             // `*[lang]:not([lang|=${language}])`
         ])
