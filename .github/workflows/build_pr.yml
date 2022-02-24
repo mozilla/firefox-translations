@@ -13,7 +13,11 @@ jobs:
         run: npm install
       - name: Run linter
         run: npm run lint:js
-      - uses: actions/upload-artifact@v2
+      - name: Build
+        run: npm run build
+      - name: Generate artifacts
+        uses: actions/upload-artifact@v2
         with:
           name: firefox_translations
+          if-no-files-found: error
           path: extension/
