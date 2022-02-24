@@ -8,7 +8,9 @@
     "lint:extension": "web-ext lint -s extension",
     "once": "cp extension/settings/dev.js extension/settings.js && web-ext run -s extension --verbose --firefox nightly  --no-config-discovery --pref=extensions.experiments.enabled=true --pref=extensions.translations.disabled=false --pref=javascript.options.wasm_simd_wormhole=true",
     "package": "npm run build && mv web-ext-artifacts/*.zip addon.xpi",
-    "setup-webext": "npm install -g web-ext"
+    "setup-webext": "npm install -g web-ext",
+    "update-telemetry-schema": "bash scripts/update-telemetry-schema.sh",
+    "update-bergamot-version": "bash scripts/update-begamot-version.sh"
   },
   "devDependencies": {
     "eslint": "^7.32.0",
