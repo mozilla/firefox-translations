@@ -3,12 +3,13 @@
   "scripts": {
     "test": "python scripts/tests/e2e-tests.py",
     "lint:js": "eslint -c  .eslintrc.js extension",
-    "build": "web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
-    "format": "prettier 'extension/*.{js,css}' --tab-width=2 --arrow-parens=always --trailing-comma=es5 --no-bracket-spacing --write",
+    "build": "npm run update-localization; web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
     "lint:extension": "web-ext lint -s extension",
-    "once": "web-ext run -s extension --verbose --firefox nightly  --no-config-discovery --pref=extensions.experiments.enabled=true --pref=extensions.translations.disabled=false --pref=javascript.options.wasm_simd_wormhole=true --pref=datareporting.healthreport.uploadEnabled=false",
+    "once": "npm run update-localization; web-ext run -s extension --verbose --firefox nightly  --no-config-discovery --pref=extensions.experiments.enabled=true --pref=extensions.translations.disabled=false --pref=javascript.options.wasm_simd_wormhole=true --pref=datareporting.healthreport.uploadEnabled=false",
     "package": "npm run build && mv web-ext-artifacts/*.zip addon.xpi",
-    "setup-webext": "npm install -g web-ext"
+    "setup-webext": "npm install -g web-ext",
+    "clean-localization-folder": "rm -rf extension/_locales/.github",
+    "update-localization": "git submodule init && git submodule update --remote --depth 1 extension/_locales; npm run clean-localization-folder"
   },
   "devDependencies": {
     "eslint": "^7.32.0",
