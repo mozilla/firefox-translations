@@ -16,7 +16,7 @@ class Telemetry {
     }
 
     translationStarted() {
-        this._translationStartTimestamp = Date.now();
+        this._translationStartTimestamp = window.performance.now();
         this._updateUsageTime();
     }
 
@@ -35,7 +35,7 @@ class Telemetry {
         this._totalEngineMs += engineTimeElapsed;
         // it has to be int to use in telemetry
         const engineWps = Math.floor(this._totalWords / (this._totalEngineMs / 1000));
-        const totalTimeMs = Date.now() - this._translationStartTimestamp;
+        const totalTimeMs = window.performance.now() - this._translationStartTimestamp;
         const totalWps = Math.floor(this._totalWords / (totalTimeMs / 1000));
 
         this._client.quantity("performance", "translation_engine_wps", engineWps)
@@ -137,7 +137,7 @@ class Telemetry {
     }
 
     _updateUsageTime() {
-        let timestamp = Date.now();
+        let timestamp = window.performance.now();
         if (this._startTimestamp === null) {
             this._startTimestamp = timestamp;
         }

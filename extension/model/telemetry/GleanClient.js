@@ -60,7 +60,7 @@ class GleanClient {
         for (const pingName of this._getPings(category, name, "event")) {
             let ping = this._build_ping(pingName);
 
-            const newTimestamp = Date.now();
+            const newTimestamp = window.performance.now();
             if (ping.firstEventTimestamp === null) {
                 ping.firstEventTimestamp = newTimestamp;
             }
