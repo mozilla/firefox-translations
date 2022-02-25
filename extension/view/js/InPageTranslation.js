@@ -1,17 +1,16 @@
-// Extracted from the fork
-// https://github.com/jelmervdl/firefox-translations/blob/v0.2.6/extension/view/js/InPageTranslation.js
+/*
+ * extracted from the fork
+ * https://github.com/jelmervdl/firefox-translations/blob/v0.2.6/extension/view/js/InPageTranslation.js
+ */
 
 "use strict";
 
 function computePath(node, root) {
-    if (root === undefined)
-        root = document.body;
-    let path = node.parentNode && node.parentNode != root ? computePath(node.parentNode) : '';
+    if (root === undefined) root = document.body;
+    let path = node.parentNode && node.parentNode !== root ? computePath(node.parentNode) : "";
     path += `/${node.nodeName}`
-    if (node.id)
-        path += `#${node.id}`;
-    else if (node.className)
-        path += `.${Array.from(node.classList).join('.')}`;
+    if (node.id) path += `#${node.id}`;
+    else if (node.className) path += `.${Array.from(node.classList).join(".")}`;
     return path;
 }
 
@@ -32,8 +31,10 @@ class InPageTranslation {
         this.messagesSent = new Set();
         this.nodesSent = new WeakSet();
 
-        // Reference for all tags:
-        // https://developer.mozilla.org/en-US/docs/Web/HTML/Element
+        /*
+         * Reference for all tags:
+         * https://developer.mozilla.org/en-US/docs/Web/HTML/Element
+         */
 
         // Tags that are treated as "meh inline tags just send them to the translator"
         this.inlineTags = new Set([
@@ -71,56 +72,65 @@ class InPageTranslation {
         // Tags that we do not want to translate
         this.excludedTags = new Set([
             // Code-type elements generally don't translate well.
-            'code',
-            'kbd',
-            'samp',
-            'var',
-            'dir', // DEPCREATED
+            "code",
+            "kbd",
+            "samp",
+            "var",
+            "dir", // DEPCREATED
 
             // Debatable
-            'acronym',
+            "acronym",
 
-            // Embedded media, lets not just yet. Maybe svg might be fun? Think
-            // of inline diagrams that contain labels that we could translate.
-            'svg',
-            'math',
-            'embed',
-            'object',
-            'applet', // DEPRECATED
-            'iframe',
+            /*
+             * Embedded media, lets not just yet. Maybe svg might be fun? Think
+             * of inline diagrams that contain labels that we could translate.
+             */
+            "svg",
+            "math",
+            "embed",
+            "object",
+            "applet", // DEPRECATED
+            "iframe",
 
-            // Elements that are treated as opaque by Firefox which causes their
-            // innerHTML property to be just the raw text node behind it. So
-            // no guarantee that the HTML is valid, which makes bergamot-
-            // translator very unhappy.
-            // (https://searchfox.org/mozilla-central/source/parser/html/nsHtml5Tokenizer.cpp#176)
-            'noscript',
-            'noembed',
-            'noframes',
+            /*
+             * Elements that are treated as opaque by Firefox which causes their
+             * innerHTML property to be just the raw text node behind it. So
+             * no guarantee that the HTML is valid, which makes bergamot-
+             * translator very unhappy.
+             * (https://searchfox.org/mozilla-central/source/parser/html/nsHtml5Tokenizer.cpp#176)
+             */
+            "noscript",
+            "noembed",
+            "noframes",
 
-            // Title is already a special case, other than that I can't think of
-            // anything in <head> that needs translating
-            'head',
+            /*
+             * Title is already a special case, other than that I can't think of
+             * anything in <head> that needs translating
+             */
+            "head",
 
             // Don't attempt to translate any inline script or style
-            'style',
-            'script',
+            "style",
+            "script",
 
             // Let's stay away from translating prefilled forms
-            'textarea',
+            "textarea",
 
-            // Don't enter templates. We'll translate them once they become
-            // part of the page proper.
-            'template',
+            /*
+             * Don't enter templates. We'll translate them once they become
+             * part of the page proper.
+             */
+            "template",
 
-            // handled in isExcludedNode
-            // `*[lang]:not([lang|=${language}])`
+            /*
+             * handled in isExcludedNode
+             * `*[lang]:not([lang|=${language}])`
+             */
         ])
     }
 
     start(language) {
-        if (this.started)
-            return;
+        if (this.started) return;
 
         /*
          * start the dom parser, the DOM mutation observer and request the
@@ -141,15 +151,15 @@ class InPageTranslation {
     }
 
     addDebugStylesheet() {
-        const element = document.createElement('style');
+        const element = document.createElement("style");
         document.head.appendChild(element);
 
         const sheet = element.sheet;
-        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated] { border: 2px solid red; }', 0);
-        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated~="skipped"] { border: 2px solid purple; }', 1);
-        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated~="rejected"] { border: 2px solid yellow; }', 2);
-        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated=""] { border: 2px solid blue; }', 3);
-        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated=""] [x-bergamot-translated~="is-excluded-node"] { border: 4px dashed red; }', 4);
+        sheet.insertRule("html[x-bergamot-debug] [x-bergamot-translated] { border: 2px solid red; }", 0);
+        sheet.insertRule("html[x-bergamot-debug] [x-bergamot-translated~=\"skipped\"] { border: 2px solid purple; }", 1);
+        sheet.insertRule("html[x-bergamot-debug] [x-bergamot-translated~=\"rejected\"] { border: 2px solid yellow; }", 2);
+        sheet.insertRule("html[x-bergamot-debug] [x-bergamot-translated=\"\"] { border: 2px solid blue; }", 3);
+        sheet.insertRule("html[x-bergamot-debug] [x-bergamot-translated=\"\"] [x-bergamot-translated~=\"is-excluded-node\"] { border: 4px dashed red; }", 4);
     }
 
     startTreeWalker(root) {
@@ -216,16 +226,13 @@ class InPageTranslation {
         for (let child of node.childNodes) {
             switch (child.nodeType) {
                 case 3: // TextNode
-                    if (child.textContent.trim().length > 0)
-                        inlineElements++;
+                    if (child.textContent.trim().length > 0) inlineElements++;
                     break;
 
                 case 1: // Element
                     if (this.inlineTags.has(child.nodeName.toLowerCase())
-                        || child.nodeName.toLowerCase() == 'span' && this.hasInlineContent(child))
-                        inlineElements++;
-                    else
-                        blockElements++;
+                        || child.nodeName.toLowerCase() == "span" && this.hasInlineContent(child)) inlineElements++;
+                    else blockElements++;
                     break;
             }
         }
@@ -238,8 +245,7 @@ class InPageTranslation {
         for (let child of node.childNodes) {
             switch (child.nodeType) {
                 case 3: // TextNode
-                    if (child.textContent.trim() !== "")
-                        return true;
+                    if (child.textContent.trim() !== "") return true;
                     break;
             }
         }
@@ -249,31 +255,33 @@ class InPageTranslation {
 
     isExcludedNode(node) {
         // Exclude certain elements
-        if (this.excludedTags.has(node.nodeName.toLowerCase()))
-            return true;
+        if (this.excludedTags.has(node.nodeName.toLowerCase())) return true;
 
-        // Exclude elements that have a lang attribute that mismatches the
-        // language we're currently translating.
-        if (node.lang && node.lang.substr(0,2) !== this.language)
-            return true;
+        /*
+         * Exclude elements that have a lang attribute that mismatches the
+         * language we're currently translating.
+         */
+        if (node.lang && node.lang.substr(0,2) !== this.language) return true;
 
         return false;
     }
 
     containsExcludedNode(node) {
-        // TODO describe this in terms of the function above, but I assume
-        // using querySelector is faster for now.
-        return node.querySelector(`[lang]:not([lang|="${this.language}"]), ${Array.from(this.excludedTags).join(',')}`);
+        /*
+         * TODO describe this in terms of the function above, but I assume
+         * using querySelector is faster for now.
+         */
+        return node.querySelector(`[lang]:not([lang|="${this.language}"]), ${Array.from(this.excludedTags).join(",")}`);
     }
 
     validateNode(node) {
         if (this.isExcludedNode(node)) {
-            node.setAttribute('x-bergamot-translated', 'rejected is-excluded-node');
+            node.setAttribute("x-bergamot-translated", "rejected is-excluded-node");
             return NodeFilter.FILTER_REJECT;
         }
 
         if (node.textContent.trim().length === 0) {
-            node.setAttribute('x-bergamot-translated', 'rejected empty-text-content');
+            node.setAttribute("x-bergamot-translated", "rejected empty-text-content");
             return NodeFilter.FILTER_REJECT;
         }
 
@@ -283,12 +291,12 @@ class InPageTranslation {
         }
 
         if (!this.hasInlineContent(node)) {
-            node.setAttribute('x-bergamot-translated', 'skipped does-not-have-text-of-its-own');
+            node.setAttribute("x-bergamot-translated", "skipped does-not-have-text-of-its-own");
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper
         }
 
         if (this.containsExcludedNode(node) && !this.hasTextNodes(node)) {
-            node.setAttribute('x-bergamot-translated', 'skipped contains-excluded-node');
+            node.setAttribute("x-bergamot-translated", "skipped contains-excluded-node");
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper
         }
 
@@ -304,7 +312,7 @@ class InPageTranslation {
         this.translationsCounter += 1;
 
         // Debugging: mark the node so we can add CSS to see them
-        node.setAttribute('x-bergamot-translated', this.translationsCounter);
+        node.setAttribute("x-bergamot-translated", this.translationsCounter);
 
         // let's categorize the elements on their respective hashmaps
         if (this.isElementHidden(node)) {
@@ -336,9 +344,11 @@ class InPageTranslation {
             return;
         }
 
-        // Give each element an id that gets passed through the translation so
-        // we can later on reunite it.
-        node.querySelectorAll('*').forEach((el, i) => {
+        /*
+         * Give each element an id that gets passed through the translation so
+         * we can later on reunite it.
+         */
+        node.querySelectorAll("*").forEach((el, i) => {
             el.dataset.xBergamotId = i;
         });
 
@@ -408,16 +418,18 @@ class InPageTranslation {
     updateElements() {
         const updateElement = (translatedHTML, node) => {
             // console.groupCollapsed(computePath(node));
-            node.setAttribute('x-bergamot-translated', '');
+            node.setAttribute("x-bergamot-translated", "");
 
             const scratch = node.cloneNode(false); // shallow clone of parent node
             scratch.innerHTML = translatedHTML;
 
             const originalHTML = node.innerHTML;
 
-            // console.log(node);
-            // console.log(`Translated: ${translatedHTML}`);
-            // console.log(`Original:   ${originalHTML}`);
+            /*
+             * console.log(node);
+             * console.log(`Translated: ${translatedHTML}`);
+             * console.log(`Original:   ${originalHTML}`);
+             */
 
             const clonedNodes = new Set();
 
@@ -434,12 +446,16 @@ class InPageTranslation {
                 });
             };
 
-            // Merge the live tree (dst) with the translated tree (src) by
-            // re-using elements from the live tree.
+            /*
+             * Merge the live tree (dst) with the translated tree (src) by
+             * re-using elements from the live tree.
+             */
             const merge = (dst, src) => {
-                // Remove all live nodes at this branch of the tree, but keep
-                // an (indexed) reference to them since we will be adding them
-                // back, but possibly in a different order.
+                /*
+                 * Remove all live nodes at this branch of the tree, but keep
+                 * an (indexed) reference to them since we will be adding them
+                 * back, but possibly in a different order.
+                 */
                 const dstChildNodes = Object.fromEntries(Array.from(dst.childNodes)
                     .map(child => dst.removeChild(child))
                     .filter(child => child.nodeType === Node.ELEMENT_NODE)
@@ -453,8 +469,10 @@ class InPageTranslation {
                 Array.from(src.childNodes).forEach(child => {
                     // Element nodes we try to use the already existing DOM nodes
                     if (child.nodeType === Node.ELEMENT_NODE) {
-                        // Find an element in the live tree that matches the
-                        // one in the translated tree.
+                        /*
+                         * Find an element in the live tree that matches the
+                         * one in the translated tree.
+                         */
                         let counterpart = dstChildNodes[child.dataset.xBergamotId];
 
                         if (!counterpart) {
@@ -462,28 +480,35 @@ class InPageTranslation {
                             return;
                         }
 
-                        // If it already has a parentNode, we already used it
-                        // with appendChild. This can happen, bergamot-translator
-                        // can duplicate HTML in the same branch.
+                        /*
+                         * If it already has a parentNode, we already used it
+                         * with appendChild. This can happen, bergamot-translator
+                         * can duplicate HTML in the same branch.
+                         */
                         if (counterpart.parentNode) {
                             counterpart = counterpart.cloneNode(true);
                             clonedNodes.add(counterpart.dataset.xBergamotId);
-                            console.warn(`[InPlaceTranslation] ${computePath(child, scratch)} Cloning node`, counterpart, 'because it was already inserted earlier');
+                            console.warn(`[InPlaceTranslation] ${computePath(child, scratch)} Cloning node`, counterpart, "because it was already inserted earlier");
                         }
 
-                        // Only attempt a recursive merge if there is anything
-                        // to merge (I mean any translated text)
-                        if (child.innerText?.trim())
-                            merge(counterpart, child);
+                        /*
+                         * Only attempt a recursive merge if there is anything
+                         * to merge (I mean any translated text)
+                         */
+                        if (child.innerText?.trim()) merge(counterpart, child);
                         else if (counterpart.innerText?.trim()) {
-                            // Oh this is bad. The original node had text, but
-                            // the one that came out of translation doesn't?
+                            /*
+                             * Oh this is bad. The original node had text, but
+                             * the one that came out of translation doesn't?
+                             */
                             console.warn(`[InPlaceTranslation] ${computePath(child, scratch)} Child ${child.outerHTML} has no text but counterpart ${counterpart.outerHTML} does`);
                             removeTextNodes(counterpart); // TODO this should not be necessary
                         }
 
-                        // Put the live node back in the live branch. But now
-                        // it has been synced with the translated text and order.
+                        /*
+                         * Put the live node back in the live branch. But now
+                         * it has been synced with the translated text and order.
+                         */
                         dst.appendChild(counterpart);
                     } else {
                         // All other node types we just copy in directly
@@ -494,8 +519,7 @@ class InPageTranslation {
                 const lost = Object.values(dstChildNodes)
                     .filter(child => !child.parentNode);
 
-                if (lost.length)
-                    console.warn(`[InPlaceTranslation] ${computePath(src, scratch)} Not all nodes unified`, {
+                if (lost.length) console.warn(`[InPlaceTranslation] ${computePath(src, scratch)} Not all nodes unified`, {
                         lost,
                         cloned: Array.from(clonedNodes.values()),
                         originalHTML,
@@ -507,9 +531,11 @@ class InPageTranslation {
 
             merge(node, scratch);
 
-            // TODO is this a good idea?
-            // this.nodesSent.delete(node);
-            // console.groupEnd(computePath(node));
+            /*
+             * TODO is this a good idea?
+             * this.nodesSent.delete(node);
+             * console.groupEnd(computePath(node));
+             */
         };
 
         this.updateMap.forEach(updateElement);

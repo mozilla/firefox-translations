@@ -5,7 +5,7 @@ module.exports = {
     },
     "extends": "eslint:recommended",
     "parserOptions": {
-        "ecmaVersion": 2018,
+        "ecmaVersion": 2020,
         "sourceType": "module"
     },
     "ignorePatterns": ["extension/controller/translation/bergamot-translator-worker.js", ".eslintrc.js"],
