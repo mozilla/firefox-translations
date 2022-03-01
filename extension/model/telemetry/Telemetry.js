@@ -1,13 +1,13 @@
 /*
- * class responsible for all telemetry and performance statistics related operations
+ * collects application specific metrics and writes them to the underlying Glean client
  */
 
-/* global GleanClient, settings */
+/* global Metrics */
 
 // eslint-disable-next-line
 class Telemetry {
-    constructor() {
-        this._client = new GleanClient(settings.uploadTelemetry, settings.sendDebugPing, settings.logTelemetry);
+    constructor(submitCallback) {
+        this._client = new Metrics(submitCallback);
         this._totalWords = 0;
         this._totalEngineMs = 0;
         this._translationStartTimestamp = null;
@@ -22,12 +22,6 @@ class Telemetry {
 
     pageClosed() {
         this._client.submit("custom");
-    }
-
-    onUploadPrefChanged(val) {
-        // settings override preferences
-        if (!settings.uploadTelemetry) return;
-        this._client.setUploadEnabled(val);
     }
 
     addAndGetTranslationTimeStamp(numWords, engineTimeElapsed) {
@@ -71,8 +65,6 @@ class Telemetry {
     }
 
     environment(env) {
-        this._client.setBrowserEnv(env);
-
         this._client.quantity("metadata", "system_memory", env.systemMemoryMb);
         this._client.quantity("metadata", "cpu_count", env.systemCpuCount);
         this._client.quantity("metadata", "cpu_cores_count", env.systemCpuCores);
@@ -82,10 +74,7 @@ class Telemetry {
         this._client.quantity("metadata", "cpu_l2_cache", env.systemCpuL2cacheKB);
         this._client.quantity("metadata", "cpu_l3_cache", env.systemCpuL3cacheKB);
         this._client.quantity("metadata", "cpu_speed", env.systemCpuSpeedMhz);
-
-        this._client.string("metadata", "firefox_client_id", env.clientId);
         this._client.string("metadata", "cpu_vendor", env.systemCpuVendor);
-        this._client.string("metadata", "cpu_extensions", env.systemCpuExtensions.join(","));
         this._client.string("metadata", "cpu_extensions", env.systemCpuExtensions.join(","));
     }
 

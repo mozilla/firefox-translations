@@ -26,7 +26,7 @@
     "scripts": [
       "settings.js",
       "model/telemetry/schema.js",
-      "model/telemetry/GleanClient.js",
+      "model/telemetry/PingSender.js",
       "controller/LanguageDetection.js",
       "view/js/TranslationNotificationManager.js",
       "controller/backgroundScript.js"
@@ -48,7 +48,7 @@
         "view/js/OutboundTranslation.js",
         "view/js/InPageTranslation.js",
         "model/telemetry/Telemetry.js",
-        "model/telemetry/GleanClient.js",
+        "model/telemetry/Metrics.js",
         "model/telemetry/schema.js",
         "model/modelRegistry.js",
         "mediator.js"

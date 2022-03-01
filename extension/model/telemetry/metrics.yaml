@@ -48,23 +48,6 @@ metadata:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
-  firefox_client_id:
-    type: string
-    lifetime: ping
-    send_in_pings:
-      - custom
-    description: |
-      Firefox Telemetry client id.
-    bugs:
-      - https://github.com/mozilla-extensions/firefox-translations/issues/92
-      - https://github.com/mozilla/firefox-translations/issues/27
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
-    data_sensitivity:
-      - technical
-    notification_emails:
-      - anatal-all@mozilla.com
-    expires: 2022-08-10
   extension_version:
     type: string
     lifetime: ping
