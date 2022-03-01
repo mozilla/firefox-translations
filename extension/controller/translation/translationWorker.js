@@ -36,7 +36,7 @@ class TranslationHelper {
               };
         }
 
-        async loadTranslationEngine(sourceLanguage, targetLanguage, withOutboundTranslation) {
+        async loadTranslationEngine(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation) {
             postMessage([
                 "updateProgress",
                 "loadingTranslationEngine"
@@ -66,7 +66,7 @@ class TranslationHelper {
                      * initialized, we then load the language models
                      */
                     console.log(`Wasm Runtime initialized Successfully (preRun -> onRuntimeInitialized) in ${(Date.now() - this.wasmModuleStartTimestamp) / 1000} secs`);
-                    this.loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation);
+                    this.loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation);
                 }.bind(this),
                 wasmBinary: wasmArrayBuffer,
             };
@@ -161,7 +161,8 @@ class TranslationHelper {
                     this.loadTranslationEngine(
                         message[0].sourceLanguage,
                         message[0].targetLanguage,
-                        message[0].withOutboundTranslation
+                        message[0].withOutboundTranslation,
+                        message[0].withQualityEstimation
                     );
 
                     this.translationQueue.enqueue(message);
@@ -194,7 +195,7 @@ class TranslationHelper {
         }
 
     // eslint-disable-next-line max-lines-per-function
-        async loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation) {
+        async loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation) {
 
             /*
              * let's load the models and communicate to the caller (translation)
@@ -204,11 +205,12 @@ class TranslationHelper {
             let isReversedModelLoadingFailed = false;
             try {
               this.constructTranslationService();
-              await this.constructTranslationModel(sourceLanguage, targetLanguage);
+              await this.constructTranslationModel(sourceLanguage, targetLanguage, withQualityEstimation);
 
               if (withOutboundTranslation) {
                   try {
-                    await this.constructTranslationModel(targetLanguage, sourceLanguage);
+                    // the Outbound Translation doesn't require supporting Quality Estimation
+                    await this.constructTranslationModel(targetLanguage, sourceLanguage, /*withQualityEstimation=*/false);
                     postMessage([
                         "displayOutboundTranslation",
                         null
@@ -262,24 +264,25 @@ class TranslationHelper {
             this.translationModels.clear();
         }
 
-        async constructTranslationModel(from, to) {
+        async constructTranslationModel(from, to, withQualityEstimation) {
             if (this._isPivotingRequired(from, to)) {
                 // pivoting requires 2 translation models to be constructed
                 const languagePairSrcToPivot = this._getLanguagePair(from, this.PIVOT_LANGUAGE);
                 const languagePairPivotToTarget = this._getLanguagePair(this.PIVOT_LANGUAGE, to);
                 await Promise.all([
-                    this.constructTranslationModelHelper(languagePairSrcToPivot),
-                    this.constructTranslationModelHelper(languagePairPivotToTarget)
+                    this.constructTranslationModelHelper(languagePairSrcToPivot, withQualityEstimation),
+                    this.constructTranslationModelHelper(languagePairPivotToTarget, withQualityEstimation)
                 ]);
             } else {
                 // non-pivoting case requires only 1 translation model
-                await this.constructTranslationModelHelper(this._getLanguagePair(from, to));
+                await this.constructTranslationModelHelper(this._getLanguagePair(from, to), withQualityEstimation);
             }
         }
 
         // eslint-disable-next-line max-lines-per-function
-        async constructTranslationModelHelper(languagePair) {
+        async constructTranslationModelHelper(languagePair, withQualityEstimation) {
             console.log(`Constructing translation model ${languagePair}`);
+            const modelConfigQualityEstimation = !withQualityEstimation;
 
             /*
              * for available configuration options,
@@ -294,7 +297,7 @@ class TranslationHelper {
             mini-batch-words: 1024
             workspace: 128
             max-length-factor: 2.0
-            skip-cost: true
+            skip-cost: ${modelConfigQualityEstimation}
             cpu-threads: 0
             quiet: true
             quiet-translation: true
