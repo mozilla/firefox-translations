@@ -573,7 +573,7 @@ class TranslationHelper {
                 vectorResponseOptions.push_back({
                     qualityScores: false,
                     alignment: true,
-                    html: false,
+                    html: message.isHTML,
                 });
             });
             if (vectorResponseOptions.size() === 0) {
