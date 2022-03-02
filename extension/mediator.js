@@ -250,11 +250,12 @@ class Mediator {
                 if (!this.inPageTranslation.started){
                     this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
                     this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
-                    this.inPageTranslation.start();
+                    this.inPageTranslation.start(this.languageDetection.pageLanguage.language);
                 }
                 break;
             case "displayStatistics":
                 this.statsMode = true;
+                document.querySelector("html").setAttribute("x-bergamot-debug", true);
                 break;
             case "onInfobarEvent":
                 // 'name' is a metric name from metrics.yaml
