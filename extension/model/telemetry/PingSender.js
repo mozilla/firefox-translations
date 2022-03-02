@@ -43,10 +43,7 @@ class PingSender {
         }
 
         const platformInfo = await browser.runtime.getPlatformInfo();
-        this._browserEnv = {
-            os: platformInfo.os,
-            arch: platformInfo.arch
-        };
+        this._browserEnv = { os: platformInfo.os, arch: platformInfo.arch };
 
         await this._loadUploadPref();
         browser.experiments.telemetryPreferences.onUploadEnabledPrefChange.addListener(async () => {
@@ -59,7 +56,6 @@ class PingSender {
 
     async _loadUploadPref() {
         let uploadEnabled = await browser.experiments.telemetryPreferences.getUploadEnabledPref();
-        this._log(`upload pref loaded: ${uploadEnabled}`)
         await this._setUploadEnabled(uploadEnabled);
     }
 
