@@ -70,9 +70,6 @@ class PingSender {
     }
 
     async _setUploadEnabled(val) {
-        // ignore preferences if uploading is disabled in settings
-        if (!settings.uploadTelemetry) return;
-
         if (!val) {
             await this.submit(DELETION_REQUEST_PING, {})
         }
@@ -97,7 +94,8 @@ class PingSender {
             const body = JSON.stringify(ping);
             this._log(`ping submitted '${pingName}':`, body);
 
-            if (!this._uploadEnabled && pingName !== DELETION_REQUEST_PING) {
+            // never upload if it is disabled in settings
+            if ((!this._uploadEnabled && pingName !== DELETION_REQUEST_PING) || !settings.uploadTelemetry) {
                 this._log("uploading is disabled, ping is not sent")
             } else {
                 let uuid = self.crypto.randomUUID();
