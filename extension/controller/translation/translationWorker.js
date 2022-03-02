@@ -86,7 +86,14 @@ class TranslationHelper {
                 let total_words = message[0].sourceParagraph.replace(/(<([^>]+)>)/gi, "").trim()
                                     .split(/\s+/).length;
                 const t0 = performance.now();
+
+                // quality scores are not required for outbound translation. So we set the
+                // corresponding flag to false before calling translate api and restore
+                // its value after the api call is complete.
+                let originalQualityEstimation = message[0].withQualityEstimation;
+                message[0].withQualityEstimation = false;
                 const translationResultBatch = this.translate(message);
+                message[0].withQualityEstimation = originalQualityEstimation;
                 const timeElapsed = [total_words, performance.now() - t0];
 
                 message[0].translatedParagraph = translationResultBatch[0];
@@ -566,18 +573,8 @@ class TranslationHelper {
             const vectorResponseOptions = new this.WasmEngineModule.VectorResponseOptions();
             // eslint-disable-next-line no-unused-vars
             messages.forEach(message => {
-
-                /*
-                 * toDo: Activate this code once translate options can be passed per message
-                 * const translateOptions = message.translateOptions;
-                 * vectorResponseOptions.push_back({
-                 *  qualityScores: message.withQualityEstimation,
-                 *  alignment: true,
-                 *  html: message.isHtml
-                 * });
-                 */
                 vectorResponseOptions.push_back({
-                    qualityScores: false,
+                    qualityScores: message.withQualityEstimation,
                     alignment: true,
                     html: message.isHTML,
                 });
