@@ -6,13 +6,13 @@
   "default_locale": "en_US",
   "applications": {
     "gecko": {
-      "id": "firefox-translations@mozilla.org",
+      "id": "firefox-translations-addon@mozilla.org",
       "strict_min_version": "79.0"
     }
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "firefox-translations@mozilla.org",
+      "id": "firefox-translations-addon@mozilla.org",
       "strict_min_version": "79.0"
     }
   },
