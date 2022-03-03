@@ -37,10 +37,10 @@ async function detectLanguage({sample, suggested}, languageHelper) {
     // List of all available from->to translation pairs including ones that we
     // achieve by pivoting through English.
     const pairs = [
-        ...models.map(({from, to}) => ({from, to, pivot: null})),
+        ...models.map(model => ({from: model.from, to: model.to, pivot: null, models: [model]})),
         ...Array.from(product(modelsToEng, modelsFromEng))
             .filter(([{from}, {to}]) => from !== to)
-            .map(([{from}, {to}]) => ({from, to, pivot: 'en'}))
+            .map(([from, to]) => ({from: from.from, to: to.to, pivot: 'en', models: [from, to]}))
     ];
 
     // {[lang]: 0.0 .. 1.0} map of likeliness the page is in this language

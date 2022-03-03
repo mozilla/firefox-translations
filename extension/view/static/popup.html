@@ -52,7 +52,7 @@
 				<p>Wanna translate this page?</p>
 				<select id="lang-from" data-bind:options="lang-from-options" data-bind:value="from"></select>
 				<select id="lang-to" data-bind:options="lang-to-options" data-bind:value="to"></select>
-				<button id="translate-btn" class="primary">Translate page</button>
+				<button id="translate-btn" class="primary"><span data-bind:hidden="local-model">Download language &amp;&nbsp;</span>Translate page</button>
 			</div>
 			<div data-state="translation-in-progress">
 				<p id="progress-message">Translating page from <span data-bind:text-content="lang-from"></span> to <span data-bind:text-content="lang-to"></span>…</p>

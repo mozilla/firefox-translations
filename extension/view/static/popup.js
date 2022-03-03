@@ -36,17 +36,22 @@ function queryXPathAll(query, callback) {
 	return output;
 }
 
+const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
+
 function render(state) {
-	const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
+	// Shortcuts, I use these everywhere
+	const from = state.from || state.page.from;
+	const to = state.to || state.page.to;
 
 	const renderState = {
 		...state,
-		'from': state.from || state.page.from,
-		'to': state.to || state.page.to,
-		'lang-from': state.from ? regionNamesInEnglish.of(state.from) : '',
-		'lang-to': state.to ? regionNamesInEnglish.of(state.to) : '',
+		from,
+		to,
+		'lang-from': regionNamesInEnglish.of(from),
+		'lang-to': regionNamesInEnglish.of(to),
 		'lang-from-options': new Map(state.page.models.map(({from}) => [from, regionNamesInEnglish.of(from)])),
-		'lang-to-options': new Map(state.page.models.map(({to}) => [to, regionNamesInEnglish.of(to)])),
+		'lang-to-options': new Map(state.page.models.filter(model => from === model.from).map(({to, pivot}) => [to, regionNamesInEnglish.of(to) + (pivot ? ` (via ${regionNamesInEnglish.of(pivot)})` : '')])),
+		'local-model': state.page.models.find(model => from === model.from && to === model.to)?.models?.every(({model}) => model.local),
 		'completedTranslationRequests': state.totalTranslationRequests - state.pendingTranslationRequests || undefined
 	};
 

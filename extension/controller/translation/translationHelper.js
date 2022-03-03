@@ -113,7 +113,7 @@ class Channel {
      */
     async loadModelRegistery() {
         const client = await this.client;
-        const response = await client.request('ListModels', {includeRemote: false});
+        const response = await client.request('ListModels', {includeRemote: true});
 
         return response.map(model => {
             const [from, to, ...rest] = model.shortname.split('-', 3);
