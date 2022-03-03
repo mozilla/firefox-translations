@@ -55,7 +55,12 @@ class Channel {
         console.log('Received', message);
         
         if (message.id === undefined) {
-            console.warning('Ignoring message from translateLocally that was missing the id', message);
+            console.warn('Ignoring message from translateLocally that was missing the id', message);
+        }
+
+        if (message.update) {
+            console.warn('Ignoring update messages for now, not implemented yet', message);
+            return;
         }
 
         const {resolve, reject} = this.pending.get(message.id);
