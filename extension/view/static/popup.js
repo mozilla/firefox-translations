@@ -119,6 +119,14 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 				command: 'TranslateAbort'
 			});
 		},
+		'change *[data-bind\\:value]': e => {
+			backgroundScript.postMessage({
+				command: 'Update',
+				data: {
+					[e.target.dataset['bind:value']]: e.target.value
+				}
+			});
+		},
 		'change input[type=checkbox][data-bind\\:checked]': e => {
 			backgroundScript.postMessage({
 				command: 'UpdateRequest',
