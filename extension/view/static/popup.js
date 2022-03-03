@@ -107,7 +107,8 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 		models: [],
 		debug: false,
 		pendingTranslationRequests: 0,
-		totalTranslationRequests: 0
+		totalTranslationRequests: 0,
+		modelDownloadProgress: undefined
 	};
 
 	backgroundScript.onMessage.addListener(({command, data}) => {

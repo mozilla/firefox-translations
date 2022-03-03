@@ -57,7 +57,7 @@
 			</div>
 			<div data-state="downloading-models">
 				<p>Downloading languages…</p>
-				<progress></progress>
+				<progress data-bind:value="modelDownloadProgress" max="1.0"></progress>
 			</div>
 			<div data-state="translation-in-progress">
 				<p id="progress-message">Translating page from <span data-bind:text-content="lang-from"></span> to <span data-bind:text-content="lang-to"></span>…</p>

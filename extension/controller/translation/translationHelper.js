@@ -29,6 +29,23 @@ function intersect(a, b) {
     return new Set(a.filter(item => bSet.has(item)));
 }
 
+class PromiseWithProgress extends Promise {
+    #listeners;
+
+    constructor(factory) {
+        super((accept, reject) => {
+            factory(accept, reject, (progress) => {
+                this.#listeners.forEach(listener => listener(progress));
+            });
+        });
+        this.#listeners = new Set();
+    }
+
+    addProgressListener(callback) {
+        this.#listeners.add(callback);
+    }
+}
+
 /**
  * Little wrapper around the message passing API to keep track of messages and
  * their responses in such a way that you can just wait for them by awaiting
@@ -43,9 +60,9 @@ class Channel {
     }
 
     request(command, data) {
-        return new Promise((resolve, reject) => {
+        return new PromiseWithProgress((resolve, reject, update) => {
             const id = ++this.serial;
-            this.pending.set(id, {resolve, reject});
+            this.pending.set(id, {resolve, reject, update});
             console.log('Sending', {id, command, data})
             this.port.postMessage({id, command, data});
         })
@@ -58,15 +75,14 @@ class Channel {
             console.warn('Ignoring message from translateLocally that was missing the id', message);
         }
 
-        if (message.update) {
-            console.warn('Ignoring update messages for now, not implemented yet', message);
-            return;
-        }
+        const {resolve, reject, update} = this.pending.get(message.id);
 
-        const {resolve, reject} = this.pending.get(message.id);
-        this.pending.delete(message.id);
+        if (!message.update)
+            this.pending.delete(message.id);
 
-        if (!message.success)
+        if (message.update)
+            update(message.data);
+        else if (!message.success)
             reject(message.error);
         else
             resolve(message.data);
@@ -209,10 +225,15 @@ class Channel {
         return Object.assign(response, {request})
     }
 
-    async downloadModel(modelID) {
-        const client = await this.client;
-        const response = await client.request('DownloadModel', {modelID});
-        return 
+    downloadModel(modelID) {
+        // TODO Dirty dirty hack I don't want to wrap it manually just to
+        // propagate the progress messages.
+        return new PromiseWithProgress(async (accept, reject, update) => {
+            const client = await this.client;
+            const response = client.request('DownloadModel', {modelID});
+            response.addProgressListener(update);
+            response.then(accept, reject);
+        });
     }
 
     /**

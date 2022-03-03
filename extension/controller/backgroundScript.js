@@ -367,15 +367,28 @@ function connectPopup(popup) {
     popup.onMessage.addListener(message => {
         switch (message.command) {
             case "DownloadModels":
+                // Tell the tab we're downloading models
                 tab.update(state => ({
                     state: State.DOWNLOADING_MODELS
                 }));
 
-                Promise.all(message.data.models.map(model => translationHelper.downloadModel(model)))
-                    .then(() => tab.translate({
-                       from: message.data.from,
-                        to: message.data.to 
+                // Start the downloads and put them in a Map<download:promise, progress:float>
+                const downloads = new Map(message.data.models.map(model => [translationHelper.downloadModel(model), 0.0]));
+
+                // For each download promise, add a progress listener that updates the tab state
+                // with how far all our downloads have progressed so far.
+                downloads.forEach((_, promise) => promise.addProgressListener(({progress}) => {
+                    downloads.set(promise, progress);
+                    tab.update(state => ({
+                        modelDownloadProgress: Array.from(downloads.values()).reduce((sum, progress) => sum + progress) / downloads.size
                     }));
+                }));
+
+                // Finally, when all downloads have finished, start translating the page.
+                Promise.all(downloads.keys()).then(() => tab.translate({
+                   from: message.data.from,
+                    to: message.data.to 
+                }));
                 break;
             case "TranslateStart":
                 tab.translate({
