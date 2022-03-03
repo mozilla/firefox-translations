@@ -132,7 +132,7 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 		},
 		'change *[data-bind\\:value]': e => {
 			backgroundScript.postMessage({
-				command: 'Update',
+				command: 'UpdateRequest',
 				data: {
 					[e.target.dataset['bind:value']]: e.target.value
 				}

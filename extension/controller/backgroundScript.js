@@ -375,10 +375,6 @@ function connectPopup(popup) {
             case 'TranslateAbort':
                 tab.abort();
                 break;
-
-            case 'Update':
-                tab.update(state => Object.assign(state, message.data));
-                break;
         }
     });
 }
