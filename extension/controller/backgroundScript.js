@@ -71,7 +71,12 @@ async function detectLanguage({sample, suggested}, languageHelper) {
     }, {});
     
     // Function to score a translation model. Higher score is better
-    const score = ({from, to, pivot}) => ((confidence[from] || 0.0) + (preferred[to] || 0.0) + (pivot ? 0.0 : 1.0));
+    const score = ({from, to, pivot, models}) => {
+        return (confidence[from] || 0.0)                                                  // from language is good
+             + (preferred[to] || 0.0)                                                     // to language is good
+             + (pivot ? 0.0 : 1.0)                                                        // preferably don't pivot
+             + (1.0 / models.reduce((acc, model) => acc + model.local ? 0.0 : 1.0, 1.0))  // prefer local models
+    };
 
     // Sort our possible models, best one first
     pairs.sort((a, b) => score(b) - score(a));
