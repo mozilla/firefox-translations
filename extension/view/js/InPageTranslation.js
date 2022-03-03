@@ -350,7 +350,7 @@ class InPageTranslation {
 
         let viewPortWordsNum = 0;
         for (const [, value] of this.viewportNodeMap.entries()) {
-            viewPortWordsNum += value.textContent.trim().split(" ").length;
+            viewPortWordsNum += value.textContent.trim().split(/\s+/).length;
         }
 
         this.notifyMediator("viewPortWordsNum", viewPortWordsNum);

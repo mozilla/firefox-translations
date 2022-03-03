@@ -19,10 +19,6 @@ this.experiment_telemetryEnvironment = class extends ExtensionAPI {
       "resource://gre/modules/TelemetryEnvironment.jsm",
       {},
     );
-    const { ClientID } = ChromeUtils.import(
-      "resource://gre/modules/ClientID.jsm",
-      {},
-    );
 
     const collectTelemetryEnvironment = () => {
       const environment = TelemetryEnvironment.currentEnvironment;
@@ -48,7 +44,6 @@ this.experiment_telemetryEnvironment = class extends ExtensionAPI {
           async getFxTelemetryMetrics() {
             await TelemetryController.promiseInitialized();
             const telemetryEnv = collectTelemetryEnvironment();
-            telemetryEnv.clientId = ClientID.getCachedClientID();
             return {
               ...telemetryEnv
             };

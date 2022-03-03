@@ -14,7 +14,11 @@ class Mediator {
         this.translationsCounter = 0;
         this.languageDetection = new LanguageDetection();
         this.inPageTranslation = new InPageTranslation(this);
-        this.telemetry = new Telemetry();
+        this.telemetry = new Telemetry((pingName, data) => browser.runtime.sendMessage({
+            command: "sendPing",
+            pingName,
+            data
+        }));
         this.telemetry.versions(browser.runtime.getManifest().version, "?", BERGAMOT_VERSION_FULL);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
@@ -230,9 +234,6 @@ class Mediator {
                 break;
             case "telemetryInfoLoaded":
                 this.telemetry.environment(message.env);
-                break;
-            case "telemetryUploadPrefLoaded":
-                this.telemetry.onUploadPrefChanged(message.uploadEnabled);
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);

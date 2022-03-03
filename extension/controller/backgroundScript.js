@@ -1,4 +1,4 @@
-/* global LanguageDetection, browser, settings, GleanClient */
+/* global LanguageDetection, browser, PingSender */
 
 /*
  * we need the background script in order to have full access to the
@@ -9,7 +9,7 @@
  */
 
 let cachedEnvInfo = null;
-let dataDeletionRequestSent = false;
+let pingSender = new PingSender();
 
 // eslint-disable-next-line max-lines-per-function
 const messageListener = async function(message, sender) {
@@ -89,38 +89,16 @@ const messageListener = async function(message, sender) {
 
         case "loadTelemetryInfo":
             if (cachedEnvInfo === null) {
-                const platformInfo = await browser.runtime.getPlatformInfo();
-                const env = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
-                env.os = platformInfo.os;
-                env.arch = platformInfo.arch;
                 // eslint-disable-next-line require-atomic-updates
-                cachedEnvInfo = env;
+                cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
             }
             browser.tabs.sendMessage(sender.tab.id, { command: "telemetryInfoLoaded", env: cachedEnvInfo })
             break;
 
-       case "loadTelemetryUploadPref": {
-           let uploadEnabled = await browser.experiments.telemetryPreferences.getUploadEnabledPref();
-           browser.tabs.sendMessage(sender.tab.id, { command: "telemetryUploadPrefLoaded", uploadEnabled })
-           if (uploadEnabled) {
-               dataDeletionRequestSent = false;
-           } else if (!dataDeletionRequestSent) {
-               // wait until environment info is loaded and send deletion request
-               let waitAndSend = () => {
-                   if (cachedEnvInfo === null) {
-                       setTimeout(waitAndSend,30);
-                       return;
-                   }
-                   if (dataDeletionRequestSent) return;
-                   let glean = new GleanClient(settings.uploadTelemetry, settings.sendDebugPing, settings.logTelemetry);
-                   glean.setBrowserEnv(cachedEnvInfo)
-                   glean.sendDeletionRequest();
-                   dataDeletionRequestSent = true;
-               };
-               waitAndSend();
-           }
+       case "sendPing":
+           pingSender.submit(message.pingName, message.data)
+               .catch(e => console.error(`Telemetry: ping submission has failed: ${e}`));
            break;
-       }
 
        case "translationRequested":
             // requested for translation received. let's inform the mediator
@@ -186,12 +164,3 @@ const messageListener = async function(message, sender) {
 
 browser.runtime.onMessage.addListener(messageListener);
 browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
-browser.experiments.telemetryPreferences.onUploadEnabledPrefChange
-    .addListener(async () => {
-        const tabs = await browser.tabs.query({});
-        for (let tab of tabs) {
-            if (tab.title !== "Settings") {
-                messageListener({ command: "loadTelemetryUploadPref" }, { tab })
-            }
-        }
-    });

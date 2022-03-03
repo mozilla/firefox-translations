@@ -21,7 +21,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             </menulist>
             <label value="&translation.translateThisPage.label;"/>
             <button class="notification-button primary" label="&translation.translate.button;" anonid="translate" oncommand="this.closest('notification').translate();"/>
-            <checkbox anonid="outboundtranslations-check" label="" style="padding-left:5px"/>
+            <checkbox anonid="outboundtranslations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onOutboundClick();" />
             <checkbox anonid="qualityestimations-check" label="" style="padding-left:5px"/>
           </hbox>
           <vbox class="translating-box" pack="center">

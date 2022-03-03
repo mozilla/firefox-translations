@@ -1,13 +1,13 @@
 /*
- * class responsible for all telemetry and performance statistics related operations
+ * collects application specific metrics and writes them to the underlying Glean client
  */
 
-/* global GleanClient, settings */
+/* global Metrics */
 
 // eslint-disable-next-line
 class Telemetry {
-    constructor() {
-        this._client = new GleanClient(settings.uploadTelemetry, settings.sendDebugPing, settings.logTelemetry);
+    constructor(submitCallback) {
+        this._client = new Metrics(submitCallback);
         this._totalWords = 0;
         this._totalEngineMs = 0;
         this._translationStartTimestamp = null;
@@ -16,7 +16,7 @@ class Telemetry {
     }
 
     translationStarted() {
-        this._translationStartTimestamp = Date.now();
+        this._translationStartTimestamp = window.performance.now();
         this._updateUsageTime();
     }
 
@@ -24,18 +24,12 @@ class Telemetry {
         this._client.submit("custom");
     }
 
-    onUploadPrefChanged(val) {
-        // settings override preferences
-        if (!settings.uploadTelemetry) return;
-        this._client.setUploadEnabled(val);
-    }
-
     addAndGetTranslationTimeStamp(numWords, engineTimeElapsed) {
         this._totalWords += numWords;
         this._totalEngineMs += engineTimeElapsed;
         // it has to be int to use in telemetry
         const engineWps = Math.floor(this._totalWords / (this._totalEngineMs / 1000));
-        const totalTimeMs = Date.now() - this._translationStartTimestamp;
+        const totalTimeMs = window.performance.now() - this._translationStartTimestamp;
         const totalWps = Math.floor(this._totalWords / (totalTimeMs / 1000));
 
         this._client.quantity("performance", "translation_engine_wps", engineWps)
@@ -71,8 +65,6 @@ class Telemetry {
     }
 
     environment(env) {
-        this._client.setBrowserEnv(env);
-
         this._client.quantity("metadata", "system_memory", env.systemMemoryMb);
         this._client.quantity("metadata", "cpu_count", env.systemCpuCount);
         this._client.quantity("metadata", "cpu_cores_count", env.systemCpuCores);
@@ -82,10 +74,7 @@ class Telemetry {
         this._client.quantity("metadata", "cpu_l2_cache", env.systemCpuL2cacheKB);
         this._client.quantity("metadata", "cpu_l3_cache", env.systemCpuL3cacheKB);
         this._client.quantity("metadata", "cpu_speed", env.systemCpuSpeedMhz);
-
-        this._client.string("metadata", "firefox_client_id", env.clientId);
         this._client.string("metadata", "cpu_vendor", env.systemCpuVendor);
-        this._client.string("metadata", "cpu_extensions", env.systemCpuExtensions.join(","));
         this._client.string("metadata", "cpu_extensions", env.systemCpuExtensions.join(","));
     }
 
@@ -137,7 +126,7 @@ class Telemetry {
     }
 
     _updateUsageTime() {
-        let timestamp = Date.now();
+        let timestamp = window.performance.now();
         if (this._startTimestamp === null) {
             this._startTimestamp = timestamp;
         }
