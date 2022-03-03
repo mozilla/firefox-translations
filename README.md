@@ -18,7 +18,7 @@ You can test nightly builds of the extension in Firefox Nightly by following the
     javascript.options.wasm_simd_wormhole to true
 ```
 
-- Then install the extension by clicking here  [![Firefox Translations - Install Nightly](https://img.shields.io/badge/Firefox_Translations-Install_Nightly-2ea44f)](https://github.com/mozilla/firefox-translations/releases/download/nightly/firefox_translations.xpi)
+- Then install the extension by clicking here  [![Firefox Translations - Install Nightly](https://img.shields.io/badge/Firefox_Translations-Install_Nightly-2ea44f)](https://github.com/andrenatal/firefox-translations/releases/download/nightly/firefox_translations.xpi)
 - Restart your browser and Firefox Translations will be ready to use
 
 ## Development
