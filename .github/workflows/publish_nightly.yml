@@ -1,0 +1,52 @@
+name: Publish Nightly
+on:
+  schedule:
+    - cron: '0 6 * * *' # Daily at 6AM UTC, 10PM PT
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '17.x'
+      - name: Install dependencies
+        run: npm install
+      - name: Run linter
+        run: npm run lint:js
+      - name: Build
+        run: npm run build
+      - name: Retrieve old Nightly id
+        run: |
+          TAG_ID=`curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/mozilla/firefox-translations/releases/tags/nightly | python3 -c "import sys, json; print(json.load(sys.stdin)['id'])"`
+          echo $TAG_ID
+          echo "TAG_ID=$TAG_ID" >> $GITHUB_ENV
+        continue-on-error: true
+      - name: Delete old Nightly
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          `curl -X DELETE -H "Authorization: token ${{ env.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/mozilla/firefox-translations/git/refs/tags/nightly`
+          `curl -X DELETE -H "Authorization: token ${{ env.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/mozilla/firefox-translations/releases/${{ env.TAG_ID }}`
+        continue-on-error: true
+      - name: Create Nightly Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: nightly
+          release_name: Nightly
+          draft: false
+          prerelease: true
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./web-ext-artifacts/firefox_translations.xpi
+          asset_name: firefox_translations.xpi
+          asset_content_type: application/zip
