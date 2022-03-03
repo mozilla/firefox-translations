@@ -204,6 +204,12 @@ class Channel {
         return Object.assign(response, {request})
     }
 
+    async downloadModel(modelID) {
+        const client = await this.client;
+        const response = await client.request('DownloadModel', {modelID});
+        return 
+    }
+
     /**
      * Prune pending requests by testing each one of them to whether they're
      * still relevant. Used to prune translation requests from tabs that got

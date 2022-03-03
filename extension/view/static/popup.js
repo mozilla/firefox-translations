@@ -43,6 +43,9 @@ function render(state) {
 	const from = state.from || state.page.from;
 	const to = state.to || state.page.to;
 
+	// If the model (or one of the models in case of pivoting) needs downloading
+	const needsDownload = state.page.models.find(model => from === model.from && to === model.to)?.models?.some(({model}) => !model.local);
+
 	const renderState = {
 		...state,
 		from,
@@ -51,7 +54,8 @@ function render(state) {
 		'lang-to': regionNamesInEnglish.of(to),
 		'lang-from-options': new Map(state.page.models.map(({from}) => [from, regionNamesInEnglish.of(from)])),
 		'lang-to-options': new Map(state.page.models.filter(model => from === model.from).map(({to, pivot}) => [to, regionNamesInEnglish.of(to) + (pivot ? ` (via ${regionNamesInEnglish.of(pivot)})` : '')])),
-		'local-model': state.page.models.find(model => from === model.from && to === model.to)?.models?.every(({model}) => model.local),
+		'needs-download': needsDownload,
+		'!needs-download': !needsDownload, // data-bind has no operators, so ! goes in the name :P
 		'completedTranslationRequests': state.totalTranslationRequests - state.pendingTranslationRequests || undefined
 	};
 
@@ -120,9 +124,28 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 			backgroundScript.postMessage({
 				command: 'TranslateStart',
 				data: {
-					from: document.querySelector('#lang-from').value,
-					to: document.querySelector('#lang-to').value
+					from: state.from || state.page.from,
+					to: state.to || state.page.to
 				}
+			});
+		},
+		'click #download-btn': e => {
+			const data = {
+				from: state.from || state.page.from,
+				to: state.to || state.page.to
+			};
+
+			// TODO this assumes state.from and state.to reflect the current UI,
+			// which they should iff the UpdateRequest has been processed and
+			// broadcasted by backgroundScript.
+			data.models = state.page.models
+			              .find(({from, to}) => from === data.from && to === data.to)
+			              .models
+			              .map(({model}) => model.shortname);
+
+			backgroundScript.postMessage({
+				command: 'DownloadModels',
+				data
 			});
 		},
 		'click #abort-translate-btn': e => {

@@ -95,6 +95,7 @@ const State = {
     PAGE_LOADED: 'page-loaded',
     TRANSLATION_NOT_AVAILABLE: 'translation-not-available',
     TRANSLATION_AVAILABLE: 'translation-available',
+    DOWNLOADING_MODELS: 'downloading-models',
     TRANSLATION_IN_PROGRESS: 'translation-in-progress',
     TRANSLATION_FINISHED: 'translation-finished',
     TRANSLATION_ERROR: 'translation-error'
@@ -365,6 +366,17 @@ function connectPopup(popup) {
 
     popup.onMessage.addListener(message => {
         switch (message.command) {
+            case "DownloadModels":
+                tab.update(state => ({
+                    state: State.DOWNLOADING_MODELS
+                }));
+
+                Promise.all(message.data.models.map(model => translationHelper.downloadModel(model)))
+                    .then(() => tab.translate({
+                       from: message.data.from,
+                        to: message.data.to 
+                    }));
+                break;
             case "TranslateStart":
                 tab.translate({
                     from: message.data.from,
