@@ -1,7 +1,5 @@
 name: Publish Nightly
 on:
-  push:
-    branches: [ issue130_ ]
   schedule:
     - cron: '0 6 * * *' # Daily at 6AM UTC, 10PM PT
 jobs:
