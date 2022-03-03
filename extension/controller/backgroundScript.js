@@ -14,7 +14,7 @@ function isSameDomain(url1, url2) {
 // From https://github.com/bitextor/bicleaner/blob/3df2b2e5e2044a27b4f95b83710be7c751267e5c/bicleaner/bicleaner_hardrules.py#L50
 const SimilarLanguages = [
     new Set(['es', 'ca', 'gl', 'pt']),
-    new Set(['no', 'nn', 'da'])
+    new Set(['no', 'nb', 'nn', 'da']) // no == nb for bicleaner
 ];
 
 /**
@@ -143,7 +143,7 @@ class Tab extends EventTarget {
      */
      reset(url) {
         this.update(state => {
-            if (isSameDomain(url, state.url)) {
+            if (isSameDomain(url, state.url) && state.state == State.TRANSLATION_IN_PROGRESS) {
                 return {
                     url,
                     pendingTranslationRequests: 0,
@@ -152,6 +152,8 @@ class Tab extends EventTarget {
             } else {
                 return {
                     url,
+                    from: null,  // Only reset from as page could be different
+                                 // language. We leave to selected as is
                     pendingTranslationRequests: 0,
                     totalTranslationRequests: 0,
                     state: State.PAGE_LOADING
@@ -292,8 +294,13 @@ function connectContentScript(contentScript) {
                 detectLanguage(message.data, translationHelper).then(summary => {
                     // TODO: When we support multiple frames inside a tab, we
                     // should integrate the results from each frame somehow.
+                    // For now we ignore it, because 90% of the time it will be
+                    // an ad that's in English and mess up our estimate.
+                    if (contentScript.sender.frameId !== 0)
+                        return; 
+
                     tab.update(state => ({
-                        ...summary, // {from, to, models}
+                        page: summary, // {from, to, models}
                         state: summary.models.length > 0 // TODO this is always true
                             ? State.TRANSLATION_AVAILABLE
                             : State.TRANSLATION_NOT_AVAILABLE
