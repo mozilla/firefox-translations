@@ -83,7 +83,8 @@ class TranslationHelper {
 
         translateOutboundTranslation(message) {
             Promise.resolve().then(function () {
-                let total_words = message[0].sourceParagraph.replace(/(<([^>]+)>)/gi, "").trim().split(/\s+/).length;
+                let total_words = message[0].sourceParagraph.replace(/(<([^>]+)>)/gi, "").trim()
+                                    .split(/\s+/).length;
                 const t0 = performance.now();
                 const translationResultBatch = this.translate(message);
                 const timeElapsed = [total_words, performance.now() - t0];
@@ -107,7 +108,8 @@ class TranslationHelper {
                         try {
                             let total_words = 0;
                             translationMessagesBatch.forEach(message => {
-                                let words = message.sourceParagraph.replace(/(<([^>]+)>)/gi, "").trim().split(/\s+/);
+                                let words = message.sourceParagraph.replace(/(<([^>]+)>)/gi, "").trim()
+                                                .split(/\s+/);
                                 total_words += words.length;
                             });
 
