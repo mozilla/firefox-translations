@@ -66,17 +66,23 @@ function render(state) {
 			let match = key.match(/^bind:(.+)$/);
 			if (!match) return;
 
-			switch (match[1]) {
-				case 'options':
-					renderSelect(el, renderState[value]);
-					break;
-				default:
-					// Special case for <progress value=undefined> to get an indeterminate progress bar
-					if (match[1] === 'value' && el instanceof HTMLProgressElement && typeof renderState[value] !== 'number')
-						el.removeAttribute('value');
-					else
-						el[match[1]] = renderState[value];
-					break;
+			try {
+				switch (match[1]) {
+					case 'options':
+						renderSelect(el, renderState[value]);
+						break;
+					default:
+						// Special case for <progress value=undefined> to get an indeterminate progress bar
+						if (match[1] === 'value' && el instanceof HTMLProgressElement && typeof renderState[value] !== 'number')
+							el.removeAttribute('value');
+						else
+							if (!(value in renderState))
+								console.warn('render state has no key', value);
+							el[match[1]] = renderState[value];
+						break;
+				}
+			} catch (e) {
+				console.error('Error while setting', value, 'of', el, ':', e);
 			}
 		});
 	});
