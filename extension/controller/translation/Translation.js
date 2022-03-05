@@ -15,66 +15,6 @@ class Translation {
         this.translationMessageBuffer = new Queue();
         this.mediator = mediator;
         this.htmlRegex = new RegExp("<(.*)>.*?|<(.*) />", "gi");
-        const engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
-        const engineRemoteRegistry = browser.runtime.getURL("model/engineRegistry.js");
-        const modelRegistry = browser.runtime.getURL("model/modelRegistry.js");
-        if (window.Worker) {
-            this.translationWorker = new Worker(browser.runtime.getURL("controller/translation/translationWorker.js"));
-            this.translationWorker.addEventListener(
-                "message",
-                this.translationWorkerMessageListener.bind(this)
-            );
-            this.translationWorker.postMessage([
-                "configEngine",
-                {
-                    engineLocalPath,
-                    engineRemoteRegistry,
-                    modelRegistry,
-                    isMochitest: this.mediator.isMochitest
-                }
-            ])
-        }
-    }
-
-    /*
-     * handles all communication received from the translation webworker
-     */
-    translationWorkerMessageListener(translationMessage) {
-        switch (translationMessage.data[0]) {
-            case "translationComplete":
-                this.mediator.contentScriptsMessageListener(this, {
-                    command: "translationComplete",
-                    payload: translationMessage.data
-                });
-                break;
-            case "updateProgress":
-                this.mediator.contentScriptsMessageListener(this, {
-                    command: "updateProgress",
-                    payload: translationMessage.data
-                });
-                break;
-            case "displayOutboundTranslation":
-                this.mediator.contentScriptsMessageListener(this, {
-                    command: "displayOutboundTranslation",
-                    payload: null
-                });
-                break;
-            case "onError":
-                this.mediator.contentScriptsMessageListener(this, {
-                    command: "onError",
-                    payload: translationMessage.data[1]
-                });
-                break;
-
-            case "onModelEvent":
-                this.mediator.contentScriptsMessageListener(this, {
-                    command: "onModelEvent",
-                    payload: { type: translationMessage.data[1], timeMs: translationMessage.data[2] }
-                });
-                break;
-
-            default:
-        }
     }
 
     /*
@@ -89,12 +29,11 @@ class Translation {
              * if the message is from outbound translations, we skip queuing it and
              * send for translation immediately
              */
-            if (this.translationWorker) {
-                this.translationWorker.postMessage([
-                    "translate",
-                    [translationMessage]
-                ]);
-            }
+            // let's send to the background script send the message to the worker
+            browser.runtime.sendMessage({
+                command: "translate",
+                payload: [translationMessage]
+            });
         } else {
             // add this message to the queue
             this.translationMessageBuffer.enqueue(translationMessage);
@@ -115,12 +54,12 @@ class Translation {
             const message = this.translationMessageBuffer.dequeue();
             messagesToGo.push(message);
         }
-        if (this.translationWorker) {
-            this.translationWorker.postMessage([
-                "translate",
-                messagesToGo
-            ]);
-        }
+
+        // let's send to the background script send the message to the worker
+        browser.runtime.sendMessage({
+            command: "translate",
+            payload: messagesToGo
+        });
 
         // and schedule an update if required
         if (this.translationMessageBuffer.length() > 0) {

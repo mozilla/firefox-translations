@@ -14,6 +14,7 @@ let modelFastText = null;
 
 // as soon we load, we should turn off the legacy prefs to avoid UI conflicts
 browser.experiments.translationbar.switchOnPreferences();
+let translationWorker = null;
 
 // eslint-disable-next-line max-lines-per-function
 const messageListener = async function(message, sender) {
@@ -185,11 +186,84 @@ const messageListener = async function(message, sender) {
                   tabId: message.tabId }
             );
             break;
+
+        case "translate":
+            if (translationWorker) {
+                translationWorker.postMessage([
+                    "translate",
+                    message.payload
+                ]);
+            }
+            break;
         default:
             // ignore
             break;
     }
 }
+
+/*
+ * handles all communication received from the translation webworker
+ */
+const translationWorkerMessageListener = translationMessage => {
+    console.log('msg do worker', translationMessage);
+    switch (translationMessage.data[0]) {
+        case "translationComplete":
+            this.mediator.contentScriptsMessageListener(this, {
+                command: "translationComplete",
+                payload: translationMessage.data
+            });
+            break;
+        case "updateProgress":
+            this.mediator.contentScriptsMessageListener(this, {
+                command: "updateProgress",
+                payload: translationMessage.data
+            });
+            break;
+        case "displayOutboundTranslation":
+            this.mediator.contentScriptsMessageListener(this, {
+                command: "displayOutboundTranslation",
+                payload: null
+            });
+            break;
+        case "onError":
+            this.mediator.contentScriptsMessageListener(this, {
+                command: "onError",
+                payload: translationMessage.data[1]
+            });
+            break;
+
+        case "onModelEvent":
+            this.mediator.contentScriptsMessageListener(this, {
+                command: "onModelEvent",
+                payload: { type: translationMessage.data[1], timeMs: translationMessage.data[2] }
+            });
+            break;
+
+        default:
+    }
+}
+
+const loadTranslationWorker = () => {
+    const engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
+    const engineRemoteRegistry = browser.runtime.getURL("model/engineRegistry.js");
+    const modelRegistry = browser.runtime.getURL("model/modelRegistry.js");
+    if (window.Worker) {
+        translationWorker = new Worker(browser.runtime.getURL("controller/translation/translationWorker.js"));
+        translationWorker.addEventListener(
+            "message",
+            translationWorkerMessageListener
+        );
+        translationWorker.postMessage([
+            "configEngine",
+            {
+                engineLocalPath,
+                engineRemoteRegistry,
+                modelRegistry,
+                isMochitest: false // this.mediator.isMochitest
+            }
+        ]);
+    }
+};
 
 browser.runtime.onMessage.addListener(messageListener);
 browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
@@ -214,3 +288,4 @@ fetch(browser
         };
     loadFastText(initialModule);
 });
+loadTranslationWorker();

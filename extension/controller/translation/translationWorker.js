@@ -36,7 +36,7 @@ class TranslationHelper {
               };
         }
 
-        async loadTranslationEngine(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation) {
+        async loadTranslationEngine(loadCallback) {
             postMessage([
                 "updateProgress",
                 "loadingTranslationEngine"
@@ -66,7 +66,8 @@ class TranslationHelper {
                      * initialized, we then load the language models
                      */
                     console.log(`Wasm Runtime initialized Successfully (preRun -> onRuntimeInitialized) in ${(Date.now() - this.wasmModuleStartTimestamp) / 1000} secs`);
-                    this.loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation);
+                    this.translationQueue = new Queue();
+                    loadCallback();
                 }.bind(this),
                 wasmBinary: wasmArrayBuffer,
             };
@@ -196,15 +197,14 @@ class TranslationHelper {
             switch (this.engineState) {
                 // if the engine hasn't loaded yet.
                 case this.ENGINE_STATE.LOAD_PENDING:
-                    this.translationQueue = new Queue();
                     this.engineState = this.ENGINE_STATE.LOADING;
-                    this.loadTranslationEngine(
-                        message[0].sourceLanguage,
-                        message[0].targetLanguage,
-                        message[0].withOutboundTranslation,
-                        message[0].withQualityEstimation
-                    );
-
+                    if (this.WasmEngineModule) {
+                        this.loadLanguageModel(
+                            message[0].sourceLanguage,
+                            message[0].targetLanguage,
+                            message[0].withOutboundTranslation
+                        )
+                    }
                     this.translationQueue.enqueue(message);
                     break;
                 case this.ENGINE_STATE.LOADING:
@@ -381,12 +381,11 @@ class TranslationHelper {
 
             let finish = Date.now();
             console.log(`Total Download time for all files of '${languagePair}': ${(finish - start) / 1000} secs`);
-              postMessage([
+            postMessage([
                 "onModelEvent",
                 "downloaded",
                 finish-start
-              ]);
-
+            ]);
 
             // cnstruct AlignedMemory objects with downloaded buffers
             let constructedAlignedMemories = await Promise.all([
@@ -676,6 +675,32 @@ class TranslationHelper {
             const utf8SentenceBytes = utf8BytesView.subarray(byteRange.begin, byteRange.end);
             return decoder.decode(utf8SentenceBytes);
         }
+
+        // if there are engines and models already downloaded, we load them all
+        loadEngineIfExists() {
+
+            // if we don't have an engine locally installed, we download it first
+            this.loadTranslationEngine(async () => {
+
+                /*
+                 * and after the engine is loaded, we load all the already
+                 * downloaded models
+                 */
+                console.log("WASM Translation engine loaded");
+                for (const languagePair in modelRegistry) {
+                    const modelFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].model.name}`;
+                    const shortlistFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].lex.name}`;
+                    const vocabFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].vocab.name}`;
+                    const cache = await caches.open(this.CACHE_NAME);
+                    if (await cache.match(modelFile) &&
+                        await cache.match(shortlistFile) &&
+                        await cache.match(vocabFile) ) {
+                            this.loadLanguageModel(languagePair.substring(0,2),languagePair.substring(2,4), false);
+                            console.log("modelo existe -- carrega: ", languagePair);
+                    }
+                }
+            });
+        }
 }
 
 const translationHelper = new TranslationHelper(postMessage);
@@ -693,8 +718,16 @@ onmessage = function(message) {
                 // eslint-disable-next-line no-global-assign
                 modelRegistryRootURL = modelRegistryRootURLTest;
             }
+
+            /*
+             * we check if there's engines and models already downloaded.
+             * if there is, we just load them all. otherwise. we wait for the
+             * user to request them in the interface.
+             */
+            translationHelper.loadEngineIfExists();
             break;
         case "translate":
+            console.log("mesg de translate no worker", message);
             translationHelper.requestTranslation(message.data[1]);
             break;
         default:

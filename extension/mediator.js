@@ -123,86 +123,8 @@ class Mediator {
                     this.telemetry.addOutboundTranslation(sender.selectedTextArea, message.payload.text);
                 }
                 break;
-            case "translationComplete":
-
-                /*
-                 * received the translation complete signal
-                 * from the translation object. so we lookup the sender
-                 * in order to route the response back, which can be
-                 * OutbountTranslation, InPageTranslation etc....
-                 */
-                message.payload[1].forEach(translationMessage => {
-                    this.messagesSenderLookupTable.get(translationMessage.messageID)
-                    .mediatorNotification(translationMessage);
-                    this.messagesSenderLookupTable.delete(translationMessage.messageID);
-                });
-
-                // eslint-disable-next-line no-case-declarations
-                const wordsPerSecond = this.telemetry
-                    .addAndGetTranslationTimeStamp(message.payload[2][0], message.payload[2][1]);
-
-                if (this.statsMode) {
-                    // if the user chose to see stats in the infobar, we display them
-                    browser.runtime.sendMessage({
-                        command: "updateProgress",
-                        progressMessage: browser.i18n.getMessage("statsMessage", wordsPerSecond),
-                        tabId: this.tabId
-                    });
-                }
-
-                // console.log("translation complete rcvd:", message, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
-                break;
-            case "updateProgress":
-
-                /*
-                 * let's invoke the experiment api in order to update the
-                 * model/engine download progress in the appropiate infobar
-                 */
-                // first we localize the message.
-                // eslint-disable-next-line no-case-declarations
-                let localizedMessage;
-                if (typeof message.payload[1] === "string") {
-                    localizedMessage = browser.i18n.getMessage(message.payload[1]);
-                } else if (typeof message.payload[1] === "object") {
-                    // we have a downloading message, which contains placeholders, hence this special treatment
-                    localizedMessage = browser.i18n.getMessage(message.payload[1][0], message.payload[1][1]);
-                }
-
-                browser.runtime.sendMessage({
-                    command: "updateProgress",
-                    progressMessage: localizedMessage,
-                    tabId: this.tabId
-                });
-                break;
-            case "displayOutboundTranslation":
-
-                /* display the outboundstranslation widget */
-                this.outboundTranslation = new OutboundTranslation(this);
-                this.outboundTranslation.start(
-                    this.localizedNavigatorLanguage,
-                    this.localizedPageLanguage
-                );
-                break;
-            case "onError":
-                // payload is a metric name from metrics.yaml
-                this.telemetry.error(message.payload);
-                break;
             case "viewPortWordsNum":
                 this.telemetry.wordsInViewport(message.payload);
-                break;
-            case "onModelEvent":
-                // eslint-disable-next-line no-case-declarations
-                let metric = null;
-                if (message.payload.type === "downloaded") {
-                    metric = "model_download_time_num";
-                } else if (message.payload.type === "loaded") {
-                    metric = "model_load_time_num";
-                    // start timer when the model is fully loaded
-                    this.telemetry.translationStarted();
-                } else {
-                    throw new Error(`Unexpected event type: ${message.payload.type}`)
-                }
-                this.telemetry.performanceTime(metric, message.payload.timeMs);
                 break;
             case "onFormsEvent":
                 this.telemetry.formsEvent(message.payload);
@@ -242,11 +164,11 @@ class Mediator {
                  */
 
                 // the user might have changed the page language, so we just accept it
-                this.languageDetection.pageLanguage = message.from;
+                this.languageDetection.pageLanguage.language = message.from;
                 if (!this.inPageTranslation.started){
                     this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
                     this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
-                    this.inPageTranslation.start(this.languageDetection.pageLanguage);
+                    this.inPageTranslation.start(this.languageDetection.pageLanguage.language);
                 }
                 break;
             case "displayStatistics":
@@ -257,12 +179,98 @@ class Mediator {
                 // 'name' is a metric name from metrics.yaml
                 this.telemetry.infobarEvent(message.name);
                 break;
+            case "translationComplete":
+
+                /*
+                    * received the translation complete signal
+                    * from the translation object. so we lookup the sender
+                    * in order to route the response back, which can be
+                    * OutbountTranslation, InPageTranslation etc....
+                */
+                message.payload[1].forEach(translationMessage => {
+                    this.messagesSenderLookupTable.get(translationMessage.messageID)
+                    .mediatorNotification(translationMessage);
+                    this.messagesSenderLookupTable.delete(translationMessage.messageID);
+                });
+
+                // eslint-disable-next-line no-case-declarations
+                const wordsPerSecond = this.telemetry
+                    .addAndGetTranslationTimeStamp(message.payload[2][0], message.payload[2][1]);
+
+                if (this.statsMode) {
+                    // if the user chose to see stats in the infobar, we display them
+                    browser.runtime.sendMessage({
+                        command: "updateProgress",
+                        progressMessage: browser.i18n.getMessage("statsMessage", wordsPerSecond),
+                        tabId: this.tabId
+                    });
+                }
+
+                // console.log("translation complete rcvd:", message, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
+                break;
+            case "updateProgress":
+
+                /*
+                    * let's invoke the experiment api in order to update the
+                    * model/engine download progress in the appropiate infobar
+                */
+                // first we localize the message.
+                // eslint-disable-next-line no-case-declarations
+                let localizedMessage;
+                if (typeof message.payload[1] === "string") {
+                    localizedMessage = browser.i18n.getMessage(message.payload[1]);
+                } else if (typeof message.payload[1] === "object") {
+                    // we have a downloading message, which contains placeholders, hence this special treatment
+                    localizedMessage = browser.i18n.getMessage(message.payload[1][0], message.payload[1][1]);
+                }
+
+                browser.runtime.sendMessage({
+                    command: "updateProgress",
+                    progressMessage: localizedMessage,
+                    tabId: this.tabId
+                });
+                break;
+            case "displayOutboundTranslation":
+
+                /* display the outboundstranslation widget */
+                this.outboundTranslation = new OutboundTranslation(this);
+                this.outboundTranslation.start(
+                    this.localizedNavigatorLanguage,
+                    this.localizedPageLanguage
+                );
+                break;
+            case "onError":
+                // payload is a metric name from metrics.yaml
+                this.telemetry.error(message.payload);
+                break;
+            case "onModelEvent":
+                // eslint-disable-next-line no-case-declarations
+                let metric = null;
+                if (message.payload.type === "downloaded") {
+                    metric = "model_download_time_num";
+                } else if (message.payload.type === "loaded") {
+                    metric = "model_load_time_num";
+                    // start timer when the model is fully loaded
+                    this.telemetry.translationStarted();
+                } else {
+                    throw new Error(`Unexpected event type: ${message.payload.type}`)
+                }
+                this.telemetry.performanceTime(metric, message.payload.timeMs);
+                break;
+            case "onFormsEvent":
+                this.telemetry.formsEvent(message.payload);
+                break;
+            case "domMutation":
+
+                if (this.outboundTranslation) {
+                    this.outboundTranslation.updateZIndex(message.payload);
+                }
+                break;
             case "localizedLanguages":
                 this.localizedPageLanguage = message.localizedPageLanguage;
                 this.localizedNavigatorLanguage = message.localizedNavigatorLanguage;
                 break;
             default:
-                // ignore
         }
     }
 }
