@@ -108,10 +108,12 @@ class TranslationHelper {
             }.bind(this));
         }
 
+        // eslint-disable-next-line max-lines-per-function
         consumeTranslationQueue() {
 
             while (this.translationQueue.length() > 0) {
                 const translationMessagesBatch = this.translationQueue.dequeue();
+                // eslint-disable-next-line max-lines-per-function
                 Promise.resolve().then(function () {
                     if (translationMessagesBatch) {
                         try {
@@ -122,10 +124,39 @@ class TranslationHelper {
                                 total_words += words.length;
                             });
 
+                            /*
+                             * engine doesn't return QE scores for the translation of Non-HTML source
+                             * messages. Therefore, always encode and pass source messages as HTML to the
+                             * engine and restore them afterwards to their original form.
+                             */
+                            const non_html_qe_messages = new Map();
+                            translationMessagesBatch.forEach((message, index) => {
+                                if (message.withQualityEstimation && !message.isHTML) {
+                                    console.log(`Plain text received to translate with QE: "${message.sourceParagraph}"`);
+                                    non_html_qe_messages.set(index, message.sourceParagraph);
+                                    const div = document.createElement("div");
+                                    div.appendChild(document.createTextNode(message.sourceParagraph));
+                                    message.sourceParagraph = div.innerHTML;
+                                    message.isHTML = true;
+                                }
+                            });
+
                             const t0 = performance.now();
 
                             const translationResultBatch = this.translate(translationMessagesBatch);
                             const timeElapsed = [total_words, performance.now() - t0];
+
+                            /*
+                             * restore Non-HTML source messages that were encoded to HTML before being sent to
+                             * engine to get the QE scores for their translations. The translations are not
+                             * required to be decoded back to non-HTML form because QE scores are embedded in
+                             * the translation via html attribute.
+                             */
+                            non_html_qe_messages.forEach((value, key) => {
+                                console.log(`Restoring back source text and html flag`);
+                                translationMessagesBatch[key].sourceParagraph = value;
+                                translationMessagesBatch[key].isHTML = false;
+                            });
 
                             /*
                              * now that we have the paragraphs back, let's reconstruct them.
@@ -148,7 +179,7 @@ class TranslationHelper {
                             throw e;
                         }
                     }
-                  }.bind(this));
+                }.bind(this));
             }
         }
 
