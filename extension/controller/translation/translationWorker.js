@@ -87,9 +87,11 @@ class TranslationHelper {
                                     .split(/\s+/).length;
                 const t0 = performance.now();
 
-                // quality scores are not required for outbound translation. So we set the
-                // corresponding flag to false before calling translate api and restore
-                // its value after the api call is complete.
+                /*
+                 * quality scores are not required for outbound translation. So we set the
+                 * corresponding flag to false before calling translate api and restore
+                 * its value after the api call is complete.
+                 */
                 let originalQualityEstimation = message[0].withQualityEstimation;
                 message[0].withQualityEstimation = false;
                 const translationResultBatch = this.translate(message);
@@ -217,7 +219,7 @@ class TranslationHelper {
               if (withOutboundTranslation) {
                   try {
                     // the Outbound Translation doesn't require supporting Quality Estimation
-                    await this.constructTranslationModel(targetLanguage, sourceLanguage, /*withQualityEstimation=*/false);
+                    await this.constructTranslationModel(targetLanguage, sourceLanguage, /* withQualityEstimation=*/false);
                     postMessage([
                         "displayOutboundTranslation",
                         null
@@ -255,7 +257,7 @@ class TranslationHelper {
         // instantiate the Translation Service
         constructTranslationService() {
             if (!this.translationService) {
-                let translationServiceConfig = {cacheSize: 10};
+                let translationServiceConfig = { cacheSize: 10 };
                 console.log(`Creating Translation Service with config: ${translationServiceConfig}`);
                 this.translationService = new this.WasmEngineModule.BlockingService(translationServiceConfig);
                 console.log("Translation Service created successfully");
