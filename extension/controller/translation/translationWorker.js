@@ -153,7 +153,7 @@ class TranslationHelper {
                              * the translation via html attribute.
                              */
                             non_html_qe_messages.forEach((value, key) => {
-                                console.log(`Restoring back source text and html flag`);
+                                console.log("Restoring back source text and html flag");
                                 translationMessagesBatch[key].sourceParagraph = value;
                                 translationMessagesBatch[key].isHTML = false;
                             });
