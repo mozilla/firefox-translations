@@ -55,6 +55,36 @@ function cyrb53(str, seed = 0) {
     return 4294967296 * (2097151 & h2) + (h1>>>0);
 }
 
+/**
+ * Very, very rudimentary YAML parser. But sufficient for config.yml files!
+ */
+function parseYaml(yaml) {
+    const out = {};
+
+    yaml.split('\n').reduce((key, line, i) => {
+        let match;
+        if (match = line.match(/^\s*-\s+(.+?)$/)) {
+            if (!Array.isArray(out[key]))
+                out[key] = out[key].trim() ? [out[key]] : [];
+            out[key].push(match[1].trim());
+        }
+        else if (match = line.match(/^([A-Za-z0-9_][A-Za-z0-9_-]*):\s*(.*)$/)) {
+            key = match[1];
+            out[key] = match[2].trim();
+        }
+        else if (!line.trim()) {
+            // whitespace, ignore
+        }
+        else {
+            throw Error(`Could not parse line ${i+1}: "${line}"`);
+        }
+        return key;
+    }, null);
+
+    return out;
+}
+
+
 const BATCH_SIZE = 8; // number of requested translations
 
 const CACHE_NAME = "bergamot-translations";
@@ -166,28 +196,13 @@ class Channel {
      */
     async loadModelRegistery() {
         // I know doesn't need to be async but at some point we might want to use fetch() here.
-        return new Promise((resolve, reject) => {
-            // I don't like the format of this JSON but for now want to be able to
-            // sync it upstream. At some point I'd rather have the format of
-            // TranslateLocally and ideally be able to consume its tar.gz files
-            // directly.
-
-            const registry = Object.entries(modelRegistry).map(([languagePair, files]) => ({
-                from: languagePair.substr(0, 2),
-                to: languagePair.substr(2, 2),
-                files: Object.fromEntries(Object.entries(files).map(([filename, properties]) => (
-                    [
-                        filename,
-                        {
-                            ...properties,
-                            url: `${modelRegistryRootURL}/${languagePair}/${properties.name}`
-                        }
-                    ]
-                )))
-            }));
-
-            resolve(registry);
-        });
+        const response = await fetch('https://translatelocally.com/models.json');
+        const data = await response.json();
+        return data.models.map(model => ({
+            ...model,
+            from: Object.keys(model.srcTags)[0],
+            to: model.trgTag
+        }));
     }
 
     /**
@@ -213,19 +228,29 @@ class Channel {
         performance.mark(`loadTranslationModule.${JSON.stringify({from, to})}`);
 
         // Find that model in the registry which will tell us about its files
-        const files = (await this.registry).find(model => model.from == from && model.to == to).files;
+        const entry = (await this.registry).find(model => model.from == from && model.to == to);
 
-        // Download the files in parallel (checking checksums in the process)
-        const [model, vocab, shortlist] = await Promise.all([
-            this.getItemFromCacheOrWeb(files.model.url, files.model.size, files.model.expectedSha256Hash),
-            this.getItemFromCacheOrWeb(files.vocab.url, files.vocab.size, files.vocab.expectedSha256Hash),
-            this.getItemFromCacheOrWeb(files.lex.url, files.lex.size, files.lex.expectedSha256Hash),
-        ]);
+        const compressedArchive = await this.getItemFromCacheOrWeb(entry.url, undefined, entry.checksum);
+
+        const archive = pako.inflate(compressedArchive);
+
+        const files = await untar(archive.buffer);
+
+        // Find the config yml file
+        const configFile = files.find(file => file.name.endsWith('config.intgemm8bitalpha.yml'));
+
+        const config = parseYaml(configFile.readAsString());
+
+        const model = files.find(file => file.name.endsWith(config.models[0])).buffer;
+
+        const vocabs = files.filter(file => config.vocabs.some(vocab => file.name.endsWith(vocab))).map(file => file.buffer);
+
+        const shortlist = files.find(file => file.name.endsWith(config.shortlist[0])).buffer;
 
         performance.measure('loadTranslationModel', `loadTranslationModule.${JSON.stringify({from, to})}`);
 
         // Return the buffers
-        return {model, vocab, shortlist};
+        return {model, vocabs, shortlist, config};
     }
 
     /**

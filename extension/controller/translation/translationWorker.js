@@ -5,6 +5,52 @@
 // Global because importScripts is global.
 var Module = {};
 
+/**
+ * Very, very rudimentary YAML parser. But sufficient for config.yml files!
+ * Notable: does not do nested objects.
+ */
+class YAML {
+    static parse(yaml) {
+        const out = {};
+
+        yaml.split('\n').reduce((key, line, i) => {
+            let match;
+            if (match = line.match(/^\s*-\s+(.+?)$/)) {
+                if (!Array.isArray(out[key]))
+                    out[key] = out[key].trim() ? [out[key]] : [];
+                out[key].push(match[1].trim());
+            }
+            else if (match = line.match(/^\s*([A-Za-z0-9_][A-Za-z0-9_-]*):\s*(.*)$/)) {
+                key = match[1];
+                out[key] = match[2].trim();
+            }
+            else if (!line.trim()) {
+                // whitespace, ignore
+            }
+            else {
+                throw Error(`Could not parse line ${i+1}: "${line}"`);
+            }
+            return key;
+        }, null);
+
+        return out;
+    }
+
+    static stringify(data) {
+        return Object.entries(data).reduce((str, [key, value]) => {
+            let valstr = '';
+            if (Array.isArray(value))
+                valstr = value.map(val => `\n  - ${val}`).join('');
+            else if (typeof value === 'number' || value.match(/^\d*(\.\d+)?$/))
+                valstr = `${value}`;
+            else
+                valstr = `${value}`; // Quote?
+
+            return `${str}${key}: ${valstr}\n`;
+        }, '');
+    }
+}
+
 class TranslationWorker {
     constructor() {
         this.module = this.loadModule();
@@ -64,33 +110,47 @@ class TranslationWorker {
     async loadTranslationModel({from, to}, buffers) {
         const Module = await this.module;
         
-        const [modelMemory, vocabMemory, shortlistMemory] = await Promise.all([
+        const [modelMemory, shortlistMemory, ...vocabMemory] = await Promise.all([
             this.prepareAlignedMemoryFromBuffer(buffers.model, 256),
-            this.prepareAlignedMemoryFromBuffer(buffers.vocab, 64),
-            this.prepareAlignedMemoryFromBuffer(buffers.shortlist, 64)
+            this.prepareAlignedMemoryFromBuffer(buffers.shortlist, 64),
+            ...buffers.vocabs.map(vocab => this.prepareAlignedMemoryFromBuffer(vocab, 64))
         ]);
 
         const vocabs = new Module.AlignedMemoryList();
-        vocabs.push_back(vocabMemory);
+        vocabMemory.forEach(vocab => vocabs.push_back(vocab));
 
-        const modelConfig = `
-        beam-size: 1
-        normalize: 1.0
-        word-penalty: 0
-        max-length-break: 128
-        mini-batch-words: 1024
-        workspace: 128
-        max-length-factor: 2.0
-        skip-cost: true
-        cpu-threads: 0
-        quiet: true
-        quiet-translation: true
-        gemm-precision: int8shiftAlphaAll
-        alignment: soft
-        `;
+        // Defaults
+        let modelConfig = YAML.parse(`
+            beam-size: 1
+            normalize: 1.0
+            word-penalty: 0
+            cpu-threads: 0
+            gemm-precision: int8shiftAlphaAll
+        `);
+
+        if (buffers.config)
+            Object.assign(modelConfig, buffers.config);
+
+        // WASM marian is only compiled with support for shiftedAll.
+        if (modelConfig['gemm-precision'] === 'int8')
+            modelConfig['gemm-precision'] = 'int8shiftAll';
+
+        // Override these
+        Object.assign(modelConfig, YAML.parse(`
+            skip-cost: true
+            alignment: soft
+            quiet: true
+            quiet-translation: true
+            max-length-break: 128
+            mini-batch-words: 1024
+            workspace: 128
+            max-length-factor: 2.0
+        `));
+
+        console.debug('Model config:', YAML.stringify(modelConfig));
                 
         const key = JSON.stringify({from,to});
-        this.models.set(key, new Module.TranslationModel(modelConfig, modelMemory, shortlistMemory, vocabs));
+        this.models.set(key, new Module.TranslationModel(YAML.stringify(modelConfig), modelMemory, shortlistMemory, vocabs));
     }
 
     /**
