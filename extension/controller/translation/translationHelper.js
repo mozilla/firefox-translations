@@ -228,7 +228,17 @@ class Channel {
         performance.mark(`loadTranslationModule.${JSON.stringify({from, to})}`);
 
         // Find that model in the registry which will tell us about its files
-        const entry = (await this.registry).find(model => model.from == from && model.to == to);
+        const entries = (await this.registry).filter(model => model.from == from && model.to == to);
+
+        // Prefer tiny models above non-tiny ones (right now base models don't even work properly 😅)
+        entries.sort((a, b) => (a.shortName.indexOf('tiny') === -1 ? 1 : 0) - (b.shortName.indexOf('tiny') === -1 ? 1 : 0));
+
+        if (!entries)
+            throw new Error(`No model for ${from} -> ${to}`);
+
+        const entry = entries[0];
+
+        console.debug("Downloading model", entry, "of available", entries);
 
         const compressedArchive = await this.getItemFromCacheOrWeb(entry.url, undefined, entry.checksum);
 
