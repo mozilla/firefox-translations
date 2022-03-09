@@ -243,7 +243,7 @@ class Channel {
 
         const model = files.find(file => file.name.endsWith(config.models[0])).buffer;
 
-        const vocabs = files.filter(file => config.vocabs.some(vocab => file.name.endsWith(vocab))).map(file => file.buffer);
+        const vocabs = config.vocabs.map(vocab => files.find(file => file.name.endsWith(vocab)).buffer);
 
         const shortlist = files.find(file => file.name.endsWith(config.shortlist[0])).buffer;
 

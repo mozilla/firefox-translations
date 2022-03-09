@@ -109,11 +109,14 @@ class TranslationWorker {
      */ 
     async loadTranslationModel({from, to}, buffers) {
         const Module = await this.module;
-        
+
+        // This because service_bindings.cpp:prepareVocabsSmartMemories :(
+        const uniqueVocabs = Array.from(new Set(buffers.vocabs));
+
         const [modelMemory, shortlistMemory, ...vocabMemory] = await Promise.all([
             this.prepareAlignedMemoryFromBuffer(buffers.model, 256),
             this.prepareAlignedMemoryFromBuffer(buffers.shortlist, 64),
-            ...buffers.vocabs.map(vocab => this.prepareAlignedMemoryFromBuffer(vocab, 64))
+            ...uniqueVocabs.map(vocab => this.prepareAlignedMemoryFromBuffer(vocab, 64))
         ]);
 
         const vocabs = new Module.AlignedMemoryList();
