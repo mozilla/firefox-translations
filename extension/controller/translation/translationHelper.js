@@ -234,7 +234,7 @@ class Channel {
         performance.measure('loadTranslationModel', `loadTranslationModule.${JSON.stringify({from, to})}`);
 
         // Return the buffers
-        return {model, vocab, shortlist};
+        return {model, vocab, shortlist, config};
     }
 
     /**
