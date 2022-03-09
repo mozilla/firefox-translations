@@ -7,6 +7,7 @@ var Module = {};
 
 /**
  * Very, very rudimentary YAML parser. But sufficient for config.yml files!
+ * Notable: does not do nested objects.
  */
 class YAML {
     static parse(yaml) {
@@ -109,14 +110,14 @@ class TranslationWorker {
     async loadTranslationModel({from, to}, buffers) {
         const Module = await this.module;
         
-        const [modelMemory, vocabMemory, shortlistMemory] = await Promise.all([
+        const [modelMemory, shortlistMemory, ...vocabMemory] = await Promise.all([
             this.prepareAlignedMemoryFromBuffer(buffers.model, 256),
-            this.prepareAlignedMemoryFromBuffer(buffers.vocab, 64),
-            this.prepareAlignedMemoryFromBuffer(buffers.shortlist, 64)
+            this.prepareAlignedMemoryFromBuffer(buffers.shortlist, 64),
+            ...buffers.vocabs.map(vocab => this.prepareAlignedMemoryFromBuffer(vocab, 64))
         ]);
 
         const vocabs = new Module.AlignedMemoryList();
-        vocabs.push_back(vocabMemory);
+        vocabMemory.forEach(vocab => vocabs.push_back(vocab));
 
         // Defaults
         let modelConfig = YAML.parse(`

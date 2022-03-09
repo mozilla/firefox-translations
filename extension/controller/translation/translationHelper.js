@@ -227,14 +227,14 @@ class Channel {
 
         const model = files.find(file => file.name.endsWith(config.models[0])).buffer;
 
-        const vocab = files.find(file => file.name.endsWith(config.vocabs[0])).buffer;
+        const vocabs = files.filter(file => config.vocabs.some(vocab => file.name.endsWith(vocab))).map(file => file.buffer);
 
         const shortlist = files.find(file => file.name.endsWith(config.shortlist[0])).buffer;
 
         performance.measure('loadTranslationModel', `loadTranslationModule.${JSON.stringify({from, to})}`);
 
         // Return the buffers
-        return {model, vocab, shortlist, config};
+        return {model, vocabs, shortlist, config};
     }
 
     /**
