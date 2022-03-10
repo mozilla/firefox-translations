@@ -206,37 +206,46 @@ const messageListener = async function(message, sender) {
  */
 const translationWorkerMessageListener = translationMessage => {
     console.log('msg do worker', translationMessage);
+    // we just forward the message to the mediator.
     switch (translationMessage.data[0]) {
         case "translationComplete":
-            this.mediator.contentScriptsMessageListener(this, {
-                command: "translationComplete",
-                payload: translationMessage.data
-            });
+
+            /*
+             * it is safe to assume that the entire batch belongs to the same
+             * tab, so let's extract its tabid from the first message
+             */
+            browser.tabs.sendMessage(
+                translationMessage.data[1][0].tabId,
+                {
+                    command: "translationComplete",
+                    payload: translationMessage.data
+                }
+            );
             break;
         case "updateProgress":
-            this.mediator.contentScriptsMessageListener(this, {
+/*             this.mediator.contentScriptsMessageListener(this, {
                 command: "updateProgress",
                 payload: translationMessage.data
-            });
+            }); */
             break;
         case "displayOutboundTranslation":
-            this.mediator.contentScriptsMessageListener(this, {
+/*             this.mediator.contentScriptsMessageListener(this, {
                 command: "displayOutboundTranslation",
                 payload: null
-            });
+            }); */
             break;
         case "onError":
-            this.mediator.contentScriptsMessageListener(this, {
+/*             this.mediator.contentScriptsMessageListener(this, {
                 command: "onError",
                 payload: translationMessage.data[1]
-            });
+            }); */
             break;
 
         case "onModelEvent":
-            this.mediator.contentScriptsMessageListener(this, {
+/*             this.mediator.contentScriptsMessageListener(this, {
                 command: "onModelEvent",
                 payload: { type: translationMessage.data[1], timeMs: translationMessage.data[2] }
-            });
+            }); */
             break;
 
         default:

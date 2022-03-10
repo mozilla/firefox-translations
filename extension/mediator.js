@@ -106,7 +106,7 @@ class Mediator {
                 const translationMessage = this.translation.constructTranslationMessage(
                     message.payload.text,
                     message.payload.type,
-                    message.tabId,
+                    this.tabId,
                     this.languageDetection.navigatorLanguage,
                     this.languageDetection.pageLanguage,
                     message.payload.attrId,
@@ -184,7 +184,7 @@ class Mediator {
                 /*
                     * received the translation complete signal
                     * from the translation object. so we lookup the sender
-                    * in order to route the response back, which can be
+                 * in order to route the response back, which can be
                     * OutbountTranslation, InPageTranslation etc....
                 */
                 message.payload[1].forEach(translationMessage => {
