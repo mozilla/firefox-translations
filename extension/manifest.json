@@ -25,8 +25,11 @@
   "background": {
     "scripts": [
       "settings.js",
+      "controller/translation/bergamotTranslatorVersion.js",
       "model/telemetry/schema.js",
       "model/telemetry/PingSender.js",
+      "model/telemetry/Metrics.js",
+      "model/telemetry/Telemetry.js",
       "controller/LanguageDetection.js",
       "view/js/TranslationNotificationManager.js",
       "controller/backgroundScript.js"
@@ -38,24 +41,20 @@
         "<all_urls>"
       ],
       "js": [
-        "settings.js",
         "controller/LanguageDetection.js",
         "model/Queue.js",
         "controller/translation/Translation.js",
         "controller/translation/TranslationMessage.js",
         "controller/translation/translationWorker.js",
-        "controller/translation/bergamotTranslatorVersion.js",
         "view/js/OutboundTranslation.js",
         "view/js/InPageTranslation.js",
-        "model/telemetry/Telemetry.js",
-        "model/telemetry/Metrics.js",
-        "model/telemetry/schema.js",
         "model/modelRegistry.js",
         "mediator.js"
       ],
       "css": [
         "view/static/outboundTranslation.css"
       ],
+      "all_frames": true,
       "run_at": "document_idle"
     }
   ],

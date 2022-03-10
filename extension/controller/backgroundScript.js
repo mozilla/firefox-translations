@@ -1,4 +1,4 @@
-/* global LanguageDetection, browser, PingSender */
+/* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL, Telemetry */
 
 /*
  * we need the background script in order to have full access to the
@@ -10,9 +10,17 @@
 
 let cachedEnvInfo = null;
 let pingSender = new PingSender();
+let telemetryByTab = {}
+
+const getTelemetry = tabId => {
+    if (!(tabId in telemetryByTab)) {
+        telemetryByTab[tabId] = new Telemetry(pingSender);
+    }
+    return telemetryByTab[tabId];
+}
 
 // eslint-disable-next-line max-lines-per-function
-const messageListener = async function(message, sender) {
+const messageListener = async function (message, sender) {
     let languageDetection = null;
     let listeneronUpdatedLoad = null;
     let webNavigationCompletedLoad = null;
@@ -26,8 +34,10 @@ const messageListener = async function(message, sender) {
             languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
             languageDetection.pageLanguage = await
                 browser.experiments.languageDetector.detect(languageDetection.wordsToDetect);
-            browser.tabs.sendMessage(sender.tab.id, { command: "responseDetectPageLanguage",
-                languageDetection })
+            browser.tabs.sendMessage(sender.tab.id, {
+                command: "responseDetectPageLanguage",
+                languageDetection
+            })
             break;
         case "monitorTabLoad":
 
@@ -35,7 +45,7 @@ const messageListener = async function(message, sender) {
              * wait until the page within the tab is loaded, and then return
              * with the tabId to the caller
              */
-            listeneronUpdatedLoad = (tabId, changeInfo, tab) => {
+            listeneronUpdatedLoad = async (tabId, changeInfo, tab) => {
                 if ((tabId === sender.tab.id || tab.url === sender.tab.url) && changeInfo.status === "complete") {
                     browser.tabs.onUpdated.removeListener(listeneronUpdatedLoad);
                     browser.webNavigation.onCompleted.removeListener(webNavigationCompletedLoad);
@@ -51,7 +61,14 @@ const messageListener = async function(message, sender) {
                             tabId,
                             { command: "responseMonitorTabLoad", tabId }
                         );
-                    } ,250);
+                    }, 250);
+
+                    getTelemetry(tabId).versions(browser.runtime.getManifest().version, "?", BERGAMOT_VERSION_FULL);
+                    if (cachedEnvInfo === null) {
+                        // eslint-disable-next-line require-atomic-updates
+                        cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
+                    }
+                    getTelemetry(tabId).environment(cachedEnvInfo);
                 }
             };
 
@@ -62,10 +79,10 @@ const messageListener = async function(message, sender) {
                     console.log("webNavigation.onCompleted => notifying browser to display the infobar")
                     setTimeout(() => {
                         browser.tabs.sendMessage(
-                            details.tabId ,
-                            { command: "responseMonitorTabLoad", tabId: details.tabId }
+                            details.tabId,
+                            {command: "responseMonitorTabLoad", tabId: details.tabId}
                         );
-                    } ,250);
+                    }, 250);
                 }
             };
 
@@ -87,29 +104,44 @@ const messageListener = async function(message, sender) {
 
             break;
 
-        case "loadTelemetryInfo":
-            if (cachedEnvInfo === null) {
-                // eslint-disable-next-line require-atomic-updates
-                cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
-            }
-            browser.tabs.sendMessage(sender.tab.id, { command: "telemetryInfoLoaded", env: cachedEnvInfo })
+        case "recordTelemetry":
+            getTelemetry(message.tabId).record(message.type, message.category, message.name, message.value);
             break;
 
-       case "sendPing":
-           pingSender.submit(message.pingName, message.data)
-               .catch(e => console.error(`Telemetry: ping submission has failed: ${e}`));
-           break;
+        case "reportTranslationStats": {
+            let wps = getTelemetry(message.tabId).addAndGetTranslationTimeStamp(message.numWords, message.engineTimeElapsed);
+            browser.tabs.sendMessage(
+                message.tabId,
+                {
+                    command: "updateStats",
+                    tabId: message.tabId,
+                    wps
+                }
+            );
+        }
+        break;
 
-       case "translationRequested":
+        case "reportOutboundStats":
+            getTelemetry(message.tabId).addOutboundTranslation(message.textAreaId, message.text);
+            break;
+
+        case "submitPing":
+            getTelemetry(message.tabId).submit();
+            Reflect.deleteProperty(telemetryByTab, message.tabId);
+            break;
+
+        case "translationRequested":
             // requested for translation received. let's inform the mediator
             browser.tabs.sendMessage(
                 message.tabId,
-                { command: "translationRequested",
-                  tabId: message.tabId,
-                  from: message.from,
-                  to: message.to,
-                  withOutboundTranslation: message.withOutboundTranslation,
-                  withQualityEstimation: message.withQualityEstimation }
+                {
+                    command: "translationRequested",
+                    tabId: message.tabId,
+                    from: message.from,
+                    to: message.to,
+                    withOutboundTranslation: message.withOutboundTranslation,
+                    withQualityEstimation: message.withQualityEstimation
+                }
             );
             break;
         case "updateProgress":
@@ -127,10 +159,12 @@ const messageListener = async function(message, sender) {
              */
             browser.tabs.sendMessage(
                 message.tabId,
-                { command: "outboundTranslationRequested",
-                  tabId: message.tabId,
-                  from: message.to, // we switch the requests directions here
-                  to: message.from }
+                {
+                    command: "outboundTranslationRequested",
+                    tabId: message.tabId,
+                    from: message.to, // we switch the requests directions here
+                    to: message.from
+                }
             );
             break;
         case "onInfobarEvent":
@@ -140,9 +174,11 @@ const messageListener = async function(message, sender) {
              */
             browser.tabs.sendMessage(
                 message.tabId,
-                { command: "onInfobarEvent",
+                {
+                    command: "onInfobarEvent",
                     tabId: message.tabId,
-                    name: message.name }
+                    name: message.name
+                }
             );
             break;
         case "displayStatistics":
@@ -152,8 +188,10 @@ const messageListener = async function(message, sender) {
              */
             browser.tabs.sendMessage(
                 message.tabId,
-                { command: "displayStatistics",
-                  tabId: message.tabId }
+                {
+                    command: "displayStatistics",
+                    tabId: message.tabId
+                }
             );
             break;
         default:

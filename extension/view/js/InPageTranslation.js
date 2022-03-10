@@ -353,7 +353,7 @@ class InPageTranslation {
             viewPortWordsNum += value.textContent.trim().split(/\s+/).length;
         }
 
-        this.notifyMediator("viewPortWordsNum", viewPortWordsNum);
+        this.notifyMediator("reportViewPortWordsNum", viewPortWordsNum);
         // report words in viewport only for initially loaded content
         this.initialWordsInViewportReported = true;
     }

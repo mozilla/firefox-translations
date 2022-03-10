@@ -123,7 +123,7 @@ class OutboundTranslation {
         // and clear its forms
         this.otTextArea.value = "";
         this.backTranslationsTextArea.value = "";
-        this.notifyMediator("onFormsEvent", "hidden");
+        this.notifyMediator("reportFormsEvent", "hidden");
       }
     });
 
@@ -133,7 +133,7 @@ class OutboundTranslation {
       this.otTextArea.value = widgetContent.typedContent;
       this.backTranslationsTextArea.value = widgetContent.translatedContent;
     }
-    this.notifyMediator("onFormsEvent", "displayed");
+    this.notifyMediator("reportFormsEvent", "displayed");
   }
 
   sendTextToTranslation() {

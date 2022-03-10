@@ -4,7 +4,9 @@
  */
 
 /* global LanguageDetection, OutboundTranslation, Translation , browser,
-InPageTranslation, browser, Telemetry, BERGAMOT_VERSION_FULL */
+InPageTranslation, browser */
+
+// eslint-disable-next-line max-lines
 
 class Mediator {
 
@@ -14,12 +16,6 @@ class Mediator {
         this.translationsCounter = 0;
         this.languageDetection = new LanguageDetection();
         this.inPageTranslation = new InPageTranslation(this);
-        this.telemetry = new Telemetry((pingName, data) => browser.runtime.sendMessage({
-            command: "sendPing",
-            pingName,
-            data
-        }));
-        this.telemetry.versions(browser.runtime.getManifest().version, "?", BERGAMOT_VERSION_FULL);
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
         this.statsMode = false;
@@ -31,28 +27,42 @@ class Mediator {
     }
 
     init() {
-        browser.runtime.sendMessage({ command: "monitorTabLoad" });
-        browser.runtime.sendMessage({ command: "loadTelemetryUploadPref" });
-        browser.runtime.sendMessage({ command: "loadTelemetryInfo" });
+        if (window.self === window.top) { // is main frame
+            browser.runtime.sendMessage({ command: "monitorTabLoad" });
+        }
     }
 
     // main entrypoint to handle the extension's load
     start(tabId) {
         this.tabId = tabId;
 
-        // request the language detection class to extract a page's snippet
-        this.languageDetection.extractPageContent();
+        if (window.self === window.top) { // is main frame
+            // request the language detection class to extract a page's snippet
+            this.languageDetection.extractPageContent();
 
-        /*
-         * request the background script to detect the page's language and
-         *  determine if the infobar should be displayed
-         */
-        browser.runtime.sendMessage({
-            command: "detectPageLanguage",
-            languageDetection: this.languageDetection
-        })
+            /*
+             * request the background script to detect the page's language and
+             *  determine if the infobar should be displayed
+             */
+            browser.runtime.sendMessage({
+                command: "detectPageLanguage",
+                languageDetection: this.languageDetection
+            })
+        }
     }
 
+    recordTelemetry(type, category, name, value) {
+        browser.runtime.sendMessage({
+            command: "recordTelemetry",
+            tabId: this.tabId,
+            type,
+            category,
+            name,
+            value
+        });
+    }
+
+    // eslint-disable-next-line max-lines-per-function
     determineIfTranslationisRequired() {
 
         /*
@@ -73,28 +83,35 @@ class Mediator {
              */
             if (this.translationBarDisplayed) return;
 
-            const pageLang = this.languageDetection.pageLanguage.language;
-            const navLang = this.languageDetection.navigatorLanguage;
-            this.telemetry.langPair(pageLang, navLang);
-            this.telemetry.langMismatch();
-            window.onbeforeunload = () => this.telemetry.pageClosed();
+            if (window.self === window.top) { // is main frame
+                const pageLang = this.languageDetection.pageLanguage.language;
+                const navLang = this.languageDetection.navigatorLanguage;
+                this.recordTelemetry("string", "metadata", "from_lang", pageLang);
+                this.recordTelemetry("string", "metadata", "to_lang", navLang);
+                this.recordTelemetry("counter", "service", "lang_mismatch");
 
-            if (this.languageDetection.shouldDisplayTranslation()) {
-                // request the backgroundscript to display the translationbar
-                browser.runtime.sendMessage({
-                    command: "displayTranslationBar",
-                    languageDetection: this.languageDetection,
-                    localizedLabels: {
-                        displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
-                        outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
-                        qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage")
-                    }
-                });
-                this.translationBarDisplayed = true;
-                // create the translation object
-                this.translation = new Translation(this);
-            } else {
-                this.telemetry.langNotSupported();
+                window.onbeforeunload = () => browser.runtime.sendMessage({ command: "submitPing", tabId: this.tabId });
+
+                if (this.languageDetection.shouldDisplayTranslation()) {
+                    // request the backgroundscript to display the translationbar
+                    browser.runtime.sendMessage({
+                        command: "displayTranslationBar",
+                        languageDetection: this.languageDetection,
+                        localizedLabels: {
+                            displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
+                            outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
+                            qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage")
+                        }
+                    });
+                    this.translationBarDisplayed = true;
+                    // create the translation object
+                    this.translation = new Translation(this);
+                } else {
+                    this.recordTelemetry("counter", "service", "not_supported");
+                }
+            } else if (this.languageDetection.shouldDisplayTranslation()) {
+                    this.translation = new Translation(this);
+                    this.translationBarDisplayed = true;
             }
         }
     }
@@ -103,6 +120,7 @@ class Mediator {
      * handles all requests received from the content scripts
      * (views and controllers)
      */
+
     // eslint-disable-next-line max-lines-per-function
     contentScriptsMessageListener(sender, message) {
         switch (message.command) {
@@ -122,10 +140,14 @@ class Mediator {
                 this.translation.translate(translationMessage);
                 // console.log("new translation message sent:", translationMessage, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
 
-                this.telemetry.infobarState("outbound_enabled", message.payload.withOutboundTranslation === true);
-
                 if (message.payload.type === "outbound") {
-                    this.telemetry.addOutboundTranslation(sender.selectedTextArea, message.payload.text);
+                    if (!sender.selectedTextArea.id) sender.selectedTextArea.id = self.crypto.randomUUID();
+                    browser.runtime.sendMessage({
+                        command: "reportOutboundStats",
+                        tabId: this.tabId,
+                        textAreaId: sender.selectedTextArea.id,
+                        text: message.payload.text
+                    });
                 }
                 break;
             case "translationComplete":
@@ -138,23 +160,16 @@ class Mediator {
                  */
                 message.payload[1].forEach(translationMessage => {
                     this.messagesSenderLookupTable.get(translationMessage.messageID)
-                    .mediatorNotification(translationMessage);
+                        .mediatorNotification(translationMessage);
                     this.messagesSenderLookupTable.delete(translationMessage.messageID);
                 });
 
-                // eslint-disable-next-line no-case-declarations
-                const wordsPerSecond = this.telemetry
-                    .addAndGetTranslationTimeStamp(message.payload[2][0], message.payload[2][1]);
-
-                if (this.statsMode) {
-                    // if the user chose to see stats in the infobar, we display them
-                    browser.runtime.sendMessage({
-                        command: "updateProgress",
-                        progressMessage: browser.i18n.getMessage("statsMessage", wordsPerSecond),
-                        tabId: this.tabId
-                    });
-                }
-
+                browser.runtime.sendMessage({
+                    command: "reportTranslationStats",
+                    tabId: this.tabId,
+                    numWords: message.payload[2][0],
+                    engineTimeElapsed: message.payload[2][1]
+                });
                 // console.log("translation complete rcvd:", message, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
                 break;
             case "updateProgress":
@@ -180,7 +195,6 @@ class Mediator {
                 });
                 break;
             case "displayOutboundTranslation":
-
                 /* display the outboundstranslation widget */
                 this.outboundTranslation = new OutboundTranslation(this);
                 this.outboundTranslation.start(
@@ -188,32 +202,21 @@ class Mediator {
                     this.languageDetection.pageLanguage.language
                 );
                 break;
-            case "onError":
+            case "reportError":
                 // payload is a metric name from metrics.yaml
-                this.telemetry.error(message.payload);
+                this.recordTelemetry("counter", "errors", message.payload);
                 break;
-            case "viewPortWordsNum":
-                this.telemetry.wordsInViewport(message.payload);
+            case "reportViewPortWordsNum":
+                this.recordTelemetry("quantity", "performance", "word_count_visible_in_viewport", message.payload);
                 break;
-            case "onModelEvent":
-                // eslint-disable-next-line no-case-declarations
-                let metric = null;
-                if (message.payload.type === "downloaded") {
-                    metric = "model_download_time_num";
-                } else if (message.payload.type === "loaded") {
-                    metric = "model_load_time_num";
-                    // start timer when the model is fully loaded
-                    this.telemetry.translationStarted();
-                } else {
-                    throw new Error(`Unexpected event type: ${message.payload.type}`)
-                }
-                this.telemetry.performanceTime(metric, message.payload.timeMs);
+            case "reportModelEvent":
+                this.recordTelemetry("timespan", "performance", message.payload.metric, message.payload.timeMs);
                 break;
-            case "onFormsEvent":
-                this.telemetry.formsEvent(message.payload);
+            case "reportFormsEvent":
+                // payload is a metric name from metrics.yaml
+                this.recordTelemetry("event", "forms", message.payload);
                 break;
             case "domMutation":
-
                 if (this.outboundTranslation) {
                     this.outboundTranslation.updateZIndex(message.payload);
                 }
@@ -226,14 +229,12 @@ class Mediator {
      * handles all communication received from the background script
      * and properly delegates the calls to the responsible methods
      */
+
     // eslint-disable-next-line max-lines-per-function
     bgScriptsMessageListener(message) {
         switch (message.command) {
             case "responseMonitorTabLoad":
                 this.start(message.tabId);
-                break;
-            case "telemetryInfoLoaded":
-                this.telemetry.environment(message.env);
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
@@ -248,7 +249,7 @@ class Mediator {
 
                 // the user might have changed the page language, so we just accept it
                 this.languageDetection.pageLanguage.language = message.from;
-                if (!this.inPageTranslation.started){
+                if (!this.inPageTranslation.started) {
                     this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
                     this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
                     this.inPageTranslation.start(this.languageDetection.pageLanguage.language);
@@ -258,12 +259,18 @@ class Mediator {
                 this.statsMode = true;
                 document.querySelector("html").setAttribute("x-bergamot-debug", true);
                 break;
-            case "onInfobarEvent":
-                // 'name' is a metric name from metrics.yaml
-                this.telemetry.infobarEvent(message.name);
+            case "updateStats":
+                if (this.statsMode) {
+                    // if the user chose to see stats in the infobar, we display them
+                    browser.runtime.sendMessage({
+                        command: "updateProgress",
+                        progressMessage: browser.i18n.getMessage("statsMessage", message.wps),
+                        tabId: this.tabId
+                    });
+                }
                 break;
             default:
-                // ignore
+            // ignore
         }
     }
 }
