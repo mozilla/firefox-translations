@@ -11,13 +11,13 @@
 let cachedEnvInfo = null;
 let pingSender = new PingSender();
 let modelFastText = null;
+let languageDetection = null;
 
 // as soon we load, we should turn off the legacy prefs to avoid UI conflicts
 browser.experiments.translationbar.switchOnPreferences();
 
 // eslint-disable-next-line max-lines-per-function
 const messageListener = async function(message, sender) {
-    let languageDetection = null;
     let listeneronUpdatedLoad = null;
     let webNavigationCompletedLoad = null;
     switch (message.command) {
@@ -100,7 +100,8 @@ const messageListener = async function(message, sender) {
                     displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
                     outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
                     qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage")
-                }
+                },
+                false
             );
 
             // we then ask the api for the localized version of the language codes
@@ -173,6 +174,15 @@ const messageListener = async function(message, sender) {
                     name: message.name }
             );
 
+            /*
+             * if the event was to close the infobar, we notify the api as well
+             * we don't need another redundant loop by informing the mediator,
+             * to then inform this script again
+             */
+            if (message.name === "closed") {
+                browser.experiments.translationbar.closeInfobar(message.tabId);
+            }
+
             break;
         case "displayStatistics":
 
@@ -184,6 +194,9 @@ const messageListener = async function(message, sender) {
                 { command: "displayStatistics",
                   tabId: message.tabId }
             );
+            break;
+        case "reportClosedInfobar":
+            browser.experiments.translationbar.closeInfobar(message.tabId);
             break;
         default:
             // ignore
@@ -213,4 +226,25 @@ fetch(browser
             wasmBinary: wasmArrayBuffer,
         };
     loadFastText(initialModule);
+});
+
+browser.pageAction.onClicked.addListener(tab => {
+
+    /*
+     * if the user clicks the pageAction, we summon the infobar, and for that we
+     * need to let the infobar api know that this is on demand-request, which
+     * doesn't have a language detected, so for that reason we set the language
+     * parameter as 'userrequest', in order to override the preferences
+     */
+    browser.experiments.translationbar.show(
+        tab.id,
+        "userrequest",
+        languageDetection.navigatorLanguage,
+        {
+            displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
+            outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
+            qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage")
+        },
+        true
+    );
 });

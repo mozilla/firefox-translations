@@ -125,6 +125,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
       this.localizedLanguagesByCode[code] = name;
     }
 
+    if (this.translationNotificationManager.detectedLanguage === "userrequest") {
+      this._getAnonElt("translate").disabled = true;
+    }
+
     this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_OFFER;
     this.translationNotificationManager.reportInfobarEvent("displayed");
   }
@@ -135,6 +139,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 
   fromLanguageChanged() {
     this.translationNotificationManager.reportInfobarEvent("change_lang");
+    this._getAnonElt("translate").disabled = false;
   }
 
   translate() {
@@ -148,6 +153,8 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         this._getAnonElt("qualityestimations-check").checked
     );
     this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATING;
+    this._getAnonElt("closeButton").disabled = true;
+    this._getAnonElt("options").disabled = true;
   }
 
   onOutboundClick() {
@@ -217,6 +224,14 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     const neverForLangs = Services.prefs.getCharPref("browser.translation.neverForLanguages",);
     item.disabled = neverForLangs.split(",").includes(lang);
 
+    /*
+     * if the infobar was displayed becuase of a manual pageAction, we don't
+     * display this item
+     */
+    if (this.translationNotificationManager.detectedLanguage === "userrequest") {
+      item.hidden = true;
+    }
+
     // check if translation is disabled for the domain:
     const principal = this.translationNotificationManager.browser.contentPrincipal;
     const perms = Services.perms;
@@ -239,7 +254,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 
     Services.prefs.setCharPref(kPrefName, val);
 
-    this.close();
+    this.closeCommand();
   }
 
   neverForSite() {
@@ -247,7 +262,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     const principal = this.translationNotificationManager.browser.contentPrincipal;
     const perms = Services.perms;
     perms.addFromPrincipal(principal, "translate", perms.DENY_ACTION);
-    this.close();
+    this.closeCommand();
   }
 
   displayStatistics() {
