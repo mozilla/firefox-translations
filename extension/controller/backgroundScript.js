@@ -10,13 +10,23 @@
 
 let cachedEnvInfo = null;
 let pingSender = new PingSender();
-let telemetryByTab = {}
+let telemetryByTab = new Map();
+
+const init = async () => {
+    cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
+    telemetryByTab.forEach(t => t.environment(cachedEnvInfo));
+}
 
 const getTelemetry = tabId => {
-    if (!(tabId in telemetryByTab)) {
-        telemetryByTab[tabId] = new Telemetry(pingSender);
+    if (!telemetryByTab.has(tabId)) {
+        let telemetry = new Telemetry(pingSender);
+        telemetryByTab.set(tabId, telemetry);
+        telemetry.versions(browser.runtime.getManifest().version, "?", BERGAMOT_VERSION_FULL);
+        if (cachedEnvInfo) {
+            telemetry.environment(cachedEnvInfo);
+        }
     }
-    return telemetryByTab[tabId];
+    return telemetryByTab.get(tabId);
 }
 
 // eslint-disable-next-line max-lines-per-function
@@ -45,7 +55,7 @@ const messageListener = async function (message, sender) {
              * wait until the page within the tab is loaded, and then return
              * with the tabId to the caller
              */
-            listeneronUpdatedLoad = async (tabId, changeInfo, tab) => {
+            listeneronUpdatedLoad = (tabId, changeInfo, tab) => {
                 if ((tabId === sender.tab.id || tab.url === sender.tab.url) && changeInfo.status === "complete") {
                     browser.tabs.onUpdated.removeListener(listeneronUpdatedLoad);
                     browser.webNavigation.onCompleted.removeListener(webNavigationCompletedLoad);
@@ -62,13 +72,6 @@ const messageListener = async function (message, sender) {
                             { command: "responseMonitorTabLoad", tabId }
                         );
                     }, 250);
-
-                    getTelemetry(tabId).versions(browser.runtime.getManifest().version, "?", BERGAMOT_VERSION_FULL);
-                    if (cachedEnvInfo === null) {
-                        // eslint-disable-next-line require-atomic-updates
-                        cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
-                    }
-                    getTelemetry(tabId).environment(cachedEnvInfo);
                 }
             };
 
@@ -80,7 +83,7 @@ const messageListener = async function (message, sender) {
                     setTimeout(() => {
                         browser.tabs.sendMessage(
                             details.tabId,
-                            {command: "responseMonitorTabLoad", tabId: details.tabId}
+                            { command: "responseMonitorTabLoad", tabId: details.tabId }
                         );
                     }, 250);
                 }
@@ -202,3 +205,4 @@ const messageListener = async function (message, sender) {
 
 browser.runtime.onMessage.addListener(messageListener);
 browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
+init().catch(error => console.error("bgScript initialization failed: ", error.message));

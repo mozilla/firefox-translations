@@ -195,6 +195,7 @@ class Mediator {
                 });
                 break;
             case "displayOutboundTranslation":
+
                 /* display the outboundstranslation widget */
                 this.outboundTranslation = new OutboundTranslation(this);
                 this.outboundTranslation.start(
