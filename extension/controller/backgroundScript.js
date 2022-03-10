@@ -178,7 +178,7 @@ browser.experiments.translationbar.onTranslationRequest.addListener(messageListe
 
 // loads fasttext (languaage detection) wasm module and model
 fetch(browser
-    .runtime.getURL("controller/languageDetection/fasttext_wasm.wasm"), { mode: "no-cors" })
+    .runtime.getURL("model/static/languageDetection/fasttext_wasm.wasm"), { mode: "no-cors" })
     .then(function(response) {
         return response.arrayBuffer();
     })
@@ -187,7 +187,7 @@ fetch(browser
             onRuntimeInitialized() {
                 const ft = new FastText(initialModule);
                 ft.loadModel(browser
-                    .runtime.getURL("controller/languageDetection/lid.176.ftz"))
+                    .runtime.getURL("model/static/languageDetection/lid.176.ftz"))
                     .then(model => {
                     modelFastText = model;
                 });
