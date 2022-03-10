@@ -165,6 +165,7 @@ class TranslationHelper {
                              */
                             translationResultBatch.forEach((result, index) => {
                                 translationMessagesBatch[index].translatedParagraph = result;
+                                console.log(`Source:\n "${translationMessagesBatch[index].sourceParagraph}"\nTarget:\n "${translationMessagesBatch[index].translatedParagraph}"\n\n`);
                             });
                             // and then report to the mediator
                             postMessage([
