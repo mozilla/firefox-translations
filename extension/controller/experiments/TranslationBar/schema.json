@@ -47,19 +47,6 @@
                 "description": "progress message"
             }
           ]
-        },
-        {
-          "name": "closeInfobar",
-          "type": "function",
-          "description": "Reports the user closed the infobar.",
-          "async": true,
-          "parameters": [
-            {
-                "name": "tabId",
-                "type": "integer",
-                "description": "tabId to host the translation bar"
-            }
-          ]
         }
       ],
       "events": [

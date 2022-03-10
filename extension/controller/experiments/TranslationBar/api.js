@@ -120,9 +120,6 @@
               const translatonNotificationManager = translatonNotificationManagers.get(tabId);
               translatonNotificationManager.notificationBox.updateTranslationProgress(progressMessage);
              },
-             closeInfobar: function closeInfobar(tabId) {
-              translatonNotificationManagers.delete(tabId);
-            },
              onTranslationRequest: new ExtensionCommon.EventManager({
               context,
               name: "experiments.translationbar.onTranslationRequest",

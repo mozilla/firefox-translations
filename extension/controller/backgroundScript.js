@@ -30,7 +30,7 @@ const messageListener = async function(message, sender) {
                 .predict(languageDetection.wordsToDetect.trim().replace(/(\r\n|\n|\r)/gm, ""), 1, 0.0)
                 .get(0)[1]
                 .replace("__label__", "");
-            // ugly workaround for Norsk bokmål due errors from everywhere
+            // ugly workaround for Norsk bokmål due errors everywhere
             if (languageDetection.pageLanguage === "no") languageDetection.pageLanguage = "nb"
             browser.tabs.sendMessage(sender.tab.id, { command: "responseDetectPageLanguage",
                 languageDetection })
@@ -155,14 +155,6 @@ const messageListener = async function(message, sender) {
                     name: message.name }
             );
 
-            /*
-             * if the event was to close the infobar, we notify the api as well
-             * we don't need another redundancy loop by informing the mediator,
-             * to then inform this script again
-             */
-            if (message.name === "closed") {
-                browser.experiments.translationbar.closeInfobar(message.tabId);
-            }
             break;
         case "displayStatistics":
 
@@ -184,22 +176,7 @@ const messageListener = async function(message, sender) {
 browser.runtime.onMessage.addListener(messageListener);
 browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
 
-/*
- * browser.pageAction.onClicked.addListener(tab => {
- *     // if the user clicks the pageAction, we summon the infobar
- *       browser.experiments.translationbar.show(
- *         tab.id,
- *         languageDetection.pageLanguage,
- *         languageDetection.navigatorLanguage,
- *         {
- *             displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
- *             outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
- *             qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage")
- *         }
- *     );
- * });
- */
-
+// loads fasttext (languaage detection) wasm module and model
 fetch(browser
     .runtime.getURL("controller/languageDetection/fasttext_wasm.wasm"), { mode: "no-cors" })
     .then(function(response) {
