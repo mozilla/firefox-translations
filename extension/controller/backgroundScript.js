@@ -183,19 +183,22 @@ const messageListener = async function(message, sender) {
 
 browser.runtime.onMessage.addListener(messageListener);
 browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
-browser.pageAction.onClicked.addListener(tab => {
-    // if the user clicks the pageAction, we summon the infobar
-      browser.experiments.translationbar.show(
-        tab.id,
-        languageDetection.pageLanguage,
-        languageDetection.navigatorLanguage,
-        {
-            displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
-            outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
-            qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage")
-        }
-    );
-});
+
+/*
+ * browser.pageAction.onClicked.addListener(tab => {
+ *     // if the user clicks the pageAction, we summon the infobar
+ *       browser.experiments.translationbar.show(
+ *         tab.id,
+ *         languageDetection.pageLanguage,
+ *         languageDetection.navigatorLanguage,
+ *         {
+ *             displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
+ *             outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
+ *             qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage")
+ *         }
+ *     );
+ * });
+ */
 
 fetch(browser
     .runtime.getURL("controller/languageDetection/fasttext_wasm.wasm"), { mode: "no-cors" })

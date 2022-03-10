@@ -8,7 +8,12 @@ module.exports = {
         "ecmaVersion": 2020,
         "sourceType": "module"
     },
-    "ignorePatterns": ["extension/controller/translation/bergamot-translator-worker.js", ".eslintrc.js"],
+    "ignorePatterns": [
+                    "extension/controller/translation/bergamot-translator-worker.js",
+                    "extension/controller/languageDetection/fasttext.js",
+                    "extension/controller/languageDetection/fasttext_wasm.js",
+                    ".eslintrc.js"
+                ],
     "rules": {
         "accessor-pairs": "error",
         "array-bracket-newline": "error",
