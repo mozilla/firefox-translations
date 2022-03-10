@@ -6,16 +6,14 @@
 // eslint-disable-next-line no-unused-vars
 class TranslationNotificationManager {
 
-    constructor(api, modelRegistry, detectedLanguage) {
+    constructor(api, modelRegistry, detectedLanguage, navigatorLanguage) {
         this.api = api;
         this.modelRegistry = modelRegistry;
         this.detectedLanguage = detectedLanguage;
+        this._navigatorLanguage = navigatorLanguage;
         this.languageSet = new Set();
+        this.devLanguageSet = new Set();
         this.loadLanguages();
-    }
-
-    set navigatorLanguage(val) {
-        this._navigatorLanguage = val;
     }
 
     get navigatorLanguage() {
@@ -70,6 +68,14 @@ class TranslationNotificationManager {
             const secondLang = languagePair.substring(2,4);
             this.languageSet.add(firstLang);
             this.languageSet.add(secondLang);
+
+            const navLangCode = this.navigatorLanguage.substring(0,2);
+            // all languages become 'dev' because translation is pivoted to 'dev' model en-nav_language
+            const isPivotModelDev = navLangCode !== "en" && this.modelRegistry[`en${navLangCode}`].model.modelType === "dev";
+            if (isPivotModelDev || (this.modelRegistry[languagePair].model.modelType === "dev")) {
+                this.devLanguageSet.add(firstLang);
+                this.devLanguageSet.add(secondLang);
+            }
         }
     }
 
