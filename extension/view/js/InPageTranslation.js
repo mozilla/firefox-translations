@@ -500,7 +500,17 @@ class InPageTranslation {
                         let counterpart = dstChildNodes[child.dataset.xBergamotId];
 
                         if (!counterpart) {
-                            console.warn(`[InPlaceTranslation] ${this.computePath(child, scratch)} Could not find counterpart for`, child.dataset.xBergamotId, dstChildNodes, child);
+                            /*
+                             * if translated element child doesn't have data-x-bergamot-id attribute and
+                             * has quality score specific attributes (that are set by translation engine
+                             * when QE is on) then just add the translated element child to the live
+                             * element node.
+                             */
+                            if (!child.hasAttribute("data-x-bergamot-id") && (child.hasAttribute("x-bergamot-sentence-index") || child.hasAttribute("x-bergamot-word-index"))) {
+                                dst.appendChild(child);
+                            } else {
+                                console.warn(`[InPlaceTranslation] ${this.computePath(child, scratch)} Could not find counterpart for`, child.dataset.xBergamotId, dstChildNodes, child);
+                            }
                             return;
                         }
 
