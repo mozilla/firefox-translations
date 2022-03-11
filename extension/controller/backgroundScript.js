@@ -30,7 +30,12 @@ const messageListener = async function(message, sender) {
                 .predict(languageDetection.wordsToDetect.trim().replace(/(\r\n|\n|\r)/gm, ""), 1, 0.0)
                 .get(0)[1]
                 .replace("__label__", "");
-            // ugly workaround for Norsk bokmål due errors everywhere
+
+            /*
+             * language detector returns "no" for Norwegian Bokmål ("nb")
+             * so we need to default it to "nb", since that's what FF
+             * localization mechanisms has set
+             */
             if (languageDetection.pageLanguage === "no") languageDetection.pageLanguage = "nb"
             browser.tabs.sendMessage(sender.tab.id, { command: "responseDetectPageLanguage",
                 languageDetection })
