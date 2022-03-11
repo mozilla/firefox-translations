@@ -103,6 +103,16 @@ const messageListener = async function(message, sender) {
                 }
             );
 
+            // we then ask the api for the localized version of the language codes
+            browser.tabs.sendMessage(
+                sender.tab.id,
+                { command: "localizedLanguages",
+                   localizedPageLanguage: await browser.experiments.translationbar
+                        .getLocalizedLanguageName(message.languageDetection.pageLanguage),
+                    localizedNavigatorLanguage: await browser.experiments.translationbar
+                        .getLocalizedLanguageName(message.languageDetection.navigatorLanguage) }
+            );
+
             break;
 
         case "loadTelemetryInfo":
