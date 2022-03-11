@@ -11,6 +11,12 @@ const baseURL = getRootDirectory(gTestPath).replace(
 add_task(async function testTranslationBarDisplayed() {
   info("Test the Translation functionality");
 
+  info("Waiting 10s until the engines are loaded");
+  // let's wait until the engines are loaded
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  info("Opening the test page");
+
   // open the test page.
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
@@ -18,9 +24,10 @@ add_task(async function testTranslationBarDisplayed() {
   );
 
   /*
-   * the infobar is not triggered first time the page is loaded due some caching
-   * so we need to reload the tab in order to have it summoned. It happens only
-   * on mochistests.
+   * the infobar is not triggered first time the page is loaded due a race condition
+   * so we need to reload the tab in order to have it summoned.
+   * It will be fixed on
+   * https://github.com/mozilla/firefox-translations/issues/145
    */
   gBrowser.reloadTab(tab);
 
