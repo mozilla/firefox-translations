@@ -107,10 +107,10 @@ const messageListener = async function(message, sender) {
             browser.tabs.sendMessage(
                 sender.tab.id,
                 { command: "localizedLanguages",
-                   localizedPageLanguage: await browser.experiments.translationbar.getLocalizedLanguageName(
-                        message.languageDetection.pageLanguage.language),
-                    localizedNavigatorLanguage: await browser.experiments.translationbar.getLocalizedLanguageName(
-                        message.languageDetection.navigatorLanguage) }
+                   localizedPageLanguage: await browser.experiments.translationbar
+                        .getLocalizedLanguageName(message.languageDetection.pageLanguage.language),
+                    localizedNavigatorLanguage: await browser.experiments.translationbar
+                        .getLocalizedLanguageName(message.languageDetection.navigatorLanguage) }
             );
 
             break;
