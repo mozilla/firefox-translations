@@ -500,6 +500,7 @@ class InPageTranslation {
                         let counterpart = dstChildNodes[child.dataset.xBergamotId];
 
                         if (!counterpart) {
+
                             /*
                              * if translated element child doesn't have data-x-bergamot-id attribute and
                              * has quality score specific attributes (that are set by translation engine
