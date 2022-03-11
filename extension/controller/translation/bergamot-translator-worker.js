@@ -1,6 +1,6 @@
 function loadEmscriptenGlueCode(Module) {
 
-    var BERGAMOT_VERSION_FULL = "v0.4.1+9eb2437";
+    var BERGAMOT_VERSION_FULL = "v0.4.2+ab7f84f";
 
     var Module = typeof Module !== "undefined" ? Module : {};
     
