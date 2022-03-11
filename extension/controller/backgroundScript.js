@@ -181,7 +181,7 @@ const messageListener = async function(message, sender) {
 browser.runtime.onMessage.addListener(messageListener);
 browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
 
-// loads fasttext (languaage detection) wasm module and model
+// loads fasttext (language detection) wasm module and model
 fetch(browser
     .runtime.getURL("model/static/languageDetection/fasttext_wasm.wasm"), { mode: "no-cors" })
     .then(function(response) {
