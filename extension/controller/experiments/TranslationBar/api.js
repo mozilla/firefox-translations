@@ -91,9 +91,9 @@
                 translationNotificationManager = new TranslationNotificationManager(
                   this,
                   modelRegistry,
-                  detectedLanguage
+                  detectedLanguage,
+                  navigatorLanguage
                 );
-                translationNotificationManager.navigatorLanguage = navigatorLanguage;
                 translationNotificationManager.tabId = tabId;
                 translationNotificationManager.bgScriptListenerCallback = bgScriptListenerCallback;
                 translationNotificationManager.notificationBox = notif;

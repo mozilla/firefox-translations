@@ -100,7 +100,8 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     const sortByLocalizedName = function(setOfLanguages) {
       const arrayOfLanguages = [...setOfLanguages];
       // eslint-disable-next-line no-undefined
-      const names = Services.intl.getLanguageDisplayNames(undefined, arrayOfLanguages);
+      let names = Services.intl.getLanguageDisplayNames(undefined, arrayOfLanguages);
+
       return arrayOfLanguages
         .map((code, i) => [code, names[i]])
         .sort((a, b) => a[1].localeCompare(b[1]));
@@ -109,7 +110,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     const detectedLanguage = this._getAnonElt("detectedLanguage");
     const languagesSupported = sortByLocalizedName(this.translationNotificationManager.languageSet);
 
-    for (const [code, name] of languagesSupported) {
+    for (let [code, name] of languagesSupported) {
+      if (this.translationNotificationManager.devLanguageSet.has(code)) {
+            name += " (Beta)";
+      }
       detectedLanguage.appendItem(name, code);
       this.localizedLanguagesByCode[code] = name;
     }
