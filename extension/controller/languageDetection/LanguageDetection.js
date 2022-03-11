@@ -21,28 +21,7 @@ class LanguageDetection {
      * instead of the top
      */
     extractPageContent() {
-        const MAX_ELEMENTS = 100;
-        let total_words = 0;
-        let wordsToDetect = "";
-        const elements = document.querySelectorAll("div");
-        for (let i = 0; i <= elements.length-1; i+=1) {
-            const cleanInnerText = elements[i].innerText
-                .replace(/\r?\n|\r/g, " ")
-                .replace(/\s+/g, " ")
-                .trim();
-            const elementSize = cleanInnerText.split(" ").length;
-            if (total_words + elementSize <= MAX_ELEMENTS) {
-                total_words += elementSize;
-                wordsToDetect = wordsToDetect.concat(cleanInnerText, " ");
-            } else {
-                const lastElement = cleanInnerText.split(" ");
-                for (let j = 0; j<= MAX_ELEMENTS - total_words -1; j+=1) {
-                    wordsToDetect = wordsToDetect.concat(lastElement[j], " ");
-                }
-                break;
-            }
-        }
-        this.wordsToDetect = wordsToDetect;
+        this.wordsToDetect = document.body.innerText;
     }
 
     /*
@@ -56,7 +35,7 @@ class LanguageDetection {
                 languageSet.add(languagePair);
             }
         }
-        let from = this.pageLanguage.language.concat("en");
+        let from = this.pageLanguage.concat("en");
         let to = "en".concat(this.navigatorLanguage.substring(0,2));
         if (from === "enen") from = to;
         if (to === "enen") to = from;
@@ -70,6 +49,6 @@ class LanguageDetection {
      * page language is different from user languages
      */
     isLangMismatch() {
-        return !this.navigatorLanguage.includes(this.pageLanguage.language);
+        return !this.navigatorLanguage.includes(this.pageLanguage);
     }
 }

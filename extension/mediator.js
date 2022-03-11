@@ -73,7 +73,7 @@ class Mediator {
              */
             if (this.translationBarDisplayed) return;
 
-            const pageLang = this.languageDetection.pageLanguage.language;
+            const pageLang = this.languageDetection.pageLanguage;
             const navLang = this.languageDetection.navigatorLanguage;
             this.telemetry.langPair(pageLang, navLang);
             this.telemetry.langMismatch();
@@ -83,12 +83,7 @@ class Mediator {
                 // request the backgroundscript to display the translationbar
                 browser.runtime.sendMessage({
                     command: "displayTranslationBar",
-                    languageDetection: this.languageDetection,
-                    localizedLabels: {
-                        displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
-                        outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
-                        qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage")
-                    }
+                    languageDetection: this.languageDetection
                 });
                 this.translationBarDisplayed = true;
                 // create the translation object
@@ -113,7 +108,7 @@ class Mediator {
                     message.payload.type,
                     message.tabId,
                     this.languageDetection.navigatorLanguage,
-                    this.languageDetection.pageLanguage.language,
+                    this.languageDetection.pageLanguage,
                     message.payload.attrId,
                     message.payload.withOutboundTranslation,
                     message.payload.withQualityEstimation
@@ -185,7 +180,7 @@ class Mediator {
                 this.outboundTranslation = new OutboundTranslation(this);
                 this.outboundTranslation.start(
                     this.languageDetection.navigatorLanguage,
-                    this.languageDetection.pageLanguage.language
+                    this.languageDetection.pageLanguage
                 );
                 break;
             case "onError":
@@ -247,11 +242,11 @@ class Mediator {
                  */
 
                 // the user might have changed the page language, so we just accept it
-                this.languageDetection.pageLanguage.language = message.from;
+                this.languageDetection.pageLanguage = message.from;
                 if (!this.inPageTranslation.started){
                     this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
                     this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
-                    this.inPageTranslation.start(this.languageDetection.pageLanguage.language);
+                    this.inPageTranslation.start(this.languageDetection.pageLanguage);
                 }
                 break;
             case "displayStatistics":

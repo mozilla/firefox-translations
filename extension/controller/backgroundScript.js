@@ -1,4 +1,4 @@
-/* global LanguageDetection, browser, PingSender */
+/* global LanguageDetection, browser, PingSender, loadFastText, FastText */
 
 /*
  * we need the background script in order to have full access to the
@@ -10,6 +10,7 @@
 
 let cachedEnvInfo = null;
 let pingSender = new PingSender();
+let modelFastText = null;
 
 // as soon we load, we should turn off the legacy prefs to avoid UI conflicts
 browser.experiments.translationbar.switchOnPreferences();
@@ -21,14 +22,24 @@ const messageListener = async function(message, sender) {
     let webNavigationCompletedLoad = null;
     switch (message.command) {
         case "detectPageLanguage":
+            if (!modelFastText) break;
 
             /*
              * call the cld experiment to detect the language of the snippet
              * extracted from the page
              */
             languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
-            languageDetection.pageLanguage = await
-                browser.experiments.languageDetector.detect(languageDetection.wordsToDetect);
+            languageDetection.pageLanguage = modelFastText
+                .predict(languageDetection.wordsToDetect.trim().replace(/(\r\n|\n|\r)/gm, ""), 1, 0.0)
+                .get(0)[1]
+                .replace("__label__", "");
+
+            /*
+             * language detector returns "no" for Norwegian Bokmål ("nb")
+             * so we need to default it to "nb", since that's what FF
+             * localization mechanisms has set
+             */
+            if (languageDetection.pageLanguage === "no") languageDetection.pageLanguage = "nb"
             browser.tabs.sendMessage(sender.tab.id, { command: "responseDetectPageLanguage",
                 languageDetection })
             break;
@@ -83,9 +94,13 @@ const messageListener = async function(message, sender) {
              */
             await browser.experiments.translationbar.show(
                 sender.tab.id,
-                message.languageDetection.pageLanguage.language,
+                message.languageDetection.pageLanguage,
                 message.languageDetection.navigatorLanguage,
-                message.localizedLabels
+                {
+                    displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
+                    outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
+                    qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage")
+                }
             );
 
             break;
@@ -147,6 +162,7 @@ const messageListener = async function(message, sender) {
                     tabId: message.tabId,
                     name: message.name }
             );
+
             break;
         case "displayStatistics":
 
@@ -167,3 +183,24 @@ const messageListener = async function(message, sender) {
 
 browser.runtime.onMessage.addListener(messageListener);
 browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
+
+// loads fasttext (language detection) wasm module and model
+fetch(browser
+    .runtime.getURL("model/static/languageDetection/fasttext_wasm.wasm"), { mode: "no-cors" })
+    .then(function(response) {
+        return response.arrayBuffer();
+    })
+    .then(function(wasmArrayBuffer) {
+        const initialModule = {
+            onRuntimeInitialized() {
+                const ft = new FastText(initialModule);
+                ft.loadModel(browser
+                    .runtime.getURL("model/static/languageDetection/lid.176.ftz"))
+                    .then(model => {
+                    modelFastText = model;
+                });
+            },
+            wasmBinary: wasmArrayBuffer,
+        };
+    loadFastText(initialModule);
+});

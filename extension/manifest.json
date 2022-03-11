@@ -23,11 +23,14 @@
     "storage"
   ],
   "background": {
+    "persistent": true,
     "scripts": [
       "settings.js",
       "model/telemetry/schema.js",
       "model/telemetry/PingSender.js",
-      "controller/LanguageDetection.js",
+      "controller/languageDetection/LanguageDetection.js",
+      "controller/languageDetection/fasttext_wasm.js",
+      "controller/languageDetection/fasttext.js",
       "view/js/TranslationNotificationManager.js",
       "controller/backgroundScript.js"
     ]
@@ -39,7 +42,7 @@
       ],
       "js": [
         "settings.js",
-        "controller/LanguageDetection.js",
+        "controller/languageDetection/LanguageDetection.js",
         "model/Queue.js",
         "controller/translation/Translation.js",
         "controller/translation/TranslationMessage.js",
@@ -66,21 +69,6 @@
   ],
   "incognito": "spanning",
   "experiment_apis": {
-    "experiment_languageDetector": {
-      "schema": "controller/experiments/LanguageDetector/schema.json",
-      "parent": {
-        "scopes": [
-          "addon_parent"
-        ],
-        "paths": [
-          [
-            "experiments",
-            "languageDetector"
-          ]
-        ],
-        "script": "controller/experiments/LanguageDetector/api.js"
-      }
-    },
     "experiments_translationbar": {
       "schema": "controller/experiments/TranslationBar/schema.json",
       "parent": {
@@ -130,5 +118,6 @@
   "icons": {
     "16": "/view/icons/translation.16x16.png",
     "32": "/view/icons/translation.32x32.png"
-  }
+  },
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';"
 }
