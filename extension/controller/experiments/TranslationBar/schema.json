@@ -47,6 +47,13 @@
                 "description": "progress message"
             }
           ]
+        },
+        {
+          "name": "switchOnPreferences",
+          "type": "function",
+          "description": "Switch on the preferences required for the extension to function.",
+          "async": true,
+          "parameters": []
         }
       ],
       "events": [

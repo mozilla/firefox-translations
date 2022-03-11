@@ -11,6 +11,9 @@
 let cachedEnvInfo = null;
 let pingSender = new PingSender();
 
+// as soon we load, we should turn off the legacy prefs to avoid UI conflicts
+browser.experiments.translationbar.switchOnPreferences();
+
 // eslint-disable-next-line max-lines-per-function
 const messageListener = async function(message, sender) {
     let languageDetection = null;

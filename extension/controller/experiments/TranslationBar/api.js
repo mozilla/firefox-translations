@@ -48,13 +48,6 @@
             show: function show(tabId, detectedLanguage, navigatorLanguage, localizedLabels) {
               try {
 
-                // disable the legacy translation infobar
-                Services.prefs.setBoolPref("browser.translation.ui.show", false);
-                Services.prefs.setBoolPref(
-                  "browser.translation.detectLanguage",
-                  false,
-                );
-
                 const { tabManager } = context.extension;
                 const tab = tabManager.get(tabId);
                 const chromeWin = tab.browser.ownerGlobal;
@@ -119,6 +112,16 @@
             updateProgress: function updateProgress(tabId, progressMessage) {
               const translatonNotificationManager = translatonNotificationManagers.get(tabId);
               translatonNotificationManager.notificationBox.updateTranslationProgress(progressMessage);
+             },
+             switchOnPreferences: function switchOnPreferences() {
+               const { Services } = ChromeUtils.import(
+                 "resource://gre/modules/Services.jsm",
+                 {},
+               );
+               Services.prefs.setBoolPref("browser.translation.ui.show", false);
+               Services.prefs.setBoolPref("extensions.translations.disabled", true);
+               Services.prefs.setBoolPref("browser.translation.detectLanguage",false,);
+               Services.prefs.setBoolPref("javascript.options.wasm_simd_wormhole",true,);
              },
              onTranslationRequest: new ExtensionCommon.EventManager({
               context,
