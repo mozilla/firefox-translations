@@ -123,6 +123,10 @@
                Services.prefs.setBoolPref("browser.translation.detectLanguage",false,);
                Services.prefs.setBoolPref("javascript.options.wasm_simd_wormhole",true,);
              },
+             getLocalizedLanguageName: function getLocalizedLanguageName(languageCode){
+              // eslint-disable-next-line no-undefined
+              return Services.intl.getLanguageDisplayNames(undefined, [languageCode,])[0];
+             },
              onTranslationRequest: new ExtensionCommon.EventManager({
               context,
               name: "experiments.translationbar.onTranslationRequest",

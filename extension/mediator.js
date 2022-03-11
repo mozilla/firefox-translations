@@ -179,8 +179,8 @@ class Mediator {
                 /* display the outboundstranslation widget */
                 this.outboundTranslation = new OutboundTranslation(this);
                 this.outboundTranslation.start(
-                    this.languageDetection.navigatorLanguage,
-                    this.languageDetection.pageLanguage
+                    this.localizedNavigatorLanguage,
+                    this.localizedPageLanguage
                 );
                 break;
             case "onError":
@@ -256,6 +256,10 @@ class Mediator {
             case "onInfobarEvent":
                 // 'name' is a metric name from metrics.yaml
                 this.telemetry.infobarEvent(message.name);
+                break;
+            case "localizedLanguages":
+                this.localizedPageLanguage = message.localizedPageLanguage;
+                this.localizedNavigatorLanguage = message.localizedNavigatorLanguage;
                 break;
             default:
                 // ignore

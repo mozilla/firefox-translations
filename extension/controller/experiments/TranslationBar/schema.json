@@ -54,6 +54,19 @@
           "description": "Switch on the preferences required for the extension to function.",
           "async": true,
           "parameters": []
+        },
+        {
+          "name": "getLocalizedLanguageName",
+          "type": "function",
+          "description": "Returns the localized language name by its language code.",
+          "async": true,
+          "parameters": [
+            {
+                "name": "languageCode",
+                "type": "string",
+                "description": "language code"
+            }
+          ]
         }
       ],
       "events": [
