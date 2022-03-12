@@ -113,6 +113,19 @@ class InPageTranslation {
             // handled in isExcludedNode
             // `*[lang]:not([lang|=${language}])`
         ])
+
+        this.observer = new MutationObserver(mutationsList => {
+            for (const mutation of mutationsList) {
+                switch (mutation.type) {
+                    case "childList":
+                        mutation.addedNodes.forEach(node => this.startTreeWalker(node));
+                        break;
+                    case "characterData":
+                        this.startTreeWalker(mutation.target);
+                        break;
+                }
+            }
+        });
     }
 
     start(language) {
@@ -364,32 +377,15 @@ class InPageTranslation {
     }
 
     startMutationObserver() {
-        // select the node that will be observed for mutations
-        const targetNode = document;
-
-        // options for the observer (which mutations to observe)
-        const config = {
+        this.observer.observe(document, {
             characterData: true,
             childList: true,
             subtree: true
-        };
-        
-        // create an observer instance linked to the callback function
-        const observer = new MutationObserver(mutationsList => {
-            for (const mutation of mutationsList) {
-                switch (mutation.type) {
-                    case "childList":
-                        mutation.addedNodes.forEach(node => this.startTreeWalker(node));
-                        break;
-                    case "characterData":
-                        this.startTreeWalker(mutation.target.parentNode);
-                        break;
-                }
-            }
         });
+    }
 
-        // start observing the target node for configured mutations
-        observer.observe(targetNode, config);
+    stopMutationObserver() {
+        this.observer.disconnect();
     }
 
     mediatorNotification(translationMessage) {
@@ -509,9 +505,16 @@ class InPageTranslation {
             // console.groupEnd(computePath(node));
         };
 
-        this.updateMap.forEach(updateElement);
-        this.updateMap.clear();
-        this.updateTimeout = null;
+        // Pause observing mutations
+        this.stopMutationObserver();
+
+        try {
+            this.updateMap.forEach(updateElement);
+            this.updateMap.clear();
+            this.updateTimeout = null;
+        } finally {
+            this.startMutationObserver();
+        }
     }
 
     enqueueElement(translationMessage) {
