@@ -322,7 +322,6 @@ class InPageTranslation {
     }
 
     queueTranslation(node) {
-
         /*
          * let's store the node to keep its reference
          * and send it to the translation worker
@@ -516,8 +515,12 @@ class InPageTranslation {
 
             merge(node, scratch);
 
-            // TODO is this a good idea?
-            // this.nodesSent.delete(node);
+            // Remove node again from nodesSent because someone might change
+            // the innerHTML or add children, and then we want to translate
+            // those.
+            // TODO: what if a node was mutated while translation was pending?
+            // Will that mutation then be ignored?
+            this.nodesSent.delete(node);
             // console.groupEnd(computePath(node));
         };
 
