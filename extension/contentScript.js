@@ -22,11 +22,11 @@ on('Update', diff => {
         inPageTranslation.start(diff.from);
 });
 
-on('Update', diff => {
+on('Update', async diff => {
     if ('state' in diff && diff.state === 'page-loading') {
         // request the language detection class to extract a page's snippet
         const languageDetection = new LanguageDetection();
-        const sample = languageDetection.extractPageContent();
+        const sample = await languageDetection.extractPageContent();
         const suggested = languageDetection.extractSuggestedLanguages();
 
         // Once we have the snippet, send it to background script for analysis
