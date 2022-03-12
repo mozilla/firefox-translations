@@ -7,7 +7,33 @@
 // eslint-disable-next-line no-unused-vars
 class LanguageDetection {
     extractPageContent() {
-        return document.body.innerText.substr(0, 2048);
+        return new Promise((resolve, reject) => {
+            const extract = () => {
+                const sample = document.body.innerText.substr(0, 2048);
+                
+                // If the sample is good, resolve our promise.
+                if (sample.trim() !== '') {
+                    resolve(sample);
+                    return true;
+                } else {
+                    return false;
+                }
+            };
+
+            // If we got a sample right now, we're good.
+            if (extract())
+                return;
+
+            // Otherwise, we wait for mutations until we get a good sample.
+            // This happens a lot in PWAs that just load a blank page, and then
+            // start loading a lot of Javascript.
+            const observer = new MutationObserver((mutations, observer) => {
+                if (extract())
+                    observer.disconnect();
+            });
+
+            observer.observe(document.body, {subtree: true, childList: true});
+        });
     }
 
     extractSuggestedLanguages() {
