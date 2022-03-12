@@ -163,19 +163,35 @@ class InPageTranslation {
     }
 
     startTreeWalker(root) {
-        const acceptNode = node => {
-            return this.validateNode(node);
-        }
+        // TODO: Bit of added complicated logic to include `root` in the set
+        // of nodes that is being evaluated. Normally TreeWalker will only
+        // look at the descendants.
+        switch (this.validateNode(root)) {
+            // If even the root is already rejected, no need to look further
+            case NodeFilter.FILTER_REJECT:
+                return;
+            
+            // If the root itself is accepted, we don't need to drill down
+            // either. But we do want to call dispatchTranslations().
+            case NodeFilter.FILTER_ACCEPT:
+                this.queueTranslation(root);
+                break;
+            
+            // If we skip the root (because it's a block element and we want to
+            // cut it into smaller chunks first) then start tree walking to
+            // those smaller chunks.
+            case NodeFilter.FILTER_SKIP: {
+                const nodeIterator = document.createTreeWalker(
+                    root,
+                    NodeFilter.SHOW_ELEMENT,
+                    this.validateNode.bind(this)
+                );
 
-        const nodeIterator = document.createTreeWalker(
-            root,
-            NodeFilter.SHOW_ELEMENT,
-            acceptNode
-        );
-
-        let currentNode;
-        while (currentNode = nodeIterator.nextNode()) {
-            this.queueTranslation(currentNode);
+                let currentNode;
+                while (currentNode = nodeIterator.nextNode()) {
+                    this.queueTranslation(currentNode);
+                }
+            } break;
         }
 
         this.dispatchTranslations();
