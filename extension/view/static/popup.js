@@ -46,14 +46,22 @@ function render(state) {
 	// If the model (or one of the models in case of pivoting) needs downloading
 	const needsDownload = state.page.models.find(model => from === model.from && to === model.to)?.models?.some(({model}) => !model.local);
 
+	const name = (code) => {
+		try {
+			return regionNamesInEnglish.of(code);
+		} catch (RangeError) {
+			return `[${code}]`; // fallback if code is not known or invalid
+		}
+	};
+
 	const renderState = {
 		...state,
 		from,
 		to,
 		'lang-from': regionNamesInEnglish.of(from),
 		'lang-to': regionNamesInEnglish.of(to),
-		'lang-from-options': new Map(state.page.models.map(({from}) => [from, regionNamesInEnglish.of(from)])),
-		'lang-to-options': new Map(state.page.models.filter(model => from === model.from).map(({to, pivot}) => [to, regionNamesInEnglish.of(to) + (pivot ? ` (via ${regionNamesInEnglish.of(pivot)})` : '')])),
+		'lang-from-options': new Map(state.page.models.map(({from}) => [from, name(from)])),
+		'lang-to-options': new Map(state.page.models.filter(model => from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
 		'needs-download': needsDownload,
 		'!needs-download': !needsDownload, // data-bind has no operators, so ! goes in the name :P
 		'completedTranslationRequests': state.totalTranslationRequests - state.pendingTranslationRequests || undefined
