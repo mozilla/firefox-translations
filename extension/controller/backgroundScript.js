@@ -372,15 +372,18 @@ function connectPopup(popup) {
                     state: State.DOWNLOADING_MODELS
                 }));
 
-                // Start the downloads and put them in a Map<download:promise, progress:float>
-                const downloads = new Map(message.data.models.map(model => [translationHelper.downloadModel(model), 0.0]));
+                // Start the downloads and put them in a {[download:promise]: {read:int,size:int}}
+                const downloads = new Map(message.data.models.map(model => [translationHelper.downloadModel(model), {read:0.0, size:0.0}]));
 
                 // For each download promise, add a progress listener that updates the tab state
                 // with how far all our downloads have progressed so far.
-                downloads.forEach((_, promise) => promise.addProgressListener(({progress}) => {
-                    downloads.set(promise, progress);
+                downloads.forEach((_, promise) => promise.addProgressListener(({read, size}) => {
+                    // Update download we got a notification about
+                    downloads.set(promise, {read, size});
+                    // Update tab state about all downloads combined (i.e. model, optionally pivot)
                     tab.update(state => ({
-                        modelDownloadProgress: Array.from(downloads.values()).reduce((sum, progress) => sum + progress) / downloads.size
+                        modelDownloadRead: Array.from(downloads.values()).reduce((sum, {read}) => sum + read, 0),
+                        modelDownloadSize: Array.from(downloads.values()).reduce((sum, {size}) => sum + size, 0)
                     }));
                 }));
 
