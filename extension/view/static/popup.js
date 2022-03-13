@@ -143,7 +143,7 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 			data.models = state.page.models
 			              .find(({from, to}) => from === data.from && to === data.to)
 			              .models
-			              .map(({model}) => model.shortname);
+			              .map(({model}) => model.id);
 
 			backgroundScript.postMessage({
 				command: 'DownloadModels',
