@@ -55,35 +55,6 @@ function cyrb53(str, seed = 0) {
     return 4294967296 * (2097151 & h2) + (h1>>>0);
 }
 
-/**
- * Very, very rudimentary YAML parser. But sufficient for config.yml files!
- */
-function parseYaml(yaml) {
-    const out = {};
-
-    yaml.split('\n').reduce((key, line, i) => {
-        let match;
-        if (match = line.match(/^\s*-\s+(.+?)$/)) {
-            if (!Array.isArray(out[key]))
-                out[key] = out[key].trim() ? [out[key]] : [];
-            out[key].push(match[1].trim());
-        }
-        else if (match = line.match(/^([A-Za-z0-9_][A-Za-z0-9_-]*):\s*(.*)$/)) {
-            key = match[1];
-            out[key] = match[2].trim();
-        }
-        else if (!line.trim()) {
-            // whitespace, ignore
-        }
-        else {
-            throw Error(`Could not parse line ${i+1}: "${line}"`);
-        }
-        return key;
-    }, null);
-
-    return out;
-}
-
 
 const BATCH_SIZE = 8; // number of requested translations
 
@@ -249,7 +220,7 @@ class Channel {
         // Find the config yml file
         const configFile = files.find(file => file.name.endsWith('config.intgemm8bitalpha.yml'));
 
-        const config = parseYaml(configFile.readAsString());
+        const config = YAML.parse(configFile.readAsString());
 
         const model = files.find(file => file.name.endsWith(config.models[0])).buffer;
 
