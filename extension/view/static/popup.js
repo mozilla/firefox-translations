@@ -108,17 +108,7 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 
 	const backgroundScript = browser.runtime.connect({name: `popup-${tabId}`});
 
-	const state = {
-		state: 'page-loading',
-		from: undefined,
-		to: undefined,
-		models: [],
-		debug: false,
-		pendingTranslationRequests: 0,
-		totalTranslationRequests: 0,
-		modelDownloadRead: undefined,
-		modelDownloadSize: undefined,
-	};
+	const state = {};
 
 	backgroundScript.onMessage.addListener(({command, data}) => {
 		switch (command) {

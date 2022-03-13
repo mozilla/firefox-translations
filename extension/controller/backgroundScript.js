@@ -107,10 +107,16 @@ class Tab extends EventTarget {
         this.id = id;
         this.state = {
             state: State.PAGE_LOADING,
+            from: undefined,
+            to: undefined,
+            models: [],
+            debug: false,
+            error: null,
+            url: null,
             pendingTranslationRequests: 0,
             totalTranslationRequests: 0,
-            debug: false,
-            url: null
+            modelDownloadRead: undefined,
+            modelDownloadSize: undefined,
         };
         this.frames = new Map();
 
