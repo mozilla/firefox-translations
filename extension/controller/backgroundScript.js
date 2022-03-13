@@ -364,7 +364,7 @@ function connectPopup(popup) {
     // Make the popup receive state updates
     connectTab(tab, popup);
 
-    popup.onMessage.addListener(message => {
+    popup.onMessage.addListener(async message => {
         switch (message.command) {
             case "DownloadModels":
                 // Tell the tab we're downloading models
@@ -388,10 +388,19 @@ function connectPopup(popup) {
                 }));
 
                 // Finally, when all downloads have finished, start translating the page.
-                Promise.all(downloads.keys()).then(() => tab.translate({
-                   from: message.data.from,
-                    to: message.data.to 
-                }));
+                try {
+                    await Promise.all(downloads.keys());
+
+                    tab.translate({
+                       from: message.data.from,
+                         to: message.data.to
+                    });
+                } catch (e) {
+                    tab.update(state => ({
+                        state: State.TRANSLATION_ERROR,
+                        error: e.toString()
+                    }));
+                }
                 break;
             case "TranslateStart":
                 tab.translate({
