@@ -186,11 +186,12 @@ class Channel {
      */
     async loadModelRegistery() {
         const response = await fetch('https://translatelocally.com/models.json');
-        const data = await response.json();
+        const {models} = await response.json();
+
         // Add 'from' and 'to' keys for each model. Since theoretically a model
         // can have multiple froms keys in TranslateLocally, we do a little
         // product here.
-        return Array.from(chain(data, function*(model) {
+        return Array.from(chain(models, function*(model) {
             try {
                 const to = first(Intl.getCanonicalLocales(model.trgTag));
                 for (let from of Intl.getCanonicalLocales(Object.keys(model.srcTags))) {
@@ -228,12 +229,14 @@ class Channel {
         const entries = (await this.registry).filter(model => model.from == from && model.to == to);
 
         // Prefer tiny models above non-tiny ones (right now base models don't even work properly 😅)
-        entries.sort((a, b) => (a.shortName.indexOf('tiny') === -1 ? 1 : 0) - (b.shortName.indexOf('tiny') === -1 ? 1 : 0));
+        entries.sort(({model: a}, {model: b}) => (a.shortName.indexOf('tiny') === -1 ? 1 : 0) - (b.shortName.indexOf('tiny') === -1 ? 1 : 0));
+
+        entries.reverse();
 
         if (!entries)
             throw new Error(`No model for ${from} -> ${to}`);
 
-        const entry = entries[0];
+        const entry = first(entries).model;
 
         console.debug("Downloading model", entry, "of available", entries);
 
