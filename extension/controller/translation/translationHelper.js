@@ -31,6 +31,16 @@ function *chain(iterable, functor) {
 }
 
 /**
+ * Take the first element from anything that can be iterated over. Like arr[0]
+ * or iterable[Symbol.iterator].next().value. If the iterator is empty, throw.
+ */
+function first(iterable) {
+    for (let item of iterable)
+        return item;
+    throw new RangeError('Iterable is empty');
+}
+
+/**
  * Returns a set that is the intersection of two iterables
  */
 function intersect(a, b) {
@@ -149,12 +159,13 @@ class Channel {
         // can have multiple froms keys in TranslateLocally, we do a little
         // product here.
         return Array.from(chain(response, function*(model) {
-            for (let from of Object.keys(model.srcTags)) {
-                yield {
-                    model,
-                    from,
-                    to: model.trgTag
-                };
+            try {
+                const to = first(Intl.getCanonicalLocales(model.trgTag));
+                for (let from of Intl.getCanonicalLocales(Object.keys(model.srcTags))) {
+                    yield {from, to, model};
+                }
+            } catch (err) {
+                console.log('Skipped model', model, err);
             }
         }));
     }
