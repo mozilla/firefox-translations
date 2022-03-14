@@ -22,6 +22,15 @@ function lazy(factory) {
 }
 
 /**
+ * Array.prototype.map, but with a twist: the functor returns an iterator
+ * (or more usefully) a generator, it will then add each of those elements.
+ */
+function *chain(iterable, functor) {
+    for (let item of iterable)
+        yield* functor(item);
+}
+
+/**
  * Returns a set that is the intersection of two iterables
  */
 function intersect(a, b) {
@@ -136,10 +145,18 @@ class Channel {
         const client = await this.client;
         const response = await client.request('ListModels', {includeRemote: true});
 
-        return response.map(model => {
-            const [from, to, ...rest] = model.shortname.split('-', 3);
-            return {from, to, model};
-        });
+        // Add 'from' and 'to' keys for each model. Since theoretically a model
+        // can have multiple froms keys in TranslateLocally, we do a little
+        // product here.
+        return Array.from(chain(response, function*(model) {
+            for (let from of Object.keys(model.srcTags)) {
+                yield {
+                    model,
+                    from,
+                    to: model.trgTag
+                };
+            }
+        }));
     }
 
     /**
