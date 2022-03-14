@@ -32,6 +32,15 @@ function lazy(factory) {
 }
 
 /**
+ * Array.prototype.map, but with a twist: the functor returns an iterator
+ * (or more usefully) a generator, it will then add each of those elements.
+ */
+function *chain(iterable, functor) {
+    for (let item of iterable)
+        yield* functor(item);
+}
+
+/**
  * Returns a set that is the intersection of two iterables
  */
 function intersect(a, b) {
@@ -166,13 +175,19 @@ class Channel {
      * with a TranslateLocally type registry. Returns Promise<List<Model>>
      */
     async loadModelRegistery() {
-        // I know doesn't need to be async but at some point we might want to use fetch() here.
         const response = await fetch('https://translatelocally.com/models.json');
         const data = await response.json();
-        return data.models.map(model => ({
-            ...model,
-            from: Object.keys(model.srcTags)[0],
-            to: model.trgTag
+        // Add 'from' and 'to' keys for each model. Since theoretically a model
+        // can have multiple froms keys in TranslateLocally, we do a little
+        // product here.
+        return Array.from(chain(data, function*(model) {
+            for (let from of Object.keys(model.srcTags)) {
+                yield {
+                    model,
+                    from,
+                    to: model.trgTag
+                };
+            }
         }));
     }
 
