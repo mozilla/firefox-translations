@@ -467,7 +467,8 @@ performance:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
-  translation_quality:
+quality:
+  summary:
     type: string
     lifetime: ping
     send_in_pings:
@@ -486,7 +487,7 @@ performance:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
-  word_quality_avg:
+  word_avg:
     type: quantity
     unit: points
     lifetime: ping
@@ -504,7 +505,7 @@ performance:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
-  word_quality_median:
+  word_median:
     type: quantity
     unit: points
     lifetime: ping
@@ -522,7 +523,7 @@ performance:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
-  word_quality_90th:
+  word_90th:
     type: quantity
     unit: points
     lifetime: ping
@@ -540,7 +541,7 @@ performance:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
-  sent_quality_avg:
+  sent_avg:
     type: quantity
     unit: points
     lifetime: ping
@@ -558,7 +559,7 @@ performance:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
-  sent_quality_median:
+  sent_median:
     type: quantity
     unit: points
     lifetime: ping
@@ -576,7 +577,7 @@ performance:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
-  sent_quality_90th:
+  sent_90th:
     type: quantity
     unit: points
     lifetime: ping
@@ -585,6 +586,22 @@ performance:
     description: |
       90th percentile of quality estimation of translation for sentences
       multiplied by 1000.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/107
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  is_supervised:
+    type: boolean
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Indicates whether a supervised model was used for quality estimation.
     bugs:
       - https://github.com/mozilla/firefox-translations/issues/107
     data_reviews:

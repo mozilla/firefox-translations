@@ -157,45 +157,53 @@ const telemetrySchema = {
                 "send_in_pings": [
                     "custom"
                 ]
-            },
-            "translation_quality": {
+            }
+        },
+        "quality": {
+            "summary": {
                 "type": "string",
                 "send_in_pings": [
                     "custom"
                 ]
             },
-            "word_quality_avg": {
+            "word_avg": {
                 "type": "quantity",
                 "send_in_pings": [
                     "custom"
                 ]
             },
-            "word_quality_median": {
+            "word_median": {
                 "type": "quantity",
                 "send_in_pings": [
                     "custom"
                 ]
             },
-            "word_quality_90th": {
+            "word_90th": {
                 "type": "quantity",
                 "send_in_pings": [
                     "custom"
                 ]
             },
-            "sent_quality_avg": {
+            "sent_avg": {
                 "type": "quantity",
                 "send_in_pings": [
                     "custom"
                 ]
             },
-            "sent_quality_median": {
+            "sent_median": {
                 "type": "quantity",
                 "send_in_pings": [
                     "custom"
                 ]
             },
-            "sent_quality_90th": {
+            "sent_90th": {
                 "type": "quantity",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "is_supervised": {
+                "type": "boolean",
                 "send_in_pings": [
                     "custom"
                 ]

@@ -61,7 +61,9 @@ class Telemetry {
         this._updateUsageTime();
     }
 
-    addQualityEstimation(wordScores, sentScores) {
+    addQualityEstimation(wordScores, sentScores, isSupervised) {
+        this._client.boolean("quality", "is_supervised", isSupervised);
+
         for (const score of wordScores) this._wordScores.push(score);
         for (const score of sentScores) this._sentScores.push(score);
 
@@ -69,16 +71,16 @@ class Telemetry {
         const sentStats = this._calcStats(this._sentScores);
 
         this._client.string(
-    "performance", "translation_quality",
+    "quality", "summary",
             `${wordStats.avg},${wordStats.median},${wordStats.perc90},${sentStats.avg},${sentStats.median},${sentStats.perc90}`
         );
         // glean Quantity metric type supports only positive integers
-        this._client.quantity("performance", "word_quality_avg", Math.round(wordStats.avg*1000));
-        this._client.quantity("performance", "word_quality_median", Math.round(wordStats.median*1000));
-        this._client.quantity("performance", "word_quality_90th", Math.round(wordStats.perc90*1000));
-        this._client.quantity("performance", "sent_quality_avg", Math.round(sentStats.avg*1000));
-        this._client.quantity("performance", "sent_quality_median", Math.round(sentStats.median*1000));
-        this._client.quantity("performance", "sent_quality_90th", Math.round(sentStats.perc90*1000));
+        this._client.quantity("quality", "word_avg", Math.round(wordStats.avg*1000));
+        this._client.quantity("quality", "word_median", Math.round(wordStats.median*1000));
+        this._client.quantity("quality", "word_90th", Math.round(wordStats.perc90*1000));
+        this._client.quantity("quality", "sent_avg", Math.round(sentStats.avg*1000));
+        this._client.quantity("quality", "sent_median", Math.round(sentStats.median*1000));
+        this._client.quantity("quality", "sent_90th", Math.round(sentStats.perc90*1000));
     }
 
     _calcStats(array) {
