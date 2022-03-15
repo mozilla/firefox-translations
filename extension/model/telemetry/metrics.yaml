@@ -473,10 +473,12 @@ performance:
     send_in_pings:
       - custom
     description: |
-      Quality estimation of translation.
+      Summary of quality estimation of translation.
+      All scores are in range [0,1].
+      <word_avg>,<word_median>,<word_90th>,<sent_avg>,<sent_median>,<sent_90th>
+      Example: "0.5,0.55,0.35,0.6,0.55,0.7"
     bugs:
-      - https://github.com/mozilla-extensions/firefox-translations/issues/42
-      - https://github.com/mozilla/firefox-translations/issues/27
+      - https://github.com/mozilla/firefox-translations/issues/107
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
@@ -484,7 +486,114 @@ performance:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
-
+  word_quality_avg:
+    type: quantity
+    unit: points
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Average quality estimation of translation for words
+      multiplied by 1000.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/107
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  word_quality_median:
+    type: quantity
+    unit: points
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Median quality estimation of translation for words
+      multiplied by 1000.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/107
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  word_quality_90th:
+    type: quantity
+    unit: points
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      90th percentile of quality estimation of translation for words
+      multiplied by 1000.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/107
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  sent_quality_avg:
+    type: quantity
+    unit: points
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Average quality estimation of translation for sentences
+      multiplied by 1000.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/107
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  sent_quality_median:
+    type: quantity
+    unit: points
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Median quality estimation of translation for sentences
+      multiplied by 1000.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/107
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  sent_quality_90th:
+    type: quantity
+    unit: points
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      90th percentile of quality estimation of translation for sentences
+      multiplied by 1000.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/107
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
 infobar:
   displayed:
     type: event

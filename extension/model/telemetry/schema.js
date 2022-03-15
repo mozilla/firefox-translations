@@ -18,12 +18,6 @@ const telemetrySchema = {
                     "custom"
                 ]
             },
-            "firefox_client_id": {
-                "type": "string",
-                "send_in_pings": [
-                    "custom"
-                ]
-            },
             "extension_version": {
                 "type": "string",
                 "send_in_pings": [
@@ -166,6 +160,42 @@ const telemetrySchema = {
             },
             "translation_quality": {
                 "type": "string",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "word_quality_avg": {
+                "type": "quantity",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "word_quality_median": {
+                "type": "quantity",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "word_quality_90th": {
+                "type": "quantity",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "sent_quality_avg": {
+                "type": "quantity",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "sent_quality_median": {
+                "type": "quantity",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "sent_quality_90th": {
+                "type": "quantity",
                 "send_in_pings": [
                     "custom"
                 ]
