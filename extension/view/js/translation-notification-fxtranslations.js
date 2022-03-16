@@ -9,8 +9,8 @@
 /* global MozElements, Translation, Services */
 
 window.MozTranslationNotification = class extends MozElements.Notification {
-    static get markup() {
-        return `
+  static get markup() {
+    return `
       <hbox anonid="details" align="center" flex="1">
         <image  anonid="logoIcon" class="messageImage"/>
         <deck anonid="translationStates" selectedIndex="0">
@@ -48,213 +48,217 @@ window.MozTranslationNotification = class extends MozElements.Notification {
                      tooltiptext="&closeNotification.tooltip;"
                      oncommand="this.parentNode.closeCommand();"/>
     `;
+  }
+
+  static get entities() {
+    return [
+      "chrome://global/locale/notification.dtd",
+      "chrome://browser/locale/translation.dtd",
+    ];
+  }
+
+  updateTranslationProgress(localizedMessage) {
+    this._getAnonElt("progress-label").setAttribute(
+      "value",
+      localizedMessage,
+    );
+  }
+
+  set state(val) {
+    const deck = this._getAnonElt("translationStates");
+
+    const activeElt = document.activeElement;
+    if (activeElt && deck.contains(activeElt)) {
+      activeElt.blur();
     }
 
-    static get entities() {
-        return [
-            "chrome://global/locale/notification.dtd",
-            "chrome://browser/locale/translation.dtd",
-        ];
+    let stateName;
+    for (const name of ["OFFER", "TRANSLATING", "TRANSLATED", "ERROR"]) {
+      if (Translation[`STATE_${name}`] === val) {
+        stateName = name.toLowerCase();
+        break;
+      }
+    }
+    this.setAttribute("state", stateName);
+    deck.selectedIndex = val;
+  }
+
+  get state() {
+    return this._getAnonElt("translationStates").selectedIndex;
+  }
+
+  init(translationNotificationManager) {
+    // set icon in the infobar. we should move this to a css file.
+    this._getAnonElt("logoIcon").setAttribute("src", translationNotificationManager.logoIcon);
+    this._getAnonElt("outboundtranslations-check").setAttribute("label", translationNotificationManager.localizedLabels.outboundTranslationsMessage);
+    this._getAnonElt("qualityestimations-check").setAttribute("label", translationNotificationManager.localizedLabels.qualityEstimationMessage);
+    this._getAnonElt("displayStatistics").setAttribute("label", translationNotificationManager.localizedLabels.displayStatisticsMessage);
+
+    this.translationNotificationManager = translationNotificationManager;
+    this.localizedLanguagesByCode = {};
+
+    const sortByLocalizedName = function(setOfLanguages) {
+      const arrayOfLanguages = [...setOfLanguages];
+      // eslint-disable-next-line no-undefined
+      let names = Services.intl.getLanguageDisplayNames(undefined, arrayOfLanguages);
+
+      return arrayOfLanguages
+        .map((code, i) => [code, names[i]])
+        .sort((a, b) => a[1].localeCompare(b[1]));
+    }
+    // fill the lists of supported source languages.
+    const detectedLanguage = this._getAnonElt("detectedLanguage");
+    const languagesSupported = sortByLocalizedName(this.translationNotificationManager.languageSet);
+
+    for (let [code, name] of languagesSupported) {
+      if (this.translationNotificationManager.devLanguageSet.has(code)) {
+            name += " (Beta)";
+      }
+      detectedLanguage.appendItem(name, code);
+      this.localizedLanguagesByCode[code] = name;
+    }
+    detectedLanguage.value = translationNotificationManager.detectedLanguage;
+
+    // fill the list of supported target languages.
+    const targetLanguages = sortByLocalizedName(this.translationNotificationManager.languageSet);
+    for (const [code, name] of targetLanguages) {
+      this.localizedLanguagesByCode[code] = name;
     }
 
-    updateTranslationProgress(localizedMessage) {
-        this._getAnonElt("progress-label").setAttribute(
-            "value",
-            localizedMessage,
-        );
-    }
-
-    set state(val) {
-        const deck = this._getAnonElt("translationStates");
-
-        const activeElt = document.activeElement;
-        if (activeElt && deck.contains(activeElt)) {
-            activeElt.blur();
-        }
-
-        let stateName;
-        for (const name of ["OFFER", "TRANSLATING", "TRANSLATED", "ERROR"]) {
-            if (Translation[`STATE_${name}`] === val) {
-                stateName = name.toLowerCase();
-                break;
-            }
-        }
-        this.setAttribute("state", stateName);
-        deck.selectedIndex = val;
-    }
-
-    get state() {
-        return this._getAnonElt("translationStates").selectedIndex;
-    }
-
-    init(translationNotificationManager) {
-        // set icon in the infobar. we should move this to a css file.
-        this._getAnonElt("logoIcon").setAttribute("src", translationNotificationManager.logoIcon);
-        this._getAnonElt("outboundtranslations-check").setAttribute("label", translationNotificationManager.localizedLabels.outboundTranslationsMessage);
-        this._getAnonElt("qualityestimations-check").setAttribute("label", translationNotificationManager.localizedLabels.qualityEstimationMessage);
-        this._getAnonElt("displayStatistics").setAttribute("label", translationNotificationManager.localizedLabels.displayStatisticsMessage);
-
-        this.translationNotificationManager = translationNotificationManager;
-        this.localizedLanguagesByCode = {};
-
-        const sortByLocalizedName = function (setOfLanguages) {
-            const arrayOfLanguages = [...setOfLanguages];
-            // eslint-disable-next-line no-undefined
-            const names = Services.intl.getLanguageDisplayNames(undefined, arrayOfLanguages);
-            return arrayOfLanguages
-                .map((code, i) => [code, names[i]])
-                .sort((a, b) => a[1].localeCompare(b[1]));
-        }
-        // fill the lists of supported source languages.
-        const detectedLanguage = this._getAnonElt("detectedLanguage");
-        const languagesSupported = sortByLocalizedName(this.translationNotificationManager.languageSet);
-
-        for (const [code, name] of languagesSupported) {
-            detectedLanguage.appendItem(name, code);
-            this.localizedLanguagesByCode[code] = name;
-        }
-        detectedLanguage.value = translationNotificationManager.detectedLanguage;
-
-        // fill the list of supported target languages.
-        const targetLanguages = sortByLocalizedName(this.translationNotificationManager.languageSet);
-        for (const [code, name] of targetLanguages) {
-            this.localizedLanguagesByCode[code] = name;
-        }
-
-        this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_OFFER;
-        this.translationNotificationManager.reportInfobarMetric("event", "displayed");
-        this.translationNotificationManager.reportInfobarMetric(
+    this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_OFFER;
+    this.translationNotificationManager.reportInfobarMetric("event", "displayed");
+    this.translationNotificationManager.reportInfobarMetric(
         "boolean", "outbound_enabled",
             this._getAnonElt("outboundtranslations-check").checked === true
         );
-    }
+  }
 
-    _getAnonElt(anonId) {
-        return this.querySelector(`[anonid=${anonId}]`);
-    }
+  _getAnonElt(anonId) {
+    return this.querySelector(`[anonid=${anonId}]`);
+  }
 
-    fromLanguageChanged() {
-        this.translationNotificationManager.reportInfobarMetric("event","change_lang");
-    }
+  fromLanguageChanged() {
+    this.translationNotificationManager.reportInfobarMetric("event","change_lang");
+  }
 
-    translate() {
-        this.translationNotificationManager.reportInfobarMetric("event","translate");
-        const from = this._getSourceLang();
-        const to = this._getTargetLang();
-        this.translationNotificationManager.requestInPageTranslation(
-            from,
-            to,
-            this._getAnonElt("outboundtranslations-check").checked,
-            this._getAnonElt("qualityestimations-check").checked
-        );
-        this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATING;
-    }
+  translate() {
+    this.translationNotificationManager.reportInfobarMetric("event","translate");
+    const from = this._getSourceLang();
+    const to = this._getTargetLang();
+    this.translationNotificationManager.requestInPageTranslation(
+        from,
+        to,
+        this._getAnonElt("outboundtranslations-check").checked,
+        this._getAnonElt("qualityestimations-check").checked
+    );
+    this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATING;
+  }
 
-    onOutboundClick() {
-        if (this._getAnonElt("outboundtranslations-check").checked) {
-            this.translationNotificationManager.reportInfobarMetric("event", "outbound_checked");
-            this.translationNotificationManager.reportInfobarMetric("boolean", "outbound_enabled", true);
-        } else {
-            this.translationNotificationManager.reportInfobarMetric("event", "outbound_unchecked");
-            this.translationNotificationManager.reportInfobarMetric("boolean", "outbound_enabled", false);
-        }
+  onOutboundClick() {
+    if (this._getAnonElt("outboundtranslations-check").checked) {
+      this.translationNotificationManager.reportInfobarMetric("event", "outbound_checked");
+      this.translationNotificationManager.reportInfobarMetric("boolean", "outbound_enabled", true);
+    } else {
+      this.translationNotificationManager.reportInfobarMetric("event", "outbound_unchecked");
+      this.translationNotificationManager.reportInfobarMetric("boolean", "outbound_enabled", false);
     }
+  }
+
+  /*
+   * to be called when the infobar should be closed per user's wish (e.g.
+   * by clicking the notification's close button, the not now button or choosing never to translate)
+   */
+  closeCommand() {
+    this.translationNotificationManager.reportInfobarMetric("event","closed");
+    this.close();
+  }
+
+  _getSourceLang() {
+    const lang = this._getAnonElt("detectedLanguage").value;
+    if (!lang) {
+      throw new Error("Source language is not defined");
+    }
+    return lang;
+  }
+
+  _getTargetLang() {
+    return this.translationNotificationManager.navigatorLanguage;
+  }
+
+  optionsShowing() {
+    const lang = this._getSourceLang();
+
+    // get the source language name.
+    // eslint-disable-next-line no-undefined
+    const langName = Services.intl.getLanguageDisplayNames(undefined, [lang,])[0];
+
+    // set the label and accesskey on the menuitem.
+    const bundle = Services.strings.createBundle("chrome://browser/locale/translation.properties",);
+    let item = this._getAnonElt("neverForLanguage");
+    const kStrId = "translation.options.neverForLanguage";
+    item.setAttribute(
+      "label",
+      bundle.formatStringFromName(`${kStrId}.label`, [langName]),
+    );
+    item.setAttribute(
+      "accesskey",
+      // eslint-disable-next-line new-cap
+      bundle.GetStringFromName(`${kStrId}.accesskey`),
+    );
 
     /*
-     * to be called when the infobar should be closed per user's wish (e.g.
-     * by clicking the notification's close button, the not now button or choosing never to translate)
+     * we may need to disable the menuitems if they have already been used.
+     * Check if translation is already disabled for this language:
      */
-    closeCommand() {
-        this.translationNotificationManager.reportInfobarMetric("event","closed");
-        this.close();
+    const neverForLangs = Services.prefs.getCharPref("browser.translation.neverForLanguages",);
+    item.disabled = neverForLangs.split(",").includes(lang);
+
+    // check if translation is disabled for the domain:
+    const principal = this.translationNotificationManager.browser.contentPrincipal;
+    const perms = Services.perms;
+    item = this._getAnonElt("neverForSite");
+    item.disabled =
+      perms.testExactPermissionFromPrincipal(principal, "translate") ===
+      perms.DENY_ACTION;
+  }
+
+  neverForLanguage() {
+    this.translationNotificationManager.reportInfobarMetric("event","never_translate_lang");
+    const kPrefName = "browser.translation.neverForLanguages";
+    const sourceLang = this._getSourceLang();
+
+    let val = Services.prefs.getCharPref(kPrefName);
+    if (val) {
+      val += ",";
     }
+    val += sourceLang;
 
-    _getSourceLang() {
-        const lang = this._getAnonElt("detectedLanguage").value;
-        if (!lang) {
-            throw new Error("Source language is not defined");
-        }
-        return lang;
-    }
+    Services.prefs.setCharPref(kPrefName, val);
 
-    _getTargetLang() {
-        return this.translationNotificationManager.navigatorLanguage;
-    }
+    this.close();
+  }
 
-    optionsShowing() {
-        const lang = this._getSourceLang();
+  neverForSite() {
+    this.translationNotificationManager.reportInfobarMetric("event","never_translate_site");
+    const principal = this.translationNotificationManager.browser.contentPrincipal;
+    const perms = Services.perms;
+    perms.addFromPrincipal(principal, "translate", perms.DENY_ACTION);
+    this.close();
+  }
 
-        // get the source language name.
-        // eslint-disable-next-line no-undefined
-        const langName = Services.intl.getLanguageDisplayNames(undefined, [lang,])[0];
+  displayStatistics() {
 
-        // set the label and accesskey on the menuitem.
-        const bundle = Services.strings.createBundle("chrome://browser/locale/translation.properties",);
-        let item = this._getAnonElt("neverForLanguage");
-        const kStrId = "translation.options.neverForLanguage";
-        item.setAttribute(
-            "label",
-            bundle.formatStringFromName(`${kStrId}.label`, [langName]),
-        );
-        item.setAttribute(
-            "accesskey",
-            // eslint-disable-next-line new-cap
-            bundle.GetStringFromName(`${kStrId}.accesskey`),
-        );
-
-        /*
-         * we may need to disable the menuitems if they have already been used.
-         * Check if translation is already disabled for this language:
-         */
-        const neverForLangs = Services.prefs.getCharPref("browser.translation.neverForLanguages",);
-        item.disabled = neverForLangs.split(",").includes(lang);
-
-        // check if translation is disabled for the domain:
-        const principal = this.translationNotificationManager.browser.contentPrincipal;
-        const perms = Services.perms;
-        item = this._getAnonElt("neverForSite");
-        item.disabled =
-            perms.testExactPermissionFromPrincipal(principal, "translate") ===
-            perms.DENY_ACTION;
-    }
-
-    neverForLanguage() {
-        this.translationNotificationManager.reportInfobarMetric("event","never_translate_lang");
-        const kPrefName = "browser.translation.neverForLanguages";
-        const sourceLang = this._getSourceLang();
-
-        let val = Services.prefs.getCharPref(kPrefName);
-        if (val) {
-            val += ",";
-        }
-        val += sourceLang;
-
-        Services.prefs.setCharPref(kPrefName, val);
-
-        this.close();
-    }
-
-    neverForSite() {
-        this.translationNotificationManager.reportInfobarMetric("event","never_translate_site");
-        const principal = this.translationNotificationManager.browser.contentPrincipal;
-        const perms = Services.perms;
-        perms.addFromPrincipal(principal, "translate", perms.DENY_ACTION);
-        this.close();
-    }
-
-    displayStatistics() {
-
-        /*
-         * let's notify the mediator that the user chose to see the statistics
-         */
-        this.translationNotificationManager.enableStats();
-    }
+    /*
+     * let's notify the mediator that the user chose to see the statistics
+     */
+    this.translationNotificationManager.enableStats();
+  }
 };
 
 customElements.define(
-    `translation-notification-${window.now}`,
-    window.MozTranslationNotification,
-    {
-        extends: "notification",
-    },
+  `translation-notification-${window.now}`,
+  window.MozTranslationNotification,
+  {
+    extends: "notification",
+  },
 );

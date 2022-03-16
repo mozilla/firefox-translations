@@ -23,14 +23,17 @@
     "storage"
   ],
   "background": {
+    "persistent": true,
     "scripts": [
       "settings.js",
       "controller/translation/bergamotTranslatorVersion.js",
       "model/telemetry/schema.js",
       "model/telemetry/PingSender.js",
+      "controller/languageDetection/LanguageDetection.js",
+      "controller/languageDetection/fasttext_wasm.js",
+      "controller/languageDetection/fasttext.js",
       "model/telemetry/Metrics.js",
       "model/telemetry/Telemetry.js",
-      "controller/LanguageDetection.js",
       "view/js/TranslationNotificationManager.js",
       "controller/backgroundScript.js"
     ]
@@ -41,7 +44,8 @@
         "<all_urls>"
       ],
       "js": [
-        "controller/LanguageDetection.js",
+        "settings.js",
+        "controller/languageDetection/LanguageDetection.js",
         "model/Queue.js",
         "controller/translation/Translation.js",
         "controller/translation/TranslationMessage.js",
@@ -65,21 +69,6 @@
   ],
   "incognito": "spanning",
   "experiment_apis": {
-    "experiment_languageDetector": {
-      "schema": "controller/experiments/LanguageDetector/schema.json",
-      "parent": {
-        "scopes": [
-          "addon_parent"
-        ],
-        "paths": [
-          [
-            "experiments",
-            "languageDetector"
-          ]
-        ],
-        "script": "controller/experiments/LanguageDetector/api.js"
-      }
-    },
     "experiments_translationbar": {
       "schema": "controller/experiments/TranslationBar/schema.json",
       "parent": {
@@ -129,5 +118,6 @@
   "icons": {
     "16": "/view/icons/translation.16x16.png",
     "32": "/view/icons/translation.32x32.png"
-  }
+  },
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';"
 }

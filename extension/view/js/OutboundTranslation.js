@@ -41,9 +41,7 @@ class OutboundTranslation {
     this.otDiv.id = "fxtranslations-ot";
     this.pageStatusLabel = this.otDiv.querySelector(".fxtranslations-status");
     this.otDiv.querySelector(".fxtranslations-header").innerHTML =
-      this.otDiv.querySelector(".fxtranslations-header").innerHTML
-        .replaceAll("{navigatorLanguage}", navigatorLanguage)
-        .replaceAll("{pageLanguage}", pageLanguage);
+      browser.i18n.getMessage("formtranslationsDescription", [navigatorLanguage, pageLanguage]);
 
     // it's safe to hardcode the widget to have the highest possible zindex in the page
     this.otDiv.style.zIndex = 2147483647;
@@ -62,7 +60,7 @@ class OutboundTranslation {
     this.otDiv.querySelector("textarea").addEventListener("keydown", () => {
       if (!this.isUserTyping) {
         this.isUserTyping = true;
-        this.updateStatusLabel("Typing");
+        this.updateStatusLabel(browser.i18n.getMessage("formtranslationsTyping"));
       }
       if (this.translationTimeout) {
         clearTimeout(this.translationTimeout);
@@ -84,7 +82,7 @@ class OutboundTranslation {
     });
 
     this.startMutationObserver();
-    this.updateStatusLabel("Ready");
+    this.updateStatusLabel(browser.i18n.getMessage("formtranslationsReady"));
   }
 
   addFormListeners(formElements) {
@@ -151,11 +149,11 @@ class OutboundTranslation {
         type: "outbound"
       };
 
-      this.updateStatusLabel("Translation in progress...");
+      this.updateStatusLabel(browser.i18n.getMessage("formtranslationsTranslationInProgress"));
       this.notifyMediator("translate", payload);
     } else {
       // textarea is empty. let's clear everything.
-      this.updateStatusLabel("Ready.");
+      this.updateStatusLabel(browser.i18n.getMessage("formtranslationsReady"));
       this.updateBackTranslationTextArea("");
       this.updateselectedTextArea("");
     }
@@ -197,7 +195,7 @@ class OutboundTranslation {
        * this is an outbound translation request
        */
       this.updateBackTranslationTextArea(translationMessage.translatedParagraph);
-      this.updateStatusLabel("Translation completed.");
+      this.updateStatusLabel(browser.i18n.getMessage("formtranslationsTranslationCompleted"));
     }
   }
 

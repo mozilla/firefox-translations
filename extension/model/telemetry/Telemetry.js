@@ -13,6 +13,8 @@ class Telemetry {
         this._translationStartTimestamp = null;
         this._startTimestamp = null;
         this._otLenthPerTextArea = new Map();
+        this._wordScores = [];
+        this._sentScores = [];
     }
 
     record(type, category, name, value) {
@@ -80,6 +82,43 @@ class Telemetry {
         this._client.quantity("forms", "word_count", wordLengthSum)
         this._client.quantity("forms", "field_count", this._otLenthPerTextArea.size)
         this._updateUsageTime();
+    }
+
+    addQualityEstimation(wordScores, sentScores, isSupervised) {
+        this._client.boolean("quality", "is_supervised", isSupervised);
+
+        for (const score of wordScores) this._wordScores.push(score);
+        for (const score of sentScores) this._sentScores.push(score);
+
+        const wordStats = this._calcStats(this._wordScores);
+        const sentStats = this._calcStats(this._sentScores);
+
+        this._client.string(
+    "quality", "summary",
+            `${wordStats.avg},${wordStats.median},${wordStats.perc90},${sentStats.avg},${sentStats.median},${sentStats.perc90}`
+        );
+        // glean Quantity metric type supports only positive integers
+        this._client.quantity("quality", "word_avg", Math.round(wordStats.avg*1000));
+        this._client.quantity("quality", "word_median", Math.round(wordStats.median*1000));
+        this._client.quantity("quality", "word_90th", Math.round(wordStats.perc90*1000));
+        this._client.quantity("quality", "sent_avg", Math.round(sentStats.avg*1000));
+        this._client.quantity("quality", "sent_median", Math.round(sentStats.median*1000));
+        this._client.quantity("quality", "sent_90th", Math.round(sentStats.perc90*1000));
+    }
+
+    _calcStats(array) {
+        array.sort();
+        const sum = array.reduce((a, b) => a + b, 0);
+        const avg = (sum / array.length) || 0;
+        const median = array[Math.floor(array.length/2)-1] || 0;
+        const perc90 = array[Math.floor(array.length*0.9)-1] || 0;
+
+        return { avg, median, perc90 }
+    }
+
+    langPair(from, to) {
+        this._client.string("metadata", "from_lang", from);
+        this._client.string("metadata", "to_lang", to);
     }
 
     environment(env) {

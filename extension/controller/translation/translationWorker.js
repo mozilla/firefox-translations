@@ -36,7 +36,7 @@ class TranslationHelper {
               };
         }
 
-        async loadTranslationEngine(sourceLanguage, targetLanguage, withOutboundTranslation) {
+        async loadTranslationEngine(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation) {
             postMessage([
                 "updateProgress",
                 "loadingTranslationEngine"
@@ -66,7 +66,7 @@ class TranslationHelper {
                      * initialized, we then load the language models
                      */
                     console.log(`Wasm Runtime initialized Successfully (preRun -> onRuntimeInitialized) in ${(Date.now() - this.wasmModuleStartTimestamp) / 1000} secs`);
-                    this.loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation);
+                    this.loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation);
                 }.bind(this),
                 wasmBinary: wasmArrayBuffer,
             };
@@ -86,7 +86,16 @@ class TranslationHelper {
                 let total_words = message[0].sourceParagraph.replace(/(<([^>]+)>)/gi, "").trim()
                                     .split(/\s+/).length;
                 const t0 = performance.now();
+
+                /*
+                 * quality scores are not required for outbound translation. So we set the
+                 * corresponding flag to false before calling translate api and restore
+                 * its value after the api call is complete.
+                 */
+                let originalQualityEstimation = message[0].withQualityEstimation;
+                message[0].withQualityEstimation = false;
                 const translationResultBatch = this.translate(message);
+                message[0].withQualityEstimation = originalQualityEstimation;
                 const timeElapsed = [total_words, performance.now() - t0];
 
                 message[0].translatedParagraph = translationResultBatch[0];
@@ -99,10 +108,12 @@ class TranslationHelper {
             }.bind(this));
         }
 
+        // eslint-disable-next-line max-lines-per-function
         consumeTranslationQueue() {
 
             while (this.translationQueue.length() > 0) {
                 const translationMessagesBatch = this.translationQueue.dequeue();
+                // eslint-disable-next-line max-lines-per-function
                 Promise.resolve().then(function () {
                     if (translationMessagesBatch) {
                         try {
@@ -113,10 +124,39 @@ class TranslationHelper {
                                 total_words += words.length;
                             });
 
+                            /*
+                             * engine doesn't return QE scores for the translation of Non-HTML source
+                             * messages. Therefore, always encode and pass source messages as HTML to the
+                             * engine and restore them afterwards to their original form.
+                             */
+                            const non_html_qe_messages = new Map();
+                            translationMessagesBatch.forEach((message, index) => {
+                                if (message.withQualityEstimation && !message.isHTML) {
+                                    console.log(`Plain text received to translate with QE: "${message.sourceParagraph}"`);
+                                    non_html_qe_messages.set(index, message.sourceParagraph);
+                                    const div = document.createElement("div");
+                                    div.appendChild(document.createTextNode(message.sourceParagraph));
+                                    message.sourceParagraph = div.innerHTML;
+                                    message.isHTML = true;
+                                }
+                            });
+
                             const t0 = performance.now();
 
                             const translationResultBatch = this.translate(translationMessagesBatch);
                             const timeElapsed = [total_words, performance.now() - t0];
+
+                            /*
+                             * restore Non-HTML source messages that were encoded to HTML before being sent to
+                             * engine to get the QE scores for their translations. The translations are not
+                             * required to be decoded back to non-HTML form because QE scores are embedded in
+                             * the translation via html attribute.
+                             */
+                            non_html_qe_messages.forEach((value, key) => {
+                                console.log("Restoring back source text and html flag");
+                                translationMessagesBatch[key].sourceParagraph = value;
+                                translationMessagesBatch[key].isHTML = false;
+                            });
 
                             /*
                              * now that we have the paragraphs back, let's reconstruct them.
@@ -139,7 +179,7 @@ class TranslationHelper {
                             throw e;
                         }
                     }
-                  }.bind(this));
+                }.bind(this));
             }
         }
 
@@ -161,7 +201,8 @@ class TranslationHelper {
                     this.loadTranslationEngine(
                         message[0].sourceLanguage,
                         message[0].targetLanguage,
-                        message[0].withOutboundTranslation
+                        message[0].withOutboundTranslation,
+                        message[0].withQualityEstimation
                     );
 
                     this.translationQueue.enqueue(message);
@@ -194,7 +235,7 @@ class TranslationHelper {
         }
 
     // eslint-disable-next-line max-lines-per-function
-        async loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation) {
+        async loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation) {
 
             /*
              * let's load the models and communicate to the caller (translation)
@@ -204,11 +245,12 @@ class TranslationHelper {
             let isReversedModelLoadingFailed = false;
             try {
               this.constructTranslationService();
-              await this.constructTranslationModel(sourceLanguage, targetLanguage);
+              await this.constructTranslationModel(sourceLanguage, targetLanguage, withQualityEstimation);
 
               if (withOutboundTranslation) {
                   try {
-                    await this.constructTranslationModel(targetLanguage, sourceLanguage);
+                    // the Outbound Translation doesn't require supporting Quality Estimation
+                    await this.constructTranslationModel(targetLanguage, sourceLanguage, /* withQualityEstimation=*/false);
                     postMessage([
                         "displayOutboundTranslation",
                         null
@@ -246,7 +288,7 @@ class TranslationHelper {
         // instantiate the Translation Service
         constructTranslationService() {
             if (!this.translationService) {
-                let translationServiceConfig = {};
+                let translationServiceConfig = { cacheSize: 10 };
                 console.log(`Creating Translation Service with config: ${translationServiceConfig}`);
                 this.translationService = new this.WasmEngineModule.BlockingService(translationServiceConfig);
                 console.log("Translation Service created successfully");
@@ -262,24 +304,25 @@ class TranslationHelper {
             this.translationModels.clear();
         }
 
-        async constructTranslationModel(from, to) {
+        async constructTranslationModel(from, to, withQualityEstimation) {
             if (this._isPivotingRequired(from, to)) {
                 // pivoting requires 2 translation models to be constructed
                 const languagePairSrcToPivot = this._getLanguagePair(from, this.PIVOT_LANGUAGE);
                 const languagePairPivotToTarget = this._getLanguagePair(this.PIVOT_LANGUAGE, to);
                 await Promise.all([
-                    this.constructTranslationModelHelper(languagePairSrcToPivot),
-                    this.constructTranslationModelHelper(languagePairPivotToTarget)
+                    this.constructTranslationModelHelper(languagePairSrcToPivot, withQualityEstimation),
+                    this.constructTranslationModelHelper(languagePairPivotToTarget, withQualityEstimation)
                 ]);
             } else {
                 // non-pivoting case requires only 1 translation model
-                await this.constructTranslationModelHelper(this._getLanguagePair(from, to));
+                await this.constructTranslationModelHelper(this._getLanguagePair(from, to), withQualityEstimation);
             }
         }
 
         // eslint-disable-next-line max-lines-per-function
-        async constructTranslationModelHelper(languagePair) {
+        async constructTranslationModelHelper(languagePair, withQualityEstimation) {
             console.log(`Constructing translation model ${languagePair}`);
+            const modelConfigQualityEstimation = !withQualityEstimation;
 
             /*
              * for available configuration options,
@@ -294,7 +337,7 @@ class TranslationHelper {
             mini-batch-words: 1024
             workspace: 128
             max-length-factor: 2.0
-            skip-cost: true
+            skip-cost: ${modelConfigQualityEstimation}
             cpu-threads: 0
             quiet: true
             quiet-translation: true
@@ -563,18 +606,8 @@ class TranslationHelper {
             const vectorResponseOptions = new this.WasmEngineModule.VectorResponseOptions();
             // eslint-disable-next-line no-unused-vars
             messages.forEach(message => {
-
-                /*
-                 * toDo: Activate this code once translate options can be passed per message
-                 * const translateOptions = message.translateOptions;
-                 * vectorResponseOptions.push_back({
-                 *  qualityScores: message.withQualityEstimation,
-                 *  alignment: true,
-                 *  html: message.isHtml
-                 * });
-                 */
                 vectorResponseOptions.push_back({
-                    qualityScores: false,
+                    qualityScores: message.withQualityEstimation,
                     alignment: true,
                     html: message.isHTML,
                 });

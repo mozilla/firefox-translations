@@ -1,4 +1,4 @@
-/* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL, Telemetry */
+/* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL, Telemetry, loadFastText, FastText */
 
 /*
  * we need the background script in order to have full access to the
@@ -10,6 +10,10 @@
 
 let cachedEnvInfo = null;
 let pingSender = new PingSender();
+let modelFastText = null;
+
+// as soon we load, we should turn off the legacy prefs to avoid UI conflicts
+browser.experiments.translationbar.switchOnPreferences();
 let telemetryByTab = new Map();
 
 const init = async () => {
@@ -36,18 +40,26 @@ const messageListener = async function (message, sender) {
     let webNavigationCompletedLoad = null;
     switch (message.command) {
         case "detectPageLanguage":
+            if (!modelFastText) break;
 
             /*
              * call the cld experiment to detect the language of the snippet
              * extracted from the page
              */
             languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
-            languageDetection.pageLanguage = await
-                browser.experiments.languageDetector.detect(languageDetection.wordsToDetect);
-            browser.tabs.sendMessage(sender.tab.id, {
-                command: "responseDetectPageLanguage",
-                languageDetection
-            })
+            languageDetection.pageLanguage = modelFastText
+                .predict(languageDetection.wordsToDetect.trim().replace(/(\r\n|\n|\r)/gm, ""), 1, 0.0)
+                .get(0)[1]
+                .replace("__label__", "");
+
+            /*
+             * language detector returns "no" for Norwegian Bokmål ("nb")
+             * so we need to default it to "nb", since that's what FF
+             * localization mechanisms has set
+             */
+            if (languageDetection.pageLanguage === "no") languageDetection.pageLanguage = "nb"
+            browser.tabs.sendMessage(sender.tab.id, { command: "responseDetectPageLanguage",
+                languageDetection })
             break;
         case "monitorTabLoad":
 
@@ -71,7 +83,7 @@ const messageListener = async function (message, sender) {
                             tabId,
                             { command: "responseMonitorTabLoad", tabId }
                         );
-                    }, 250);
+                    } ,250);
                 }
             };
 
@@ -82,10 +94,10 @@ const messageListener = async function (message, sender) {
                     console.log("webNavigation.onCompleted => notifying browser to display the infobar")
                     setTimeout(() => {
                         browser.tabs.sendMessage(
-                            details.tabId,
+                            details.tabId ,
                             { command: "responseMonitorTabLoad", tabId: details.tabId }
                         );
-                    }, 250);
+                    } ,250);
                 }
             };
 
@@ -100,9 +112,23 @@ const messageListener = async function (message, sender) {
              */
             await browser.experiments.translationbar.show(
                 sender.tab.id,
-                message.languageDetection.pageLanguage.language,
+                message.languageDetection.pageLanguage,
                 message.languageDetection.navigatorLanguage,
-                message.localizedLabels
+                {
+                    displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
+                    outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
+                    qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage")
+                }
+            );
+
+            // we then ask the api for the localized version of the language codes
+            browser.tabs.sendMessage(
+                sender.tab.id,
+                { command: "localizedLanguages",
+                   localizedPageLanguage: await browser.experiments.translationbar
+                        .getLocalizedLanguageName(message.languageDetection.pageLanguage),
+                    localizedNavigatorLanguage: await browser.experiments.translationbar
+                        .getLocalizedLanguageName(message.languageDetection.navigatorLanguage) }
             );
 
             break;
@@ -162,12 +188,10 @@ const messageListener = async function (message, sender) {
              */
             browser.tabs.sendMessage(
                 message.tabId,
-                {
-                    command: "outboundTranslationRequested",
-                    tabId: message.tabId,
-                    from: message.to, // we switch the requests directions here
-                    to: message.from
-                }
+                { command: "outboundTranslationRequested",
+                  tabId: message.tabId,
+                  from: message.to, // we switch the requests directions here
+                  to: message.from }
             );
             break;
         case "onInfobarEvent":
@@ -177,12 +201,11 @@ const messageListener = async function (message, sender) {
              */
             browser.tabs.sendMessage(
                 message.tabId,
-                {
-                    command: "onInfobarEvent",
+                { command: "onInfobarEvent",
                     tabId: message.tabId,
-                    name: message.name
-                }
+                    name: message.name }
             );
+
             break;
         case "displayStatistics":
 
@@ -191,10 +214,8 @@ const messageListener = async function (message, sender) {
              */
             browser.tabs.sendMessage(
                 message.tabId,
-                {
-                    command: "displayStatistics",
-                    tabId: message.tabId
-                }
+                { command: "displayStatistics",
+                  tabId: message.tabId }
             );
             break;
         default:
@@ -206,3 +227,24 @@ const messageListener = async function (message, sender) {
 browser.runtime.onMessage.addListener(messageListener);
 browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
 init().catch(error => console.error("bgScript initialization failed: ", error.message));
+
+// loads fasttext (language detection) wasm module and model
+fetch(browser
+    .runtime.getURL("model/static/languageDetection/fasttext_wasm.wasm"), { mode: "no-cors" })
+    .then(function(response) {
+        return response.arrayBuffer();
+    })
+    .then(function(wasmArrayBuffer) {
+        const initialModule = {
+            onRuntimeInitialized() {
+                const ft = new FastText(initialModule);
+                ft.loadModel(browser
+                    .runtime.getURL("model/static/languageDetection/lid.176.ftz"))
+                    .then(model => {
+                    modelFastText = model;
+                });
+            },
+            wasmBinary: wasmArrayBuffer,
+        };
+    loadFastText(initialModule);
+});
