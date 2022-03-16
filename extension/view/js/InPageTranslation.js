@@ -133,7 +133,7 @@ class InPageTranslation {
          * title to be translated
          */
         this.started = true;
-        this.addDebugStylesheet();
+        // this.addDebugStylesheet();
 
         // language we expect. If we find elements that do not match, nope out.
         this.language = language;
