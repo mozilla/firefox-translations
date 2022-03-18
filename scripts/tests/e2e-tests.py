@@ -24,6 +24,7 @@ subprocess.call("unzip web-ext-artifacts/firefox_translations.xpi -d gecko/brows
 subprocess.call("mkdir -p gecko/browser/extensions/translations/test/browser/".split(), cwd=root)
 subprocess.call("cp scripts/tests/browser.ini gecko/browser/extensions/translations/test/browser/".split(), cwd=root)
 subprocess.call("cp scripts/tests/browser_translation_test.html gecko/browser/extensions/translations/test/browser/".split(), cwd=root)
+subprocess.call("cp scripts/tests/frame.html gecko/browser/extensions/translations/test/browser/".split(), cwd=root)
 subprocess.call("cp scripts/tests/browser_translation_test.js gecko/browser/extensions/translations/test/browser/".split(), cwd=root)
 subprocess.call("cp -r scripts/tests/esen/ gecko/browser/extensions/translations/test/browser/esen/".split(), cwd=root)
 subprocess.call("cp -r scripts/tests/enes/ gecko/browser/extensions/translations/test/browser/enes/".split(), cwd=root)

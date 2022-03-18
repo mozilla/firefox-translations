@@ -63,36 +63,39 @@ add_task(async function testTranslationBarDisplayed() {
 
   // and check if the translation happened
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async () => {
+    const checkTranslation = async (document, message) => {
+      is(
+        document.getElementById("translationDiv").innerHTML,
+        "Hello world. That's a test of translation tests.",
+        `Text was correctly translated. (${message})`
+      );
+
+      /*
+       * let's now select the outbound translation form
+       * await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async () => {
+       */
+       document.getElementById("mainTextarea").focus();
+       document.getElementById("OTapp").querySelectorAll("textarea")[0].value = "Hello World";
+       document.getElementById("OTapp").querySelectorAll("textarea")[0].dispatchEvent(new content.KeyboardEvent('keydown', {'key': 'Enter'}));
+       await new Promise(resolve => content.setTimeout(resolve, 5000));
+
+       is(
+         document.getElementById("mainTextarea").value.trim(),
+         "Hola Mundo",
+         `Form translation text was correctly translated. (${message})`
+       );
+
+       is(
+         document.getElementById("OTapp").querySelectorAll("textarea")[1].value.trim(),
+         "Hello World",
+         `Back Translation text was correctly translated. (${message})`
+       );
+    }
+
     await new Promise(resolve => content.setTimeout(resolve, 5000));
-
-    is(
-      content.document.getElementById("translationDiv").innerHTML,
-      "Hello world. That's a test of translation tests.",
-      "Text was correctly translated."
-    );
+    await checkTranslation(content.document, "main frame");
+    await checkTranslation(content.document.getElementById("iframe").contentWindow.document, "iframe");
   });
-
-  // let's now select the outbound translation form
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async () => {
-
-   content.document.getElementById("mainTextarea").focus();
-   content.document.getElementById("OTapp").querySelectorAll("textarea")[0].value = "Hello World";
-   content.document.getElementById("OTapp").querySelectorAll("textarea")[0].dispatchEvent(new content.KeyboardEvent('keydown', {'key': 'Enter'}));
-   await new Promise(resolve => content.setTimeout(resolve, 5000));
-
-   is(
-     content.document.getElementById("mainTextarea").value.trim(),
-     "Hola Mundo",
-     "Form translation text was correctly translated."
-   );
-
-   is(
-     content.document.getElementById("OTapp").querySelectorAll("textarea")[1].value.trim(),
-     "Hello World",
-     "Back Translation text was correctly translated."
-   );
-
- });
 
   delete window.MozTranslationNotification;
   delete window.now;

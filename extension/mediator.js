@@ -19,8 +19,10 @@ class Mediator {
         this.translationBarDisplayed = false;
         this.statsMode = false;
         // if we are in the protected mochitest page, we flag it.
-        if (window.location.href ===
-            "https://example.com/browser/browser/extensions/translations/test/browser/browser_translation_test.html") {
+        if ((window.location.href ===
+            "https://example.com/browser/browser/extensions/translations/test/browser/browser_translation_test.html") ||
+            (window.location.href ===
+            "https://example.com/browser/browser/extensions/translations/test/browser/frame.html")) {
             this.isMochitest = true;
         }
     }
