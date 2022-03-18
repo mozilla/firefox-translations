@@ -6,16 +6,15 @@
 /* global LanguageDetection, OutboundTranslation, Translation , browser,
 InPageTranslation, browser */
 
-// eslint-disable-next-line max-lines
+/* eslint-disable max-lines */
 
 class Mediator {
 
     constructor() {
-        this.messagesSenderLookupTable = new Map();
         this.translation = null;
-        this.translationsCounter = 0;
         this.languageDetection = new LanguageDetection();
         this.inPageTranslation = new InPageTranslation(this);
+        this.outboundTranslation = null;
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
         this.statsMode = false;
@@ -83,30 +82,32 @@ class Mediator {
              */
             if (this.translationBarDisplayed) return;
 
-            if (window.self === window.top) { // is main frame
-                const pageLang = this.languageDetection.pageLanguage.language;
-                const navLang = this.languageDetection.navigatorLanguage;
-                this.recordTelemetry("string", "metadata", "from_lang", pageLang);
-                this.recordTelemetry("string", "metadata", "to_lang", navLang);
-                this.recordTelemetry("counter", "service", "lang_mismatch");
+            // is iframe
+            if ((window.self !== window.top) && this.languageDetection.shouldDisplayTranslation()) {
+                this.translationBarDisplayed = true;
+                return;
+            }
 
-                window.onbeforeunload = () => browser.runtime.sendMessage({ command: "submitPing", tabId: this.tabId });
+            // is main frame
+            const pageLang = this.languageDetection.pageLanguage;
+            const navLang = this.languageDetection.navigatorLanguage;
+            this.recordTelemetry("string", "metadata", "from_lang", pageLang);
+            this.recordTelemetry("string", "metadata", "to_lang", navLang);
+            this.recordTelemetry("counter", "service", "lang_mismatch");
 
-                if (this.languageDetection.shouldDisplayTranslation()) {
-                    // request the backgroundscript to display the translationbar
-                    browser.runtime.sendMessage({
-                        command: "displayTranslationBar",
-                        languageDetection: this.languageDetection
-                    });
-                    this.translationBarDisplayed = true;
-                    // create the translation object
-                    this.translation = new Translation(this);
-                } else {
-                    this.recordTelemetry("counter", "service", "not_supported");
-                }
-            } else if (this.languageDetection.shouldDisplayTranslation()) {
-                    this.translation = new Translation(this);
-                    this.translationBarDisplayed = true;
+            window.onbeforeunload = () => browser.runtime.sendMessage({ command: "submitPing", tabId: this.tabId });
+
+            if (this.languageDetection.shouldDisplayTranslation()) {
+                // request the backgroundscript to display the translationbar
+                browser.runtime.sendMessage({
+                    command: "displayTranslationBar",
+                    languageDetection: this.languageDetection
+                });
+                this.translationBarDisplayed = true;
+                // create the translation object
+                this.translation = new Translation(this);
+            } else {
+                this.recordTelemetry("counter", "service", "not_supported");
             }
         }
     }
@@ -120,20 +121,17 @@ class Mediator {
     contentScriptsMessageListener(sender, message) {
         switch (message.command) {
             case "translate":
-                // eslint-disable-next-line no-case-declarations
-                const translationMessage = this.translation.constructTranslationMessage(
-                    message.payload.text,
-                    message.payload.type,
-                    message.tabId,
-                    this.languageDetection.navigatorLanguage,
-                    this.languageDetection.pageLanguage,
-                    message.payload.attrId,
-                    message.payload.withOutboundTranslation,
-                    message.payload.withQualityEstimation
-                );
-                this.messagesSenderLookupTable.set(translationMessage.messageID, sender);
-                this.translation.translate(translationMessage);
-                // console.log("new translation message sent:", translationMessage, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
+                if (window.self === window.top) {
+                    // eslint-disable-next-line no-case-declarations
+                    this.translate(message);
+                } else {
+                    // pass to the worker in top frame through bgScript
+                    browser.runtime.sendMessage({
+                        command: "translate",
+                        tabId: this.tabId,
+                        payload: message.payload
+                    });
+                }
 
                 if (message.payload.type === "outbound") {
                     if (!sender.selectedTextArea.id) sender.selectedTextArea.id = self.crypto.randomUUID();
@@ -153,10 +151,18 @@ class Mediator {
                  * in order to route the response back, which can be
                  * OutbountTranslation, InPageTranslation etc....
                  */
+
                 message.payload[1].forEach(translationMessage => {
-                    this.messagesSenderLookupTable.get(translationMessage.messageID)
-                        .mediatorNotification(translationMessage);
-                    this.messagesSenderLookupTable.delete(translationMessage.messageID);
+                    // if this message is originated from another frame, pass it back through bgScript
+                    if ((window.self === window.top) && (typeof translationMessage.frameId !== "undefined")) {
+                        browser.runtime.sendMessage({
+                            command: "translationComplete",
+                            tabId: this.tabId,
+                            translationMessage
+                        });
+                    } else {
+                        this.updateElements(translationMessage);
+                    }
                 });
 
                 browser.runtime.sendMessage({
@@ -190,13 +196,12 @@ class Mediator {
                 });
                 break;
             case "displayOutboundTranslation":
-
-                /* display the outboundstranslation widget */
-                this.outboundTranslation = new OutboundTranslation(this);
-                this.outboundTranslation.start(
-                    this.localizedNavigatorLanguage,
-                    this.localizedPageLanguage
-                );
+                this.startOutbound();
+                // broadcast to all frames through bgScript
+                browser.runtime.sendMessage({
+                    command: "displayOutboundTranslation",
+                    tabId: this.tabId
+                });
                 break;
             case "reportError":
                 // payload is a metric name from metrics.yaml
@@ -218,6 +223,43 @@ class Mediator {
                 }
                 break;
             default:
+        }
+    }
+
+    translate(message) {
+        const translationMessage = this.translation.constructTranslationMessage(
+            message.payload.text,
+            message.payload.type,
+            this.tabId,
+            message.frameId,
+            this.languageDetection.navigatorLanguage,
+            this.languageDetection.pageLanguage,
+            message.payload.attrId,
+            message.payload.withOutboundTranslation,
+            message.payload.withQualityEstimation
+        );
+        this.translation.translate(translationMessage);
+        // console.log("new translation message sent:", translationMessage, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
+    }
+
+    startOutbound() {
+        if (this.outboundTranslation !== null) return;
+
+        /* display the outboundstranslation widget */
+        this.outboundTranslation = new OutboundTranslation(this);
+        this.outboundTranslation.start(
+            this.localizedNavigatorLanguage,
+            this.localizedPageLanguage
+        );
+    }
+
+    updateElements(translationMessage) {
+        if (translationMessage.type === "inpage") {
+            this.inPageTranslation.mediatorNotification(translationMessage);
+        } else if ((translationMessage.type === "outbound") || (translationMessage.type === "backTranslation")) {
+            this.outboundTranslation.mediatorNotification(translationMessage);
+        } else {
+            throw new Error("Unexpected type: ", translationMessage.type);
         }
     }
 
@@ -250,6 +292,15 @@ class Mediator {
                     this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
                     this.inPageTranslation.start(this.languageDetection.pageLanguage);
                 }
+                break;
+            case "translate":
+                this.translate(message)
+                break
+            case "translationComplete":
+                this.updateElements(message.translationMessage);
+                break;
+            case "displayOutboundTranslation":
+                this.startOutbound();
                 break;
             case "displayStatistics":
                 this.statsMode = true;

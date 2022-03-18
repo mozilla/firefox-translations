@@ -132,7 +132,30 @@ const messageListener = async function (message, sender) {
             );
 
             break;
-
+        case "translate":
+            // propagate translation message from iframe to top frame
+            message.frameId = sender.frameId;
+            browser.tabs.sendMessage(
+                message.tabId,
+                message,
+                { frameId: 0 }
+            );
+            break;
+        case "translationComplete":
+            // propagate translation message from top frame to the source frame
+            browser.tabs.sendMessage(
+                message.tabId,
+                message,
+                { frameId: message.translationMessage.frameId }
+            );
+            break;
+        case "displayOutboundTranslation":
+            // propagate "display outbound" command from top frame to other frames
+            browser.tabs.sendMessage(
+                message.tabId,
+                message
+            );
+            break;
         case "recordTelemetry":
             getTelemetry(message.tabId).record(message.type, message.category, message.name, message.value);
             break;

@@ -135,6 +135,7 @@ class Translation {
         sourceParagraph,
         type,
         tabId,
+        frameId,
         navigatorLanguage,
         pageLanguage,
         attrId,
@@ -173,6 +174,7 @@ class Translation {
                 break;
         }
         translationMessage.tabId = tabId;
+        translationMessage.frameId = frameId;
         translationMessage.type = type;
         translationMessage.attrId = attrId;
         translationMessage.withOutboundTranslation = withOutboundTranslation;
