@@ -212,7 +212,7 @@ class Mediator {
             case "reportViewPortWordsNum":
                 this.recordTelemetry("quantity", "performance", "word_count_visible_in_viewport", message.payload);
                 break;
-            case "reportModelEvent":
+            case "reportPerformanceTimespan":
                 this.recordTelemetry("timespan", "performance", message.payload.metric, message.payload.timeMs);
                 break;
             case "reportFormsEvent":
