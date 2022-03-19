@@ -269,6 +269,24 @@ const telemetrySchema = {
                 "send_in_pings": [
                     "custom"
                 ]
+            },
+            "qe_checked": {
+                "type": "event",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "qe_unchecked": {
+                "type": "event",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "qe_enabled": {
+                "type": "boolean",
+                "send_in_pings": [
+                    "custom"
+                ]
             }
         },
         "service": {
