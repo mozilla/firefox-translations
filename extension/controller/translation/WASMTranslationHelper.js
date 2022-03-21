@@ -5,75 +5,6 @@
 /* global engineRegistryRootURL, engineRegistryRootURLTest, engineRegistry, loadEmscriptenGlueCode, Queue */
 /* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts */
 
-/**
- * Converts the hexadecimal hashes from the registry to something we can use with
- * the fetch() method.
- */
-function hexToBase64(hexstring) {
-    return btoa(hexstring.match(/\w{2}/g).map(function(a) {
-        return String.fromCharCode(parseInt(a, 16));
-    }).join(""));
-}
-
-/**
- * Little wrapper to delay a promise to be made only once it is first awaited on
- */
-function lazy(factory) {
-    return {
-        then(...args) {
-            // Ask for the actual promise
-            const promise = factory();
-            // Replace ourselves with the actual promise for next calls
-            this.then = promise.then.bind(promise);
-            // Forward the current call to the promise
-            return this.then(...args);
-        }
-    };
-}
-
-/**
- * Array.prototype.map, but with a twist: the functor returns an iterator
- * (or more usefully) a generator, it will then add each of those elements.
- */
-function *chain(iterable, functor) {
-    for (let item of iterable)
-        yield* functor(item);
-}
-
-/**
- * Take the first element from anything that can be iterated over. Like arr[0]
- * or iterable[Symbol.iterator].next().value. If the iterator is empty, throw.
- */
-function first(iterable) {
-    for (let item of iterable)
-        return item;
-    throw new RangeError('Iterable is empty');
-}
-
-/**
- * Returns a set that is the intersection of two iterables
- */
-function intersect(a, b) {
-    const bSet = new Set(b);
-    return new Set(a.filter(item => bSet.has(item)));
-}
-
-/**
- * Hash function for strings because sometimes you just need to have something
- * unique but not immensely long.
- */
-function cyrb53(str, seed = 0) {
-    let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
-    for (let i = 0, ch; i < str.length; i++) {
-        ch = str.charCodeAt(i);
-        h1 = Math.imul(h1 ^ ch, 2654435761);
-        h2 = Math.imul(h2 ^ ch, 1597334677);
-    }
-    h1 = Math.imul(h1 ^ (h1>>>16), 2246822507) ^ Math.imul(h2 ^ (h2>>>13), 3266489909);
-    h2 = Math.imul(h2 ^ (h2>>>16), 2246822507) ^ Math.imul(h1 ^ (h1>>>13), 3266489909);
-    return 4294967296 * (2097151 & h2) + (h1>>>0);
-}
-
 
 const BATCH_SIZE = 8; // number of requested translations
 
@@ -88,7 +19,7 @@ const MAX_WORKERS = 1;
  * their responses in such a way that you can just wait for them by awaiting
  * the promise returned by `request()`.
  */
-class Channel {
+class WorkerChannel {
     constructor(worker) {
         this.worker = worker;
         this.worker.onerror = this.onerror.bind(this);
@@ -128,7 +59,7 @@ class Channel {
  * to call translate() which is async, the helper will manage execution by
  * itself.
  */
- class TranslationHelper {
+ class WASMTranslationHelper {
     
     constructor() {
         // registry of all available models and their urls: Promise<List<Model>>
@@ -159,12 +90,12 @@ class Channel {
     loadWorker() {
         // TODO is this really not async? Can I just send messages to it from
         // the start and will they be queued or something?
-        const worker = new Worker('controller/translation/translationWorker.js');
+        const worker = new Worker('controller/translation/WASMTranslationWorker.js');
         worker.onerror = (err) => console.error('Worker:', err);
 
         // Little wrapper around the message passing api of Worker to make it
         // easy to await a response to a sent message.
-        const channel = new Channel(worker);
+        const channel = new WorkerChannel(worker);
 
         // Wrap the worker in a Proxy so you can treat it as if it is an
         // instance of the TranslationWorker class that lives inside the worker.
@@ -191,11 +122,11 @@ class Channel {
         // Add 'from' and 'to' keys for each model. Since theoretically a model
         // can have multiple froms keys in TranslateLocally, we do a little
         // product here.
-        return Array.from(chain(models, function*(model) {
+        return Array.from(flatten(models, function*(model) {
             try {
                 const to = first(Intl.getCanonicalLocales(model.trgTag));
                 for (let from of Intl.getCanonicalLocales(Object.keys(model.srcTags))) {
-                    yield {from, to, model};
+                    yield {from, to, model: {...model, local: true}};
                 }
             } catch (err) {
                 console.log('Skipped model', model, err);
@@ -230,8 +161,6 @@ class Channel {
 
         // Prefer tiny models above non-tiny ones (right now base models don't even work properly 😅)
         entries.sort(({model: a}, {model: b}) => (a.shortName.indexOf('tiny') === -1 ? 1 : 0) - (b.shortName.indexOf('tiny') === -1 ? 1 : 0));
-
-        entries.reverse();
 
         if (!entries)
             throw new Error(`No model for ${from} -> ${to}`);
@@ -566,27 +495,10 @@ class Channel {
                 request, // Include request for easy reference? Will allow you
                          // to specify custom properties and use that to link
                          // request & response back to each other.
-                translation: responses[i].translation
+                ...responses[i] // {target: {text: String}}
             });
         });
         
         performance.measure('BTConsumeBatch', 'BTConsumeBatch.start');
     }
-}
-
-// Just a little test to run in the web inspector for debugging
-async function test(translationHelper) {
-    console.log(await Promise.all([
-        translationHelper.translate({
-            from: 'de',
-            to: 'en',
-            text: 'Hallo Welt. Wie geht es dir?'
-        }),
-        translationHelper.translate({
-            from: 'de',
-            to: 'en',
-            text: 'Mein Name ist <a href="#">Jelmer</a>.',
-            html: true
-        })
-    ]));
 }

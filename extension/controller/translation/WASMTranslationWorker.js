@@ -5,9 +5,11 @@
 // Global because importScripts is global.
 var Module = {};
 
+console.log("THERE");
+
 importScripts('yaml.js');
 
-class TranslationWorker {
+class WASMTranslationWorker {
     constructor() {
         this.module = this.loadModule();
 
@@ -156,9 +158,12 @@ class TranslationWorker {
         options.delete();
 
         // Convert the Response WASM wrappers into native JavaScript types we
-        // can send over the 'wire' (message passing)
+        // can send over the 'wire' (message passing) in the same format as we
+        // use in bergamot-translator.
         const translations = texts.map((_, i) => ({
-            translation: responses.get(i).getTranslatedText()
+            target: {
+                text: responses.get(i).getTranslatedText()
+            }
         }));
 
         responses.delete();
@@ -167,7 +172,9 @@ class TranslationWorker {
     }
 }
 
-const worker = new TranslationWorker();
+console.log("HEERE");
+
+const worker = new WASMTranslationWorker();
 
 // Responder for Proxy<Channel> created in TranslationHelper.loadWorker()
 onmessage = async ({data: {id, message}}) => {

@@ -52,16 +52,21 @@
 				<p>Wanna translate this page?</p>
 				<select id="lang-from" data-bind:options="lang-from-options" data-bind:value="from"></select>
 				<select id="lang-to" data-bind:options="lang-to-options" data-bind:value="to"></select>
-				<button id="translate-btn" class="primary">Translate page</button>
+				<button id="download-btn" class="primary" data-bind:hidden="!needs-download">Download language &amp; Translate page</button>
+				<button id="translate-btn" class="primary" data-bind:hidden="needs-download">Translate page</button>
+			</div>
+			<div data-state="downloading-models">
+				<p>Downloading languages…</p>
+				<progress data-bind:value="modelDownloadRead" max="modelDownloadSize"></progress>
 			</div>
 			<div data-state="translation-in-progress">
 				<p id="progress-message">Translating page from <span data-bind:text-content="lang-from"></span> to <span data-bind:text-content="lang-to"></span>…</p>
-				<progress id="progress-bar" data-bind:value="completedTranslationRequests" data-bind:max="totalTranslationRequests"></progress>
+				<progress data-bind:value="completedTranslationRequests" data-bind:max="totalTranslationRequests"></progress>
 				<button id="abort-translate-btn">Stop translating</button>
 			</div>
 			<div data-state="translation-error">
 				<p>Error during translation:</p>
-				<p><code id="error-message"></code></p>
+				<p><code id="error-message" data-bind:text-content="error"></code></p>
 			</div>
 		</div>
 		<label>

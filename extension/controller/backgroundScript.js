@@ -1,11 +1,5 @@
 /* global browser */
 
-function* product(as, bs) {
-    for (let a of as)
-        for (let b of bs)
-            yield [a, b];
-}
-
 function isSameDomain(url1, url2) {
     return url1 && url2 && new URL(url1).host === new URL(url2).host;
 }
@@ -16,6 +10,23 @@ const SimilarLanguages = [
     new Set(['es', 'ca', 'gl', 'pt']),
     new Set(['no', 'nb', 'nn', 'da']) // no == nb for bicleaner
 ];
+
+// Just a little test to run in the web inspector for debugging
+async function test(translationHelper) {
+    console.log(await Promise.all([
+        translationHelper.translate({
+            from: 'de',
+            to: 'en',
+            text: 'Hallo Welt. Wie geht es dir?'
+        }),
+        translationHelper.translate({
+            from: 'de',
+            to: 'en',
+            text: 'Mein Name ist <a href="#">Jelmer</a>.',
+            html: true
+        })
+    ]));
+}
 
 /**
  * Language detection function that also provides a sorted list of
@@ -37,10 +48,10 @@ async function detectLanguage({sample, suggested}, languageHelper) {
     // List of all available from->to translation pairs including ones that we
     // achieve by pivoting through English.
     const pairs = [
-        ...models.map(({from, to}) => ({from, to, pivot: null})),
+        ...models.map(model => ({from: model.from, to: model.to, pivot: null, models: [model]})),
         ...Array.from(product(modelsToEng, modelsFromEng))
             .filter(([{from}, {to}]) => from !== to)
-            .map(([{from}, {to}]) => ({from, to, pivot: 'en'}))
+            .map(([from, to]) => ({from: from.from, to: to.to, pivot: 'en', models: [from, to]}))
     ];
 
     // {[lang]: 0.0 .. 1.0} map of likeliness the page is in this language
@@ -71,7 +82,12 @@ async function detectLanguage({sample, suggested}, languageHelper) {
     }, {});
     
     // Function to score a translation model. Higher score is better
-    const score = ({from, to, pivot}) => ((confidence[from] || 0.0) + (preferred[to] || 0.0) + (pivot ? 0.0 : 1.0));
+    const score = ({from, to, pivot, models}) => {
+        return (confidence[from] || 0.0)                                                  // from language is good
+             + (preferred[to] || 0.0)                                                     // to language is good
+             + (pivot ? 0.0 : 1.0)                                                        // preferably don't pivot
+             + (1.0 / models.reduce((acc, model) => acc + model.local ? 0.0 : 1.0, 1.0))  // prefer local models
+    };
 
     // Sort our possible models, best one first
     pairs.sort((a, b) => score(b) - score(a));
@@ -90,6 +106,7 @@ const State = {
     PAGE_LOADED: 'page-loaded',
     TRANSLATION_NOT_AVAILABLE: 'translation-not-available',
     TRANSLATION_AVAILABLE: 'translation-available',
+    DOWNLOADING_MODELS: 'downloading-models',
     TRANSLATION_IN_PROGRESS: 'translation-in-progress',
     TRANSLATION_FINISHED: 'translation-finished',
     TRANSLATION_ERROR: 'translation-error'
@@ -101,10 +118,16 @@ class Tab extends EventTarget {
         this.id = id;
         this.state = {
             state: State.PAGE_LOADING,
+            from: undefined,
+            to: undefined,
+            models: [],
+            debug: false,
+            error: null,
+            url: null,
             pendingTranslationRequests: 0,
             totalTranslationRequests: 0,
-            debug: false,
-            url: null
+            modelDownloadRead: undefined,
+            modelDownloadSize: undefined,
         };
         this.frames = new Map();
 
@@ -202,7 +225,7 @@ function showPopup(event) {
 }
 
 
-const translationHelper = new TranslationHelper();
+const translationHelper = new TLTranslationHelper();
 
 // State per tab
 const tabs = new Map();
@@ -358,8 +381,44 @@ function connectPopup(popup) {
     // Make the popup receive state updates
     connectTab(tab, popup);
 
-    popup.onMessage.addListener(message => {
+    popup.onMessage.addListener(async message => {
         switch (message.command) {
+            case "DownloadModels":
+                // Tell the tab we're downloading models
+                tab.update(state => ({
+                    state: State.DOWNLOADING_MODELS
+                }));
+
+                // Start the downloads and put them in a {[download:promise]: {read:int,size:int}}
+                const downloads = new Map(message.data.models.map(model => [translationHelper.downloadModel(model), {read:0.0, size:0.0}]));
+
+                // For each download promise, add a progress listener that updates the tab state
+                // with how far all our downloads have progressed so far.
+                downloads.forEach((_, promise) => promise.addProgressListener(({read, size}) => {
+                    // Update download we got a notification about
+                    downloads.set(promise, {read, size});
+                    // Update tab state about all downloads combined (i.e. model, optionally pivot)
+                    tab.update(state => ({
+                        modelDownloadRead: Array.from(downloads.values()).reduce((sum, {read}) => sum + read, 0),
+                        modelDownloadSize: Array.from(downloads.values()).reduce((sum, {size}) => sum + size, 0)
+                    }));
+                }));
+
+                // Finally, when all downloads have finished, start translating the page.
+                try {
+                    await Promise.all(downloads.keys());
+
+                    tab.translate({
+                       from: message.data.from,
+                         to: message.data.to
+                    });
+                } catch (e) {
+                    tab.update(state => ({
+                        state: State.TRANSLATION_ERROR,
+                        error: e.toString()
+                    }));
+                }
+                break;
             case "TranslateStart":
                 tab.translate({
                     from: message.data.from,

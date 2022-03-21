@@ -36,17 +36,34 @@ function queryXPathAll(query, callback) {
 	return output;
 }
 
+const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
+
 function render(state) {
-	const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
+	// Shortcuts, I use these everywhere
+	const from = state.from || state.page.from;
+	const to = state.to || state.page.to;
+
+	// If the model (or one of the models in case of pivoting) needs downloading
+	const needsDownload = state.page.models.find(model => from === model.from && to === model.to)?.models?.some(({model}) => !model.local);
+
+	const name = (code) => {
+		try {
+			return regionNamesInEnglish.of(code);
+		} catch (RangeError) {
+			return `[${code}]`; // fallback if code is not known or invalid
+		}
+	};
 
 	const renderState = {
 		...state,
-		'from': state.from || state.page.from,
-		'to': state.to || state.page.to,
-		'lang-from': state.from ? regionNamesInEnglish.of(state.from) : '',
-		'lang-to': state.to ? regionNamesInEnglish.of(state.to) : '',
-		'lang-from-options': new Map(state.page.models.map(({from}) => [from, regionNamesInEnglish.of(from)])),
-		'lang-to-options': new Map(state.page.models.map(({to}) => [to, regionNamesInEnglish.of(to)])),
+		from,
+		to,
+		'lang-from': regionNamesInEnglish.of(from),
+		'lang-to': regionNamesInEnglish.of(to),
+		'lang-from-options': new Map(state.page.models.map(({from}) => [from, name(from)])),
+		'lang-to-options': new Map(state.page.models.filter(model => from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
+		'needs-download': needsDownload,
+		'!needs-download': !needsDownload, // data-bind has no operators, so ! goes in the name :P
 		'completedTranslationRequests': state.totalTranslationRequests - state.pendingTranslationRequests || undefined
 	};
 
@@ -61,17 +78,23 @@ function render(state) {
 			let match = key.match(/^bind:(.+)$/);
 			if (!match) return;
 
-			switch (match[1]) {
-				case 'options':
-					renderSelect(el, renderState[value]);
-					break;
-				default:
-					// Special case for <progress value=undefined> to get an indeterminate progress bar
-					if (match[1] === 'value' && el instanceof HTMLProgressElement && typeof renderState[value] !== 'number')
-						el.removeAttribute('value');
-					else
-						el[match[1]] = renderState[value];
-					break;
+			try {
+				switch (match[1]) {
+					case 'options':
+						renderSelect(el, renderState[value]);
+						break;
+					default:
+						// Special case for <progress value=undefined> to get an indeterminate progress bar
+						if (match[1] === 'value' && el instanceof HTMLProgressElement && typeof renderState[value] !== 'number')
+							el.removeAttribute('value');
+						else
+							if (!(value in renderState))
+								console.warn('render state has no key', value);
+							el[match[1]] = renderState[value];
+						break;
+				}
+			} catch (e) {
+				console.error('Error while setting', value, 'of', el, ':', e);
 			}
 		});
 	});
@@ -85,15 +108,7 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 
 	const backgroundScript = browser.runtime.connect({name: `popup-${tabId}`});
 
-	const state = {
-		state: 'page-loading',
-		from: undefined,
-		to: undefined,
-		models: [],
-		debug: false,
-		pendingTranslationRequests: 0,
-		totalTranslationRequests: 0
-	};
+	const state = {};
 
 	backgroundScript.onMessage.addListener(({command, data}) => {
 		switch (command) {
@@ -109,14 +124,41 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 			backgroundScript.postMessage({
 				command: 'TranslateStart',
 				data: {
-					from: document.querySelector('#lang-from').value,
-					to: document.querySelector('#lang-to').value
+					from: state.from || state.page.from,
+					to: state.to || state.page.to
 				}
+			});
+		},
+		'click #download-btn': e => {
+			const data = {
+				from: state.from || state.page.from,
+				to: state.to || state.page.to
+			};
+
+			// TODO this assumes state.from and state.to reflect the current UI,
+			// which they should iff the UpdateRequest has been processed and
+			// broadcasted by backgroundScript.
+			data.models = state.page.models
+			              .find(({from, to}) => from === data.from && to === data.to)
+			              .models
+			              .map(({model}) => model.id);
+
+			backgroundScript.postMessage({
+				command: 'DownloadModels',
+				data
 			});
 		},
 		'click #abort-translate-btn': e => {
 			backgroundScript.postMessage({
 				command: 'TranslateAbort'
+			});
+		},
+		'change *[data-bind\\:value]': e => {
+			backgroundScript.postMessage({
+				command: 'UpdateRequest',
+				data: {
+					[e.target.dataset['bind:value']]: e.target.value
+				}
 			});
 		},
 		'change input[type=checkbox][data-bind\\:checked]': e => {
