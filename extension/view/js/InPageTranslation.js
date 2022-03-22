@@ -133,7 +133,7 @@ class InPageTranslation {
          * title to be translated
          */
         this.started = true;
-        // this.addDebugStylesheet();
+        this.addDebugStylesheet();
 
         // language we expect. If we find elements that do not match, nope out.
         this.language = language;
@@ -149,7 +149,7 @@ class InPageTranslation {
     addDebugStylesheet() {
         const element = document.createElement("style");
         document.head.appendChild(element);
-
+        if (!element.sheet) return;
         const sheet = element.sheet;
         sheet.insertRule("html[x-bergamot-debug] [x-bergamot-translated] { border: 2px solid red; }", 0);
         sheet.insertRule("html[x-bergamot-debug] [x-bergamot-translated~=\"skipped\"] { border: 2px solid purple; }", 1);
