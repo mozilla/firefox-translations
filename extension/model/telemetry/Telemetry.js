@@ -20,7 +20,6 @@ class Telemetry {
     record(type, category, name, value) {
         switch (type) {
             case "event":
-
                 this._client.event(category, name);
                 this._updateUsageTime();
                 break;

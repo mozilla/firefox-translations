@@ -596,7 +596,12 @@ class InPageTranslation {
                 currentNode = nodeIterator.nextNode();
             }
         }
-        this.notifyMediator("reportQeMetrics", { wordScores: Array.from(wordScores.values()), sentScores: Array.from(sentScores.values()) });
+        if ((sentScores.size > 0) || (wordScores.size > 0)) {
+            this.notifyMediator("reportQeMetrics", {
+                wordScores: Array.from(wordScores.values()),
+                sentScores: Array.from(sentScores.values())
+            });
+        }
     }
 
     enqueueElement(translationMessage) {
