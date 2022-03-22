@@ -70,6 +70,9 @@ class Metrics {
         if (typeof val !== "number") {
             throw new Error(`Telemetry: Quantity ${category}.${name} must be a number, value: ${val}`)
         }
+        if (val < 0) {
+            throw new Error(`Telemetry: Quantity ${category}.${name} must be non-negative, value: ${val}`)
+        }
         for (const pingName of this._getPings(category, name, "quantity")) {
             let ping = this._build_ping(pingName);
             if (!("quantity" in ping.metrics)) {

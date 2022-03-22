@@ -207,6 +207,9 @@ class Mediator {
             case "onFormsEvent":
                 this.telemetry.formsEvent(message.payload);
                 break;
+            case "reportQeMetrics":
+                this.telemetry.addQualityEstimation(message.payload.wordScores, message.payload.sentScores, false);
+                break;
             case "domMutation":
 
                 if (this.outboundTranslation) {
