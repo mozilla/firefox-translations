@@ -62,6 +62,10 @@
 		"default_title": "Translation available",
 		"default_popup": "/view/static/popup.html"
 	},
+	"options_ui": {
+		"page": "/view/static/options.html",
+		"browser_style": true
+	},
 	"icons":
 	{
 		"16": "/view/icons/translation.16x16.png",

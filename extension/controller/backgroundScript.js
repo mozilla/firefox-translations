@@ -12,14 +12,14 @@ const SimilarLanguages = [
 ];
 
 // Just a little test to run in the web inspector for debugging
-async function test(translationHelper) {
+async function test(provider) {
     console.log(await Promise.all([
-        translationHelper.translate({
+        provider.translate({
             from: 'de',
             to: 'en',
             text: 'Hallo Welt. Wie geht es dir?'
         }),
-        translationHelper.translate({
+        provider.translate({
             from: 'de',
             to: 'en',
             text: 'Mein Name ist <a href="#">Jelmer</a>.',
@@ -33,13 +33,13 @@ async function test(translationHelper) {
  * from->to language pairs, based on the detected language, the preferred
  * target language, and what models are available.
  */
-async function detectLanguage({sample, suggested}, languageHelper) {
+async function detectLanguage({sample, suggested}, provider) {
     if (!sample)
         throw new Error('Empty sample');
 
     const [detected, models] = await Promise.all([
         browser.i18n.detectLanguage(sample),
-        translationHelper.registry
+        provider.registry
     ]);
 
     const modelsFromEng = models.filter(({from}) => from === 'en');
@@ -224,8 +224,16 @@ function showPopup(event) {
     }
 }
 
+// Supported translation providers
+const providers = {
+    'translatelocally': TLTranslationHelper,
+    'wasm': WASMTranslationHelper
+};
 
-const translationHelper = new TLTranslationHelper();
+// Global state (and defaults)
+const state = {
+    provider: 'wasm'
+};
 
 // State per tab
 const tabs = new Map();
@@ -239,6 +247,26 @@ function getTab(tabId) {
 
     return tabs.get(tabId);
 }
+
+// Instantiation of a TranslationHelper. Access it through .get().
+let provider = new class {
+    #provider;
+
+    get() {
+        if (this.#provider)
+            return this.#provider;
+
+        if (!(state.provider in providers))
+            throw new Error(`Provider ${state.provider} not in list of supported translation providers`);
+
+        return this.#provider = new providers[state.provider]();
+    }
+
+    reset() {
+        tabs.forEach(tab => tab.reset(tab.state.url));
+        this.#provider = null;
+    }
+};
 
 /**
  * Connects the port of a content-script or popup with the state management
@@ -289,7 +317,7 @@ function connectContentScript(contentScript) {
         
         // Also prune any pending translation requests that have this same
         // signal from the queue. No need to put any work into it.
-        translationHelper.remove((request) => request._abortSignal.aborted);
+        provider.get().remove((request) => request._abortSignal.aborted);
 
         // Create a new signal in case we want to start translating again.
         _abortSignal = {aborted: false};
@@ -314,7 +342,7 @@ function connectContentScript(contentScript) {
         switch (message.command) {
             // Send by the content-scripts inside this tab
             case "DetectLanguage":
-                detectLanguage(message.data, translationHelper).then(summary => {
+                detectLanguage(message.data, provider.get()).then(summary => {
                     // TODO: When we support multiple frames inside a tab, we
                     // should integrate the results from each frame somehow.
                     // For now we ignore it, because 90% of the time it will be
@@ -337,7 +365,7 @@ function connectContentScript(contentScript) {
                     pendingTranslationRequests: state.pendingTranslationRequests + 1,
                     totalTranslationRequests: state.totalTranslationRequests + 1
                 }));
-                translationHelper.translate({...message.data, _abortSignal})
+                provider.get().translate({...message.data, _abortSignal})
                     .then(response => {
                         if (!response.request._abortSignal.aborted) {
                             contentScript.postMessage({
@@ -390,7 +418,7 @@ function connectPopup(popup) {
                 }));
 
                 // Start the downloads and put them in a {[download:promise]: {read:int,size:int}}
-                const downloads = new Map(message.data.models.map(model => [translationHelper.downloadModel(model), {read:0.0, size:0.0}]));
+                const downloads = new Map(message.data.models.map(model => [provider.get().downloadModel(model), {read:0.0, size:0.0}]));
 
                 // For each download promise, add a progress listener that updates the tab state
                 // with how far all our downloads have progressed so far.
@@ -433,25 +461,41 @@ function connectPopup(popup) {
     });
 }
 
-// Receive incoming connection requests from content-script and popup
-browser.runtime.onConnect.addListener((port) => {
-    if (port.name == 'content-script')
-        connectContentScript(port);   
-    else if (port.name.startsWith('popup-'))
-        connectPopup(port);
-});
+async function main() {
+    // Init global state
+    Object.assign(state, await browser.storage.local.get(Array.from(Object.keys(state))));
 
-// Initialize or update the state of a tab when navigating
-browser.webNavigation.onCommitted.addListener(({tabId, frameId, url}) => {
-    // Right now we're only interested in top-level navigation changes
-    if (frameId !== 0)
-        return;
+    // Receive incoming connection requests from content-script and popup
+    browser.runtime.onConnect.addListener((port) => {
+        if (port.name == 'content-script')
+            connectContentScript(port);   
+        else if (port.name.startsWith('popup-'))
+            connectPopup(port);
+    });
 
-    // Todo: treat reload and link different? Reload -> disable translation?
-    getTab(tabId).reset(url);
-});
+    // Initialize or update the state of a tab when navigating
+    browser.webNavigation.onCommitted.addListener(({tabId, frameId, url}) => {
+        // Right now we're only interested in top-level navigation changes
+        if (frameId !== 0)
+            return;
 
-// Remove the tab state if a tab is removed
-browser.tabs.onRemoved.addListener(({tabId}) => {
-    tabs.delete(tabId);
-});
+        // Todo: treat reload and link different? Reload -> disable translation?
+        getTab(tabId).reset(url);
+    });
+
+    // Remove the tab state if a tab is removed
+    browser.tabs.onRemoved.addListener(({tabId}) => {
+        tabs.delete(tabId);
+    });
+
+    browser.storage.onChanged.addListener(changes => {
+        Object.entries(changes).forEach(([key, change]) => {
+            state[key] = change.newValue;
+        });
+
+        if ('provider' in changes)
+            resetProvider();
+    });
+}
+
+main();
