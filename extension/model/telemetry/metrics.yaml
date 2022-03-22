@@ -779,6 +779,54 @@ infobar:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
+  qe_checked:
+    type: event
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      User accepts quality estimation by checking the checkbox.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/107
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  qe_unchecked:
+    type: event
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      User disables quality estimation by unchecking the checkbox.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/107
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  qe_enabled:
+    type: boolean
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Quality estimation is enabled.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/107
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
 
 service:
   not_supported:

@@ -149,7 +149,7 @@ class InPageTranslation {
     addDebugStylesheet() {
         const element = document.createElement("style");
         document.head.appendChild(element);
-
+        if (!element.sheet) return;
         const sheet = element.sheet;
         sheet.insertRule("html[x-bergamot-debug] [x-bergamot-translated] { border: 2px solid red; }", 0);
         sheet.insertRule("html[x-bergamot-debug] [x-bergamot-translated~=\"skipped\"] { border: 2px solid purple; }", 1);
@@ -575,8 +575,28 @@ class InPageTranslation {
         };
 
         this.updateMap.forEach(updateElement);
+        this.reportQualityEstimation(this.updateMap.keys());
         this.updateMap.clear();
         this.updateTimeout = null;
+    }
+
+    reportQualityEstimation(nodes) {
+        let wordScores = new Map();
+        let sentScores = new Map();
+        for (let node of nodes) {
+            const nodeIterator = document.createTreeWalker(node, NodeFilter.SHOW_ELEMENT);
+            let currentNode = nodeIterator.currentNode;
+            while (currentNode) {
+                if (currentNode.hasAttribute("x-bergamot-word-score")) {
+                    wordScores.set(currentNode, parseFloat(currentNode.getAttribute("x-bergamot-word-score")));
+                }
+                if (currentNode.hasAttribute("x-bergamot-sentence-score")) {
+                    sentScores.set(currentNode, parseFloat(currentNode.getAttribute("x-bergamot-sentence-score")));
+                }
+                currentNode = nodeIterator.nextNode();
+            }
+        }
+        this.notifyMediator("reportQeMetrics", { wordScores: Array.from(wordScores.values()), sentScores: Array.from(sentScores.values()) });
     }
 
     enqueueElement(translationMessage) {

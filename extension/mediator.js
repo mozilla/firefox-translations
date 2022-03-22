@@ -219,6 +219,9 @@ class Mediator {
                 // payload is a metric name from metrics.yaml
                 this.recordTelemetry("event", "forms", message.payload);
                 break;
+            case "reportQeMetrics":
+                this.telemetry.addQualityEstimation(message.payload.wordScores, message.payload.sentScores, false);
+                break;
             case "domMutation":
                 if (this.outboundTranslation) {
                     this.outboundTranslation.updateZIndex(message.payload);

@@ -87,8 +87,9 @@ class Telemetry {
     addQualityEstimation(wordScores, sentScores, isSupervised) {
         this._client.boolean("quality", "is_supervised", isSupervised);
 
-        for (const score of wordScores) this._wordScores.push(score);
-        for (const score of sentScores) this._sentScores.push(score);
+        // scores are log probabilities, convert back to probabilities
+        for (const score of wordScores) this._wordScores.push(Math.exp(score));
+        for (const score of sentScores) this._sentScores.push(Math.exp(score));
 
         const wordStats = this._calcStats(this._wordScores);
         const sentStats = this._calcStats(this._sentScores);

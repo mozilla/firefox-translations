@@ -22,7 +22,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             <label value="&translation.translateThisPage.label;"/>
             <button class="notification-button primary" label="&translation.translate.button;" anonid="translate" oncommand="this.closest('notification').translate();"/>
             <checkbox anonid="outboundtranslations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onOutboundClick();" />
-            <checkbox anonid="qualityestimations-check" label="" style="padding-left:5px"/>
+            <checkbox anonid="qualityestimations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onQeClick();"/>
           </hbox>
           <vbox class="translating-box" pack="center">
             <hbox>
@@ -161,6 +161,16 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     } else {
       this.translationNotificationManager.reportInfobarMetric("event", "outbound_unchecked");
       this.translationNotificationManager.reportInfobarMetric("boolean", "outbound_enabled", false);
+    }
+  }
+
+  onQeClick() {
+    // eslint-disable-next-line no-warning-comments
+    // todo: report boolean qe_enabled after iframe support is merged
+    if (this._getAnonElt("qualityestimations-check").checked) {
+      this.translationNotificationManager.reportInfobarEvent("qe_checked");
+    } else {
+      this.translationNotificationManager.reportInfobarEvent("qe_unchecked");
     }
   }
 
