@@ -137,7 +137,6 @@ class InPageTranslation {
          * title to be translated
          */
         this.started = true;
-        this.addDebugStylesheet();
 
         // Language we expect. If we find elements that do not match, nope out.
         this.language = language;
@@ -148,18 +147,6 @@ class InPageTranslation {
         }
         this.startTreeWalker(document.body);
         this.startMutationObserver();
-    }
-
-    addDebugStylesheet() {
-        const element = document.createElement('style');
-        document.head.appendChild(element);
-
-        const sheet = element.sheet;
-        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated] { border: 2px solid red; }', 0);
-        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated~="skipped"] { border: 2px solid purple; }', 1);
-        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated~="rejected"] { border: 2px solid yellow; }', 2);
-        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated=""] { border: 2px solid blue; }', 3);
-        sheet.insertRule('html[x-bergamot-debug] [x-bergamot-translated=""] [x-bergamot-translated~="is-excluded-node"] { border: 4px dashed red; }', 4);
     }
 
     startTreeWalker(root) {

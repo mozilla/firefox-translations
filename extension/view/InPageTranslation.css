@@ -1,0 +1,5 @@
+html[x-bergamot-debug] [x-bergamot-translated] { border: 2px solid red; }
+html[x-bergamot-debug] [x-bergamot-translated~="skipped"] { border: 2px solid purple; }
+html[x-bergamot-debug] [x-bergamot-translated~="rejected"] { border: 2px solid yellow; }
+html[x-bergamot-debug] [x-bergamot-translated=""] { border: 2px solid blue; }
+html[x-bergamot-debug] [x-bergamot-translated=""] [x-bergamot-translated~="is-excluded-node"] { border: 4px dashed red; }

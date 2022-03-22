@@ -42,6 +42,10 @@
 				"view/js/InPageTranslation.js",
 				"contentScript.js"
 			],
+			"css":
+			[
+				"view/InPageTranslation.css"
+			],
 			"run_at": "document_idle",
 			"all_frames": true
 		}
