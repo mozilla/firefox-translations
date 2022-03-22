@@ -177,6 +177,10 @@ const messageListener = async function (message, sender) {
             getTelemetry(message.tabId).addOutboundTranslation(message.textAreaId, message.text);
             break;
 
+        case "reportQeStats":
+            getTelemetry(message.tabId).addQualityEstimation(message.wordScores, message.sentScores);
+            break;
+
         case "submitPing":
             getTelemetry(message.tabId).submit();
             Reflect.deleteProperty(telemetryByTab, message.tabId);

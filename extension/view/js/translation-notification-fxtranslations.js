@@ -166,11 +166,12 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 
   onQeClick() {
     // eslint-disable-next-line no-warning-comments
-    // todo: report boolean qe_enabled after iframe support is merged
     if (this._getAnonElt("qualityestimations-check").checked) {
-      this.translationNotificationManager.reportInfobarEvent("qe_checked");
+      this.translationNotificationManager.reportInfobarMetric("event","qe_checked");
+      this.translationNotificationManager.reportInfobarMetric("boolean", "qe_enabled", true);
     } else {
-      this.translationNotificationManager.reportInfobarEvent("qe_unchecked");
+      this.translationNotificationManager.reportInfobarMetric("event","qe_unchecked");
+      this.translationNotificationManager.reportInfobarMetric("boolean", "qe_enabled", false);
     }
   }
 

@@ -220,7 +220,13 @@ class Mediator {
                 this.recordTelemetry("event", "forms", message.payload);
                 break;
             case "reportQeMetrics":
-                this.telemetry.addQualityEstimation(message.payload.wordScores, message.payload.sentScores, false);
+                this.recordTelemetry("boolean", "quality", "is_supervised", false);
+                browser.runtime.sendMessage({
+                    command: "reportQeStats",
+                    tabId: this.tabId,
+                    wordScores: message.payload.wordScores,
+                    sentScores: message.payload.sentScores
+                });
                 break;
             case "domMutation":
                 if (this.outboundTranslation) {
