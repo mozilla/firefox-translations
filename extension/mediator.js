@@ -97,7 +97,7 @@ class Mediator {
             this.recordTelemetry("string", "metadata", "to_lang", navLang);
             this.recordTelemetry("counter", "service", "lang_mismatch");
 
-            window.onbeforeunload = () => browser.runtime.sendMessage({ command: "submitPing", tabId: this.tabId });
+            window.onunload = () => browser.runtime.sendMessage({ command: "submitPing", tabId: this.tabId });
 
             if (this.languageDetection.shouldDisplayTranslation()) {
                 // request the backgroundscript to display the translationbar
