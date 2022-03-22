@@ -87,6 +87,9 @@ class Metrics {
         if (typeof val !== "string") {
             throw new Error(`Telemetry: ${category}.${name} must be a string, value: ${val}`)
         }
+        if (val.length > 100) {
+            this._log(`warning: string ${category}.${name} is longer that 100 character will be truncated`);
+        }
         for (const pingName of this._getPings(category, name, "string")) {
             let ping = this._build_ping(pingName);
             if (!("string" in ping.metrics)) {

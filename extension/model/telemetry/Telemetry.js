@@ -84,9 +84,7 @@ class Telemetry {
         this._updateUsageTime();
     }
 
-    addQualityEstimation(wordScores, sentScores, isSupervised) {
-        this._client.boolean("quality", "is_supervised", isSupervised);
-
+    addQualityEstimation(wordScores, sentScores) {
         // scores are log probabilities, convert back to probabilities
         for (const score of wordScores) this._wordScores.push(Math.exp(score));
         for (const score of sentScores) this._sentScores.push(Math.exp(score));
@@ -110,9 +108,9 @@ class Telemetry {
     _calcStats(array) {
         array.sort();
         const sum = array.reduce((a, b) => a + b, 0);
-        const avg = (sum / array.length) || 0;
-        const median = array[Math.floor(array.length/2)-1] || 0;
-        const perc90 = array[Math.floor(array.length*0.9)-1] || 0;
+        const avg = ((sum / array.length) || 0).toFixed(3);
+        const median = (array[Math.floor(array.length/2)-1] || 0).toFixed(3);
+        const perc90 = (array[Math.floor(array.length*0.9)-1] || 0).toFixed(3);
 
         return { avg, median, perc90 }
     }
