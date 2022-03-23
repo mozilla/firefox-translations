@@ -183,7 +183,7 @@ const messageListener = async function (message, sender) {
 
         case "submitPing":
             getTelemetry(message.tabId).submit();
-            Reflect.deleteProperty(telemetryByTab, message.tabId);
+            telemetryByTab.delete(message.tabId);
             break;
 
         case "translationRequested":
