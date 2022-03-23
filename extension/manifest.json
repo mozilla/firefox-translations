@@ -119,5 +119,14 @@
     "16": "/view/icons/translation.16x16.png",
     "32": "/view/icons/translation.32x32.png"
   },
+  "page_action": {
+    "show_matches": ["<all_urls>"],
+    "browser_style": true,
+    "default_icon": {
+      "19": "view/icons/translation.16x16.png",
+      "38": "view/icons/translation.32x32.png"
+    },
+    "default_title": "Firefox Translations"
+  },
   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';"
 }

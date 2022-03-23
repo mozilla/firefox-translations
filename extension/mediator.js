@@ -77,7 +77,13 @@ class Mediator {
             const navLang = this.languageDetection.navigatorLanguage;
             this.telemetry.langPair(pageLang, navLang);
             this.telemetry.langMismatch();
-            window.onbeforeunload = () => this.telemetry.pageClosed();
+            window.onbeforeunload = () => {
+                browser.runtime.sendMessage({
+                    command: "reportClosedInfobar",
+                    tabId: this.tabId
+                });
+                this.telemetry.pageClosed();
+            }
 
             if (this.languageDetection.shouldDisplayTranslation()) {
                 // request the backgroundscript to display the translationbar
@@ -102,6 +108,9 @@ class Mediator {
     contentScriptsMessageListener(sender, message) {
         switch (message.command) {
             case "translate":
+                if (!this.translation) {
+                    this.translation = new Translation(this);
+                }
                 // eslint-disable-next-line no-case-declarations
                 const translationMessage = this.translation.constructTranslationMessage(
                     message.payload.text,
