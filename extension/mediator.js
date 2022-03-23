@@ -63,6 +63,16 @@ class Mediator {
         });
     }
 
+    onBeforeUnload() {
+
+        /*
+         * it is recommended to use visibilitychange event for this use case,
+         * but it triggers some errors because of communication with bgScript, so let's use beforeunload for now
+         */
+        browser.runtime.sendMessage({ command: "submitPing", tabId: this.tabId });
+        window.removeEventListener("beforeunload", this.onBeforeUnload);
+    }
+
     // eslint-disable-next-line max-lines-per-function
     determineIfTranslationisRequired() {
 
@@ -97,7 +107,7 @@ class Mediator {
             this.recordTelemetry("string", "metadata", "to_lang", navLang);
             this.recordTelemetry("counter", "service", "lang_mismatch");
 
-            window.onunload = () => browser.runtime.sendMessage({ command: "submitPing", tabId: this.tabId });
+            window.addEventListener("beforeunload", this.onBeforeUnload);
 
             if (this.languageDetection.shouldDisplayTranslation()) {
                 // request the backgroundscript to display the translationbar
