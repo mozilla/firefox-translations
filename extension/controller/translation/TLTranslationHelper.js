@@ -75,7 +75,7 @@ class PortChannel {
 
     async loadNativeClient() {
         return new Promise((resolve, reject) => {
-            const port = browser.runtime.connectNative('translateLocally');
+            const port = browser.runtime.connectNative('translatelocally');
 
             port.onDisconnect.addListener((e) => {
                 console.log('translateLocally disconnected', port.error);
