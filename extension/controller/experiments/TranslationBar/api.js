@@ -124,7 +124,7 @@
                  {},
                );
                Services.prefs.setBoolPref("browser.translation.ui.show", false);
-               Services.prefs.setBoolPref("extensions.translations.disabled", true);
+               Services.prefs.setBoolPref("extensions.translations.disabled", false);
                Services.prefs.setBoolPref("browser.translation.detectLanguage",false,);
                Services.prefs.setBoolPref("javascript.options.wasm_simd_wormhole",true,);
             },
