@@ -92,7 +92,7 @@ add_task(async function testTranslationBarDisplayed() {
        );
     }
 
-    await new Promise(resolve => content.setTimeout(resolve, 5000));
+    await new Promise(resolve => content.setTimeout(resolve, 10000));
     await checkTranslation(content.document, "main frame");
     await checkTranslation(content.document.getElementById("iframe").contentWindow.document, "iframe");
   });
