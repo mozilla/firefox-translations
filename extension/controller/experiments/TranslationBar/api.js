@@ -11,7 +11,6 @@
  this.experiments_translationbar = class extends ExtensionAPI {
     getAPI(context) {
 
-      let translationNotificationManager;
       const { ExtensionUtils } = ChromeUtils.import(
         "resource://gre/modules/ExtensionUtils.jsm",
         {},
@@ -29,7 +28,7 @@
       );
 
       // map responsible holding the TranslationNotificationManager per tabid
-      const translatonNotificationManagers = new Map();
+      const translationNotificationManagers = new Map();
 
       Services.scriptloader.loadSubScript(`${context.extension.getURL("/view/js/TranslationNotificationManager.js",)}?cachebuster=${Date.now()}`
       ,);
@@ -45,23 +44,30 @@
       return {
         experiments: {
           translationbar: {
-            show: function show(tabId, detectedLanguage, navigatorLanguage, localizedLabels) {
+            show: function show(tabId, detectedLanguage, navigatorLanguage, localizedLabels, pageActionRequest) {
               try {
 
                 const { tabManager } = context.extension;
                 const tab = tabManager.get(tabId);
                 const chromeWin = tab.browser.ownerGlobal;
 
+                // if an infobar is already being displayed, we ignore the request
+                if (pageActionRequest && translationNotificationManagers.has(tabId)) {
+                  return;
+                } else if (!pageActionRequest) {
+
                 /*
                  * let's test if either this language or this page should not
-                 * display the infobar
+                 * display the infobar, but only if the user hasn't manually
+                 * summoned the infobar
                  */
-                const neverForLangs = Services.prefs.getCharPref("browser.translation.neverForLanguages",);
-                const principal = tab.browser.contentPrincipal;
-                if (neverForLangs.split(",").includes(detectedLanguage) ||
-                    Services.perms.testExactPermissionFromPrincipal(principal, "translate") ===
-                    Services.perms.DENY_ACTION) {
-                      return;
+                  const neverForLangs = Services.prefs.getCharPref("browser.translation.neverForLanguages",);
+                  const principal = tab.browser.contentPrincipal;
+                  if (neverForLangs.split(",").includes(detectedLanguage) ||
+                      Services.perms.testExactPermissionFromPrincipal(principal, "translate") ===
+                      Services.perms.DENY_ACTION) {
+                        return;
+                  }
                 }
 
                 /*
@@ -88,7 +94,7 @@
                     priority: notificationBox.PRIORITY_INFO_HIGH,
                     notificationIs: `translation-notification-${chromeWin.now}`,
                 });
-                translationNotificationManager = new TranslationNotificationManager(
+                let translationNotificationManager = new TranslationNotificationManager(
                   this,
                   modelRegistry,
                   detectedLanguage,
@@ -100,20 +106,19 @@
                 translationNotificationManager.browser = tab.browser;
                 translationNotificationManager.logoIcon = context.extension.getURL("/view/icons/translation.16x16.png",)
                 translationNotificationManager.localizedLabels = localizedLabels;
-
                 notif.init(translationNotificationManager);
-                translatonNotificationManagers.set(tabId, translationNotificationManager);
+                translationNotificationManagers.set(tabId, translationNotificationManager);
               } catch (error) {
                 // surface otherwise silent or obscurely reported errors
                 console.error(error.message, error.stack);
                 throw new ExtensionError(error.message);
               }
-             },
+            },
             updateProgress: function updateProgress(tabId, progressMessage) {
-              const translatonNotificationManager = translatonNotificationManagers.get(tabId);
+              const translatonNotificationManager = translationNotificationManagers.get(tabId);
               translatonNotificationManager.notificationBox.updateTranslationProgress(progressMessage);
-             },
-             switchOnPreferences: function switchOnPreferences() {
+            },
+            switchOnPreferences: function switchOnPreferences() {
                const { Services } = ChromeUtils.import(
                  "resource://gre/modules/Services.jsm",
                  {},
@@ -122,11 +127,14 @@
                Services.prefs.setBoolPref("extensions.translations.disabled", true);
                Services.prefs.setBoolPref("browser.translation.detectLanguage",false,);
                Services.prefs.setBoolPref("javascript.options.wasm_simd_wormhole",true,);
-             },
-             getLocalizedLanguageName: function getLocalizedLanguageName(languageCode){
+            },
+            getLocalizedLanguageName: function getLocalizedLanguageName(languageCode){
               // eslint-disable-next-line no-undefined
               return Services.intl.getLanguageDisplayNames(undefined, [languageCode,])[0];
-             },
+            },
+            closeInfobar: function closeInfobar(tabId) {
+              translationNotificationManagers.delete(tabId);
+            },
              onTranslationRequest: new ExtensionCommon.EventManager({
               context,
               name: "experiments.translationbar.onTranslationRequest",
