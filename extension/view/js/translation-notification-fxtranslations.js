@@ -135,6 +135,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         "boolean", "outbound_enabled",
             this._getAnonElt("outboundtranslations-check").checked === true
         );
+    this.translationNotificationManager.reportInfobarMetric(
+        "boolean", "qe_enabled",
+            this._getAnonElt("qualityestimations-check").checked === true
+        );
   }
 
   _getAnonElt(anonId) {
