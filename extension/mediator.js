@@ -63,20 +63,6 @@ class Mediator {
         });
     }
 
-    onBeforeUnload() {
-
-        /*
-         * it is recommended to use visibilitychange event for this use case,
-         * but it triggers some errors because of communication with bgScript, so let's use beforeunload for now
-         */
-        browser.runtime.sendMessage({
-            command: "reportClosedInfobar",
-            tabId: this.tabId
-        });
-        browser.runtime.sendMessage({ command: "submitPing", tabId: this.tabId });
-        window.removeEventListener("beforeunload", this.onBeforeUnload);
-    }
-
     // eslint-disable-next-line max-lines-per-function
     determineIfTranslationisRequired() {
 
@@ -111,7 +97,15 @@ class Mediator {
             this.recordTelemetry("string", "metadata", "to_lang", navLang);
             this.recordTelemetry("counter", "service", "lang_mismatch");
 
-            window.addEventListener("beforeunload", this.onBeforeUnload);
+            window.addEventListener("beforeunload", () => {
+
+                /*
+                 * it is recommended to use visibilitychange event for this use case,
+                 * but it triggers some errors because of communication with bgScript, so let's use beforeunload for now
+                 */
+                browser.runtime.sendMessage({ command: "reportClosedInfobar", tabId: this.tabId });
+                browser.runtime.sendMessage({ command: "submitPing", tabId: this.tabId });
+            });
 
             if (this.languageDetection.shouldDisplayTranslation()) {
                 // request the backgroundscript to display the translationbar

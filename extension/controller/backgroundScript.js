@@ -158,6 +158,16 @@ const messageListener = async function(message, sender) {
             );
             break;
         case "recordTelemetry":
+
+            /*
+             * if the event was to close the infobar, we notify the api as well
+             * we don't need another redundant loop by informing the mediator,
+             * to then inform this script again
+             */
+            if (message.name === "closed") {
+                browser.experiments.translationbar.closeInfobar(message.tabId);
+            }
+
             getTelemetry(message.tabId).record(message.type, message.category, message.name, message.value);
             break;
 
@@ -221,28 +231,6 @@ const messageListener = async function(message, sender) {
                   from: message.to, // we switch the requests directions here
                   to: message.from }
             );
-            break;
-        case "onInfobarEvent":
-
-            /*
-             * inform the mediator that a UI event occurred in Infobar
-             */
-            browser.tabs.sendMessage(
-                message.tabId,
-                { command: "onInfobarEvent",
-                    tabId: message.tabId,
-                    name: message.name }
-            );
-
-            /*
-             * if the event was to close the infobar, we notify the api as well
-             * we don't need another redundant loop by informing the mediator,
-             * to then inform this script again
-             */
-            if (message.name === "closed") {
-                browser.experiments.translationbar.closeInfobar(message.tabId);
-            }
-
             break;
         case "displayStatistics":
 
