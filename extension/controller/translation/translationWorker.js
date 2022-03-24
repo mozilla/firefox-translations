@@ -49,7 +49,7 @@ class TranslationHelper {
                 engineRegistry.bergamotTranslatorWasm.sha256
             );
             if (!wasmArrayBuffer) {
-                postMessage(["onError", "engine_download"]);
+                postMessage(["reportError", "engine_download"]);
                 console.log("Error loading engine from cache or web.");
                 return;
             }
@@ -76,7 +76,7 @@ class TranslationHelper {
                 this.WasmEngineModule = Module;
             } catch (e) {
                 console.log("Error loading wasm module:", e);
-                postMessage(["onError", "engine_load"]);
+                postMessage(["reportError", "engine_load"]);
                 postMessage(["updateProgress", "errorLoadingWasm"]);
             }
         }
@@ -173,7 +173,7 @@ class TranslationHelper {
                                 timeElapsed
                             ]);
                         } catch (e) {
-                            postMessage(["onError", "translation"]);
+                            postMessage(["reportError", "translation"]);
                             postMessage(["updateProgress", "translationLoadedWithErrors"]);
                             console.error("Translation error: ", e)
                             throw e;
@@ -263,14 +263,14 @@ class TranslationHelper {
               let finish = Date.now();
               console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
               postMessage([
-                "onModelEvent",
-                "loaded",
+                "reportPerformanceTimespan",
+                "model_load_time_num",
                 finish-start
               ]);
 
             } catch (error) {
               console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
-              postMessage(["onError", "model_load"]);
+              postMessage(["reportError", "model_load"]);
               postMessage(["updateProgress", "errorLoadingWasm"]);
               return;
             }
@@ -367,13 +367,13 @@ class TranslationHelper {
             const shortListBuffer = downloadedBuffers[1];
             if (!modelBuffer || !shortListBuffer) {
                 console.log("Error loading models from cache or web (models)");
-                postMessage(["onError", "model_download"]);
+                postMessage(["reportError", "model_download"]);
                 throw new Error("Error loading models from cache or web (models)");
             }
             const vocabAsArrayBuffer = await this.getItemFromCacheOrWeb(vocabFile, vocabFileSize, vocabFileChecksum);
             if (!vocabAsArrayBuffer) {
                 console.log("Error loading models from cache or web (vocab)");
-                postMessage(["onError", "model_download"]);
+                postMessage(["reportError", "model_download"]);
                 throw new Error("Error loading models from cache or web (vocab)");
             }
             const downloadedVocabBuffers = [];
@@ -382,8 +382,8 @@ class TranslationHelper {
             let finish = Date.now();
             console.log(`Total Download time for all files of '${languagePair}': ${(finish - start) / 1000} secs`);
               postMessage([
-                "onModelEvent",
-                "downloaded",
+                "reportPerformanceTimespan",
+                "model_download_time_num",
                 finish-start
               ]);
 
@@ -583,7 +583,7 @@ class TranslationHelper {
                 return listTranslatedText;
             } catch (e) {
                 console.error("Error in translation engine ", e)
-                postMessage(["onError", "marian"]);
+                postMessage(["reportError", "marian"]);
                 postMessage(["updateProgress", "translationLoadedWithErrors"]);
                 throw e; // to do: Should we re-throw?
             } finally {

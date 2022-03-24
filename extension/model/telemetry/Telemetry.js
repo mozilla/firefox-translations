@@ -6,8 +6,8 @@
 
 // eslint-disable-next-line
 class Telemetry {
-    constructor(submitCallback) {
-        this._client = new Metrics(submitCallback);
+    constructor(pingSender) {
+        this._client = new Metrics((pingName, data) => pingSender.submit(pingName, data));
         this._totalWords = 0;
         this._totalEngineMs = 0;
         this._translationStartTimestamp = null;
@@ -17,13 +17,35 @@ class Telemetry {
         this._sentScores = [];
     }
 
-    translationStarted() {
-        this._translationStartTimestamp = window.performance.now();
-        this._updateUsageTime();
-    }
+    record(type, category, name, value) {
+        switch (type) {
+            case "event":
+                this._client.event(category, name);
+                this._updateUsageTime();
+                break;
+            case "counter":
+                this._client.increment(category, name)
+                break;
+            case "string":
+                this._client.string(category, name, value)
+                break;
+            case "quantity":
+                this._client.quantity(category, name, value)
+                break;
+            case "timespan":
+                if (name === "model_load_time_num") {
+                    this._translationStartTimestamp = window.performance.now();
+                    this._updateUsageTime();
+                }
 
-    pageClosed() {
-        this._client.submit("custom");
+                this._client.timespan(category, name, value);
+                break;
+            case "boolean":
+                this._client.boolean(category, name, value);
+                break;
+            default:
+                throw new Error(`Metric type is not supported: ${type}`);
+        }
     }
 
     addAndGetTranslationTimeStamp(numWords, engineTimeElapsed) {
@@ -44,11 +66,11 @@ class Telemetry {
         return engineWps;
     }
 
-    addOutboundTranslation(textArea, textToTranslate) {
-        this._otLenthPerTextArea.set(textArea, {
-                chars: textToTranslate.length,
-                words: textToTranslate.trim().split(" ").length
-            });
+    addOutboundTranslation(textAreaId, textToTranslate) {
+        this._otLenthPerTextArea.set(textAreaId, {
+            chars: textToTranslate.length,
+            words: textToTranslate.trim().split(" ").length
+        });
         let charLengthSum = 0;
         let wordLengthSum = 0;
         this._otLenthPerTextArea.forEach(v => {
@@ -61,9 +83,7 @@ class Telemetry {
         this._updateUsageTime();
     }
 
-    addQualityEstimation(wordScores, sentScores, isSupervised) {
-        this._client.boolean("quality", "is_supervised", isSupervised);
-
+    addQualityEstimation(wordScores, sentScores) {
         // scores are log probabilities, convert back to probabilities
         for (const score of wordScores) this._wordScores.push(Math.exp(score));
         for (const score of sentScores) this._sentScores.push(Math.exp(score));
@@ -87,9 +107,9 @@ class Telemetry {
     _calcStats(array) {
         array.sort();
         const sum = array.reduce((a, b) => a + b, 0);
-        const avg = (sum / array.length) || 0;
-        const median = array[Math.floor(array.length/2)-1] || 0;
-        const perc90 = array[Math.floor(array.length*0.9)-1] || 0;
+        const avg = ((sum / array.length) || 0).toFixed(3);
+        const median = (array[Math.floor(array.length/2)-1] || 0).toFixed(3);
+        const perc90 = (array[Math.floor(array.length*0.9)-1] || 0).toFixed(3);
 
         return { avg, median, perc90 }
     }
@@ -119,45 +139,8 @@ class Telemetry {
         this._client.string("metadata", "bergamot_translator_version", engineVersion);
     }
 
-    infobarEvent(name) {
-        this._client.event("infobar", name);
-        this._updateUsageTime();
-
-        /* event corresponds to user action, but boolean value is useful to report the state and to filter */
-        if (name === "outbound_checked") {
-            this.infobarState("outbound_enabled", true);
-        } else if (name === "outbound_unchecked") {
-            this.infobarState("outbound_enabled", false);
-        }
-    }
-
-    infobarState(name, val) {
-        this._client.boolean("infobar", name, val);
-    }
-
-    formsEvent(name) {
-        this._client.event("forms", name);
-        this._updateUsageTime();
-    }
-
-    error(name) {
-        this._client.increment("errors", name);
-    }
-
-    langMismatch() {
-        this._client.increment("service", "lang_mismatch");
-    }
-
-    langNotSupported() {
-        this._client.increment("service", "not_supported");
-    }
-
-    performanceTime(metric, timeMs) {
-        this._client.timespan("performance", metric, timeMs);
-    }
-
-    wordsInViewport(val) {
-        this._client.quantity("performance", "word_count_visible_in_viewport", val);
+    submit() {
+        this._client.submit("custom");
     }
 
     _updateUsageTime() {

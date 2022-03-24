@@ -1,4 +1,4 @@
-/* global LanguageDetection, browser, PingSender, loadFastText, FastText */
+/* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL, Telemetry, loadFastText, FastText */
 
 /*
  * we need the background script in order to have full access to the
@@ -15,6 +15,24 @@ let languageDetection = null;
 
 // as soon we load, we should turn off the legacy prefs to avoid UI conflicts
 browser.experiments.translationbar.switchOnPreferences();
+let telemetryByTab = new Map();
+
+const init = async () => {
+    cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
+    telemetryByTab.forEach(t => t.environment(cachedEnvInfo));
+}
+
+const getTelemetry = tabId => {
+    if (!telemetryByTab.has(tabId)) {
+        let telemetry = new Telemetry(pingSender);
+        telemetryByTab.set(tabId, telemetry);
+        telemetry.versions(browser.runtime.getManifest().version, "?", BERGAMOT_VERSION_FULL);
+        if (cachedEnvInfo) {
+            telemetry.environment(cachedEnvInfo);
+        }
+    }
+    return telemetryByTab.get(tabId);
+}
 
 // eslint-disable-next-line max-lines-per-function
 const messageListener = async function(message, sender) {
@@ -115,30 +133,82 @@ const messageListener = async function(message, sender) {
             );
 
             break;
+        case "translate":
+            // propagate translation message from iframe to top frame
+            message.frameId = sender.frameId;
+            browser.tabs.sendMessage(
+                message.tabId,
+                message,
+                { frameId: 0 }
+            );
+            break;
+        case "translationComplete":
+            // propagate translation message from top frame to the source frame
+            browser.tabs.sendMessage(
+                message.tabId,
+                message,
+                { frameId: message.translationMessage.frameId }
+            );
+            break;
+        case "displayOutboundTranslation":
+            // propagate "display outbound" command from top frame to other frames
+            browser.tabs.sendMessage(
+                message.tabId,
+                message
+            );
+            break;
+        case "recordTelemetry":
 
-        case "loadTelemetryInfo":
-            if (cachedEnvInfo === null) {
-                // eslint-disable-next-line require-atomic-updates
-                cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
+            /*
+             * if the event was to close the infobar, we notify the api as well
+             * we don't need another redundant loop by informing the mediator,
+             * to then inform this script again
+             */
+            if (message.name === "closed") {
+                browser.experiments.translationbar.closeInfobar(message.tabId);
             }
-            browser.tabs.sendMessage(sender.tab.id, { command: "telemetryInfoLoaded", env: cachedEnvInfo })
+
+            getTelemetry(message.tabId).record(message.type, message.category, message.name, message.value);
             break;
 
-       case "sendPing":
-           pingSender.submit(message.pingName, message.data)
-               .catch(e => console.error(`Telemetry: ping submission has failed: ${e}`));
-           break;
+        case "reportTranslationStats": {
+            let wps = getTelemetry(message.tabId).addAndGetTranslationTimeStamp(message.numWords, message.engineTimeElapsed);
+            browser.tabs.sendMessage(
+                message.tabId,
+                {
+                    command: "updateStats",
+                    tabId: message.tabId,
+                    wps
+                }
+            );
+        }
+        break;
 
-       case "translationRequested":
+        case "reportOutboundStats":
+            getTelemetry(message.tabId).addOutboundTranslation(message.textAreaId, message.text);
+            break;
+
+        case "reportQeStats":
+            getTelemetry(message.tabId).addQualityEstimation(message.wordScores, message.sentScores);
+            break;
+
+        case "submitPing":
+            getTelemetry(message.tabId).submit();
+            telemetryByTab.delete(message.tabId);
+            break;
+
+        case "translationRequested":
             // requested for translation received. let's inform the mediator
             browser.tabs.sendMessage(
                 message.tabId,
-                { command: "translationRequested",
-                  tabId: message.tabId,
-                  from: message.from,
-                  to: message.to,
-                  withOutboundTranslation: message.withOutboundTranslation,
-                  withQualityEstimation: message.withQualityEstimation }
+                {
+                    command: "translationRequested",
+                    tabId: message.tabId,
+                    from: message.from,
+                    to: message.to,
+                    withOutboundTranslation: message.withOutboundTranslation,
+                    withQualityEstimation: message.withQualityEstimation
+                }
             );
             break;
         case "updateProgress":
@@ -162,28 +232,6 @@ const messageListener = async function(message, sender) {
                   to: message.from }
             );
             break;
-        case "onInfobarEvent":
-
-            /*
-             * inform the mediator that a UI event occurred in Infobar
-             */
-            browser.tabs.sendMessage(
-                message.tabId,
-                { command: "onInfobarEvent",
-                    tabId: message.tabId,
-                    name: message.name }
-            );
-
-            /*
-             * if the event was to close the infobar, we notify the api as well
-             * we don't need another redundant loop by informing the mediator,
-             * to then inform this script again
-             */
-            if (message.name === "closed") {
-                browser.experiments.translationbar.closeInfobar(message.tabId);
-            }
-
-            break;
         case "displayStatistics":
 
             /*
@@ -206,6 +254,7 @@ const messageListener = async function(message, sender) {
 
 browser.runtime.onMessage.addListener(messageListener);
 browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
+init().catch(error => console.error("bgScript initialization failed: ", error.message));
 
 // loads fasttext (language detection) wasm module and model
 fetch(browser

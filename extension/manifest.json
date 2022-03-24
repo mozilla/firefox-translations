@@ -26,11 +26,14 @@
     "persistent": true,
     "scripts": [
       "settings.js",
+      "controller/translation/bergamotTranslatorVersion.js",
       "model/telemetry/schema.js",
       "model/telemetry/PingSender.js",
       "controller/languageDetection/LanguageDetection.js",
       "controller/languageDetection/fasttext_wasm.js",
       "controller/languageDetection/fasttext.js",
+      "model/telemetry/Metrics.js",
+      "model/telemetry/Telemetry.js",
       "view/js/TranslationNotificationManager.js",
       "controller/backgroundScript.js"
     ]
@@ -42,23 +45,29 @@
       ],
       "js": [
         "settings.js",
+        "model/modelRegistry.js",
         "controller/languageDetection/LanguageDetection.js",
-        "model/Queue.js",
-        "controller/translation/Translation.js",
-        "controller/translation/TranslationMessage.js",
-        "controller/translation/translationWorker.js",
-        "controller/translation/bergamotTranslatorVersion.js",
         "view/js/OutboundTranslation.js",
         "view/js/InPageTranslation.js",
-        "model/telemetry/Telemetry.js",
-        "model/telemetry/Metrics.js",
-        "model/telemetry/schema.js",
-        "model/modelRegistry.js",
         "mediator.js"
       ],
       "css": [
         "view/static/outboundTranslation.css"
       ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "model/Queue.js",
+        "controller/translation/Translation.js",
+        "controller/translation/TranslationMessage.js",
+        "controller/translation/translationWorker.js"
+      ],
+      "all_frames": false,
       "run_at": "document_idle"
     }
   ],

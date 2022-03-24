@@ -51,7 +51,7 @@ class TranslationNotificationManager {
             STATE_TRANSLATED: 2,
             STATE_ERROR: 3,
             STATE_UNAVAILABLE: 4,
-          };
+        };
     }
 
     set localizedLabels(val) {
@@ -63,9 +63,9 @@ class TranslationNotificationManager {
     }
 
     loadLanguages() {
-        for (const languagePair of Object.keys(this.modelRegistry)){
-            const firstLang = languagePair.substring(0,2);
-            const secondLang = languagePair.substring(2,4);
+        for (const languagePair of Object.keys(this.modelRegistry)) {
+            const firstLang = languagePair.substring(0, 2);
+            const secondLang = languagePair.substring(2, 4);
             this.languageSet.add(firstLang);
             this.languageSet.add(secondLang);
 
@@ -79,32 +79,40 @@ class TranslationNotificationManager {
         }
     }
 
-    reportInfobarEvent(name) {
+    reportInfobarMetric(type, name, value) {
 
         /*
          * propagate UI event to bgScript
-         * to have the mediator notified
          */
-        const message = { command: "onInfobarEvent", tabId: this.tabId, name };
+        const message = {
+            command: "recordTelemetry",
+            tabId: this.tabId,
+            type,
+            category: "infobar",
+            name,
+            value
+        };
         this.bgScriptListenerCallback(message);
     }
 
-    requestInPageTranslation(from, to, withOutboundTranslation, withQualityEstimation){
+    requestInPageTranslation(from, to, withOutboundTranslation, withQualityEstimation) {
 
         /*
          * request received. let's forward to the background script in order
          * to have the mediator notified
          */
-        const message = { command: "translationRequested",
-                            from,
-                            to,
-                            withOutboundTranslation,
-                            withQualityEstimation,
-                            tabId: this.tabId };
+        const message = {
+            command: "translationRequested",
+            from,
+            to,
+            withOutboundTranslation,
+            withQualityEstimation,
+            tabId: this.tabId
+        };
         this.bgScriptListenerCallback(message);
     }
 
-    enableStats(){
+    enableStats() {
 
         /*
          * notify the mediator that the user wants to see statistics

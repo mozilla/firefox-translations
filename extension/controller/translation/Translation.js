@@ -59,17 +59,17 @@ class Translation {
                     payload: null
                 });
                 break;
-            case "onError":
+            case "reportError":
                 this.mediator.contentScriptsMessageListener(this, {
-                    command: "onError",
+                    command: "reportError",
                     payload: translationMessage.data[1]
                 });
                 break;
 
-            case "onModelEvent":
+            case "reportPerformanceTimespan":
                 this.mediator.contentScriptsMessageListener(this, {
-                    command: "onModelEvent",
-                    payload: { type: translationMessage.data[1], timeMs: translationMessage.data[2] }
+                    command: "reportPerformanceTimespan",
+                    payload: { metric: translationMessage.data[1], timeMs: translationMessage.data[2] }
                 });
                 break;
 
@@ -135,6 +135,7 @@ class Translation {
         sourceParagraph,
         type,
         tabId,
+        frameId,
         navigatorLanguage,
         pageLanguage,
         attrId,
@@ -173,6 +174,7 @@ class Translation {
                 break;
         }
         translationMessage.tabId = tabId;
+        translationMessage.frameId = frameId;
         translationMessage.type = type;
         translationMessage.attrId = attrId;
         translationMessage.withOutboundTranslation = withOutboundTranslation;

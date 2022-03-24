@@ -130,7 +130,15 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     }
 
     this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_OFFER;
-    this.translationNotificationManager.reportInfobarEvent("displayed");
+    this.translationNotificationManager.reportInfobarMetric("event", "displayed");
+    this.translationNotificationManager.reportInfobarMetric(
+        "boolean", "outbound_enabled",
+            this._getAnonElt("outboundtranslations-check").checked === true
+        );
+    this.translationNotificationManager.reportInfobarMetric(
+        "boolean", "qe_enabled",
+            this._getAnonElt("qualityestimations-check").checked === true
+        );
   }
 
   _getAnonElt(anonId) {
@@ -138,12 +146,12 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   fromLanguageChanged() {
-    this.translationNotificationManager.reportInfobarEvent("change_lang");
+    this.translationNotificationManager.reportInfobarMetric("event","change_lang");
     this._getAnonElt("translate").disabled = false;
   }
 
   translate() {
-    this.translationNotificationManager.reportInfobarEvent("translate");
+    this.translationNotificationManager.reportInfobarMetric("event","translate");
     const from = this._getSourceLang();
     const to = this._getTargetLang();
     this.translationNotificationManager.requestInPageTranslation(
@@ -159,19 +167,22 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 
   onOutboundClick() {
     if (this._getAnonElt("outboundtranslations-check").checked) {
-      this.translationNotificationManager.reportInfobarEvent("outbound_checked");
+      this.translationNotificationManager.reportInfobarMetric("event", "outbound_checked");
+      this.translationNotificationManager.reportInfobarMetric("boolean", "outbound_enabled", true);
     } else {
-      this.translationNotificationManager.reportInfobarEvent("outbound_unchecked");
+      this.translationNotificationManager.reportInfobarMetric("event", "outbound_unchecked");
+      this.translationNotificationManager.reportInfobarMetric("boolean", "outbound_enabled", false);
     }
   }
 
   onQeClick() {
     // eslint-disable-next-line no-warning-comments
-    // todo: report boolean qe_enabled after iframe support is merged
     if (this._getAnonElt("qualityestimations-check").checked) {
-      this.translationNotificationManager.reportInfobarEvent("qe_checked");
+      this.translationNotificationManager.reportInfobarMetric("event","qe_checked");
+      this.translationNotificationManager.reportInfobarMetric("boolean", "qe_enabled", true);
     } else {
-      this.translationNotificationManager.reportInfobarEvent("qe_unchecked");
+      this.translationNotificationManager.reportInfobarMetric("event","qe_unchecked");
+      this.translationNotificationManager.reportInfobarMetric("boolean", "qe_enabled", false);
     }
   }
 
@@ -180,7 +191,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
    * by clicking the notification's close button, the not now button or choosing never to translate)
    */
   closeCommand() {
-    this.translationNotificationManager.reportInfobarEvent("closed");
+    this.translationNotificationManager.reportInfobarMetric("event","closed");
     this.close();
   }
 
@@ -242,7 +253,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   neverForLanguage() {
-    this.translationNotificationManager.reportInfobarEvent("never_translate_lang");
+    this.translationNotificationManager.reportInfobarMetric("event","never_translate_lang");
     const kPrefName = "browser.translation.neverForLanguages";
     const sourceLang = this._getSourceLang();
 
@@ -258,7 +269,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   neverForSite() {
-    this.translationNotificationManager.reportInfobarEvent("never_translate_site");
+    this.translationNotificationManager.reportInfobarMetric("event","never_translate_site");
     const principal = this.translationNotificationManager.browser.contentPrincipal;
     const perms = Services.perms;
     perms.addFromPrincipal(principal, "translate", perms.DENY_ACTION);
