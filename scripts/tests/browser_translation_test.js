@@ -2,7 +2,7 @@
 /* eslint-disable no-undef */
 /* eslint-disable max-lines-per-function */
 
-requestLongerTimeout(2);
+requestLongerTimeout(4);
 
 const baseURL = getRootDirectory(gTestPath).replace(
   "chrome://mochitests/content",
