@@ -123,6 +123,22 @@ class InPageTranslation {
              * `*[lang]:not([lang|=${language}])`
              */
         ])
+
+        this.observer = new MutationObserver(mutationsList => {
+            for (const mutation of mutationsList) {
+                switch (mutation.type) {
+                    case "childList":
+                        mutation.addedNodes.forEach(node => this.startTreeWalker(node));
+                        break;
+                    case "characterData":
+                        this.startTreeWalker(mutation.target);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        });
+
     }
 
     start(language) {
@@ -159,20 +175,45 @@ class InPageTranslation {
     }
 
     startTreeWalker(root) {
-        const acceptNode = node => {
-            return this.validateNode(node);
-        }
 
-        const nodeIterator = document.createTreeWalker(
-            root,
-            NodeFilter.SHOW_ELEMENT,
-            acceptNode
-        );
+        /*
+         * todo: Bit of added complicated logic to include `root` in the set
+         * of nodes that is being evaluated. Normally TreeWalker will only
+         * look at the descendants.
+         */
+        switch (this.validateNode(root)) {
+            // if even the root is already rejected, no need to look further
+            case NodeFilter.FILTER_REJECT:
+                return;
 
-        let currentNode;
-        // eslint-disable-next-line no-cond-assign
-        while (currentNode = nodeIterator.nextNode()) {
-            this.queueTranslation(currentNode);
+            /*
+             * if the root itself is accepted, we don't need to drill down
+             * either. But we do want to call dispatchTranslations().
+             */
+            case NodeFilter.FILTER_ACCEPT:
+                this.queueTranslation(root);
+                break;
+
+            /*
+             * if we skip the root (because it's a block element and we want to
+             * cut it into smaller chunks first) then start tree walking to
+             * those smaller chunks.
+             */
+            case NodeFilter.FILTER_SKIP: {
+                const nodeIterator = document.createTreeWalker(
+                    root,
+                    NodeFilter.SHOW_ELEMENT,
+                    this.validateNode.bind(this)
+                );
+
+                let currentNode;
+                // eslint-disable-next-line no-cond-assign
+                while (currentNode = nodeIterator.nextNode()) {
+                    this.queueTranslation(currentNode);
+                }
+            } break;
+            default:
+                break;
         }
 
         this.dispatchTranslations();
@@ -399,35 +440,18 @@ class InPageTranslation {
     }
 
     startMutationObserver() {
-        // select the node that will be observed for mutations
-        const targetNode = document;
 
-        // options for the observer (which mutations to observe)
-        const config = {
+        this.observer.observe(document, {
             characterData: true,
             childList: true,
             subtree: true
-        };
-
-        // create an observer instance linked to the callback function
-        const observer = new MutationObserver(mutationsList => {
-            for (const mutation of mutationsList) {
-                switch (mutation.type) {
-                    case "childList":
-                        mutation.addedNodes.forEach(node => this.startTreeWalker(node));
-                        break;
-                    case "characterData":
-                        this.startTreeWalker(mutation.target.parentNode);
-                        break;
-                    default:
-                        break;
-                }
-            }
         });
-
-        // start observing the target node for configured mutations
-        observer.observe(targetNode, config);
     }
+
+    stopMutationObserver() {
+            this.observer.disconnect();
+    }
+
 
     mediatorNotification(translationMessage) {
 
@@ -567,6 +591,16 @@ class InPageTranslation {
 
             merge(node, scratch);
 
+
+            /*
+             * remove node again from nodesSent because someone might change
+             * the innerHTML or add children, and then we want to translate
+             * those.
+             * TODO: what if a node was mutated while translation was pending?
+             * Will that mutation then be ignored?
+             */
+            this.nodesSent.delete(node);
+
             /*
              * is this a good idea?
              * this.nodesSent.delete(node);
@@ -574,10 +608,18 @@ class InPageTranslation {
              */
         };
 
-        this.updateMap.forEach(updateElement);
+        // pause observing mutations
+        this.stopMutationObserver();
+
+        try {
+            this.updateMap.forEach(updateElement);
+            this.updateMap.clear();
+            this.updateTimeout = null;
+        } finally {
+            this.startMutationObserver();
+        }
+
         this.reportQualityEstimation(this.updateMap.keys());
-        this.updateMap.clear();
-        this.updateTimeout = null;
     }
 
     reportQualityEstimation(nodes) {
