@@ -14,10 +14,10 @@ root = os.getcwd()
 subprocess.call("rm -rf gecko".split(), cwd=root)
 # First we build the extension
 subprocess.call("npm run build-test".split(), cwd=root)
-# the nwe clone gecko
+# then we clone gecko
 subprocess.call("git clone hg::https://hg.mozilla.org/mozilla-central gecko".split(), cwd=root)
 # We then remove the old extension
-subprocess.call("rm -rf gecko/browser/extensions/translations/extension".split(), cwd=root)
+subprocess.call("mkdir -p gecko/browser/extensions/translations/extension".split(), cwd=root)
 # and extract the newly one built there
 subprocess.call("unzip web-ext-artifacts/firefox_translations.xpi -d gecko/browser/extensions/translations/extension/".split(), cwd=root)
 # copy the tests
@@ -28,6 +28,12 @@ subprocess.call("cp scripts/tests/frame.html gecko/browser/extensions/translatio
 subprocess.call("cp scripts/tests/browser_translation_test.js gecko/browser/extensions/translations/test/browser/".split(), cwd=root)
 subprocess.call("cp -r scripts/tests/esen/ gecko/browser/extensions/translations/test/browser/esen/".split(), cwd=root)
 subprocess.call("cp -r scripts/tests/enes/ gecko/browser/extensions/translations/test/browser/enes/".split(), cwd=root)
+subprocess.call("cp scripts/tests/jar.mn gecko/browser/extensions/translations/".split(), cwd=root)
+with open('gecko/browser/extensions/moz.build', 'a') as fp:
+    fp.write('if CONFIG["NIGHTLY_BUILD"]: \n')
+    fp.write('  DIRS += [ \n')
+    fp.write('      "translations", \n')
+    fp.write('  ] \n')
 
 # let's download bergamot-translator-worker-with-wormhole.wasm
 engineRegistryRootURL = ""
@@ -47,22 +53,35 @@ f = open("extension/manifest.json")
 data = json.load(f)
 extension_version = data["version"]
 f.close()
-with open("gecko/browser/components/BrowserGlue.jsm") as fp:
-   count = 0
-   Lines = fp.readlines()
-   for line in Lines:
-       if "resource://builtin-addons/translations/" in line:
-           Lines[count - 1] = '            "{}",\n'.format(extension_version)
-           with open("gecko/browser/components/BrowserGlue.jsm", "w") as outfile:
-               outfile.write("".join(Lines))
-           break
-       count += 1
+
+f = open("scripts/tests/BrowserGlue.jsm")
+dataBrowserGlue = f.read()
+dataBrowserGlue = dataBrowserGlue.replace("{version}", extension_version)
+f.close()
+
+fp = open("gecko/browser/components/BrowserGlue.jsm")
+Lines = fp.readlines()
+fp.close()
+count = 0
+with open('gecko/browser/components/BrowserGlue.jsm', 'w') as fp:
+    for line in Lines:
+        if len(Lines) > count + 1 and "async _setupSearchDetection() {" in Lines[count + 1]:
+            fp.write(dataBrowserGlue + "\n")
+        elif "this._setupSearchDetection();" in line:
+            fp.write(line)
+            fp.write("      this._monitorTranslationsPref(); \n")
+        else:
+            fp.write(line)
+        count += 1
 
 # enable our test
 with open('gecko/mozconfig', 'w') as f:
     print('ac_add_options --enable-artifact-builds', file=f)
 
 with open('gecko/browser/extensions/translations/moz.build', 'a') as f:
+    print('with Files("**"):', file=f)
+    print(' BUG_COMPONENT = ("Firefox", "Translations")', file=f)
+    print('JAR_MANIFESTS += ["jar.mn"]', file=f)
     print('BROWSER_CHROME_MANIFESTS += [\"test/browser/browser.ini\"]', file=f)
 
 # build and run our test
