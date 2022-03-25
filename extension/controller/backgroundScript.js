@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL, Telemetry, loadFastText, FastText */
 
 /*
