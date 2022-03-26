@@ -65,6 +65,22 @@ metadata:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
+  model_version:
+    type: string
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Version of translation model
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/182
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
   extension_build_id:
     type: string
     lifetime: ping
