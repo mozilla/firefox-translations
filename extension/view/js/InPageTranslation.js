@@ -176,6 +176,12 @@ class InPageTranslation {
 
     startTreeWalker(root) {
 
+        // if we have a textNode we walk through its parent and reject it
+        if (root.nodeType === 3){
+            this.startTreeWalker(root.parentNode);
+            return;
+        }
+
         /*
          * todo: Bit of added complicated logic to include `root` in the set
          * of nodes that is being evaluated. Normally TreeWalker will only
@@ -318,7 +324,10 @@ class InPageTranslation {
          * tODO describe this in terms of the function above, but I assume
          * using querySelector is faster for now.
          */
-        return node.querySelector(`[lang]:not([lang|="${this.language}"]), ${Array.from(this.excludedTags).join(",")}`);
+        if (node.nodeType === 1) {
+            node.querySelector(`[lang]:not([lang|="${this.language}"]), ${Array.from(this.excludedTags).join(",")}`);
+        }
+        return true;
     }
 
     validateNode(node) {
@@ -359,20 +368,21 @@ class InPageTranslation {
         this.translationsCounter += 1;
 
         // debugging: mark the node so we can add CSS to see them
-        node.setAttribute("x-bergamot-translated", this.translationsCounter);
-
-        // let's categorize the elements on their respective hashmaps
-        if (this.isElementHidden(node)) {
-            // if the element is entirely hidden
-            this.hiddenNodeMap.set(this.translationsCounter, node);
-        } else if (this.isElementInViewport(node)) {
-            // if the element is present in the viewport
-            this.viewportNodeMap.set(this.translationsCounter, node);
-        } else {
-            // if the element is visible but not present in the viewport
-            this.nonviewportNodeMap.set(this.translationsCounter, node);
+        if (node.nodeType === 1) {
+            node.setAttribute("x-bergamot-translated", this.translationsCounter);
+            // let's categorize the elements on their respective hashmaps
+            if (this.isElementHidden(node)) {
+                // if the element is entirely hidden
+                this.hiddenNodeMap.set(this.translationsCounter, node);
+            } else if (this.isElementInViewport(node)) {
+                // if the element is present in the viewport
+                this.viewportNodeMap.set(this.translationsCounter, node);
+            } else {
+                // if the element is visible but not present in the viewport
+                this.nonviewportNodeMap.set(this.translationsCounter, node);
+            }
+            this.nodesSent.add(node);
         }
-        this.nodesSent.add(node);
     }
 
     dispatchTranslations() {
