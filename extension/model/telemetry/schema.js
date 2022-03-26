@@ -24,6 +24,12 @@ const telemetrySchema = {
                     "custom"
                 ]
             },
+            "model_version": {
+                "type": "string",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
             "extension_build_id": {
                 "type": "string",
                 "send_in_pings": [
