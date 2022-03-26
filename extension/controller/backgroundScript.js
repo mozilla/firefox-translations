@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL, Telemetry, loadFastText, FastText */
 
 /*
@@ -68,10 +69,10 @@ const messageListener = async function(message, sender) {
              * with the tabId to the caller
              */
             listeneronUpdatedLoad = (tabId, changeInfo, tab) => {
-                if ((tabId === sender.tab.id || tab.url === sender.tab.url) && changeInfo.status === "complete") {
+                if (tab.id === sender.tab.id || tab.url === sender.tab.url) {
                     browser.tabs.onUpdated.removeListener(listeneronUpdatedLoad);
                     browser.webNavigation.onCompleted.removeListener(webNavigationCompletedLoad);
-                    console.log("browser.tabs.onUpdated.addListener => notifying browser to display the infobar: ", changeInfo.status, tabId, sender.tab.id, tab.url)
+                    console.log("browser.tabs.onUpdated.addListener => notifying browser to display the infobar: ", changeInfo.status, tab.id, sender.tab.id, tab.url)
 
                     /*
                      * some specific race condition in the tab messaging API
@@ -80,8 +81,20 @@ const messageListener = async function(message, sender) {
                      */
                     setTimeout(() => {
                         browser.tabs.sendMessage(
-                            tabId,
-                            { command: "responseMonitorTabLoad", tabId }
+                            tab.id,
+                            { command: "responseMonitorTabLoad", tabId: tab.id }
+                        );
+                    } ,250);
+                } else if (tab.id !== sender.tab.id) {
+                    browser.tabs.onUpdated.removeListener(listeneronUpdatedLoad);
+                    browser.webNavigation.onCompleted.removeListener(webNavigationCompletedLoad);
+                    console.log("browser.tabs.onUpdated.addListener => notifying browser to display the infobar:  tab.id !== sender.tab.id", changeInfo.status, tab.id, sender.tab.id, tab.url)
+
+                    setTimeout(() => {
+                        browser.tabs.sendMessage(
+                            sender.tab.id,
+                            { command: "responseMonitorTabLoad", tabId: sender.tab.id }
+
                         );
                     } ,250);
                 }
