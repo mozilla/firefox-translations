@@ -159,7 +159,7 @@ class PingSender {
         let retries = 3;
         while (retries >= 0) {
             try {
-                const url = `https://${TELEMETRY_API}/submit/${TELEMETRY_APP_ID}/${pingName}/${this._seq[pingName]}/${uuid}`;
+                const url = `https://${TELEMETRY_API}/submit/${TELEMETRY_APP_ID}/${pingName}/1/${uuid}`;
                 // eslint-disable-next-line no-await-in-loop
                 let res = await fetch(url, {
                     method: "POST",
