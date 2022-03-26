@@ -613,13 +613,12 @@ class InPageTranslation {
 
         try {
             this.updateMap.forEach(updateElement);
+            this.reportQualityEstimation(this.updateMap.keys());
             this.updateMap.clear();
             this.updateTimeout = null;
         } finally {
             this.startMutationObserver();
         }
-
-        this.reportQualityEstimation(this.updateMap.keys());
     }
 
     reportQualityEstimation(nodes) {
