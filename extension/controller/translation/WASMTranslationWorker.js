@@ -172,8 +172,6 @@ class WASMTranslationWorker {
     }
 }
 
-console.log("HEERE");
-
 const worker = new WASMTranslationWorker();
 
 // Responder for Proxy<Channel> created in TranslationHelper.loadWorker()
