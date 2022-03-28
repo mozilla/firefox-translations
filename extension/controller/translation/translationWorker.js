@@ -31,6 +31,7 @@ class TranslationHelper {
                 "model": 256,
                 "lex": 64,
                 "vocab": 64,
+                "qualityModel": 64,
             }
         }
 
@@ -380,7 +381,14 @@ class TranslationHelper {
             console.log(`Aligned memory sizes: Model:${alignedModelMemory.size()} Shortlist:${alignedShortlistMemory.size()} Vocab:${alignedMemories[2].size()}`);
             console.log(`Translation Model config: ${modelConfig}`);
 
-            let translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabMemoryList);
+            let translationModel;
+            if (alignedMemories.length === Object.entries(this.modelFileAlignments).length) {
+                console.log(`Aligned memory sizes: QualityModel:${alignedMemories[3].size()}`);
+                translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabMemoryList, alignedMemories[3]);
+            }
+            else {
+                translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabMemoryList, null);
+            }
             this.translationModels.set(languagePair, translationModel);
         }
 
