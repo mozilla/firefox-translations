@@ -256,8 +256,10 @@ let provider = new class {
         if (this.#provider)
             return this.#provider;
 
-        if (!(state.provider in providers))
-            throw new Error(`Provider ${state.provider} not in list of supported translation providers`);
+        if (!(state.provider in providers)) {
+            console.error(`Provider ${state.provider} not in list of supported translation providers. Falling back to 'wasm'`);
+            state.provider = 'wasm';
+        }
 
         return this.#provider = new providers[state.provider]();
     }
