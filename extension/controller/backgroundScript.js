@@ -491,12 +491,12 @@ async function main() {
     });
 
     browser.storage.onChanged.addListener(changes => {
-        Object.entries(changes).forEach(([key, change]) => {
-            state[key] = change.newValue;
+        Object.entries(changes).forEach(([key, {newValue}]) => {
+            state[key] = newValue;
         });
 
         if ('provider' in changes)
-            resetProvider();
+            provider.reset();
     });
 }
 
