@@ -63,18 +63,22 @@ class TranslationNotificationManager {
     }
 
     loadLanguages() {
+        const navLangCode = this.navigatorLanguage.substring(0,2);
+        // all languages become 'dev' because translation is pivoted to 'dev' model en-nav_language
+        const requiresPivoting = navLangCode !== "en";
+        const isPivotModelDev = requiresPivoting && this.modelRegistry[`en${navLangCode}`].model.modelType === "dev";
+
         for (const languagePair of Object.keys(this.modelRegistry)) {
             const firstLang = languagePair.substring(0, 2);
             const secondLang = languagePair.substring(2, 4);
-            this.languageSet.add(firstLang);
-            this.languageSet.add(secondLang);
+            if (firstLang !== navLangCode) {
+                this.languageSet.add(firstLang);
 
-            const navLangCode = this.navigatorLanguage.substring(0,2);
-            // all languages become 'dev' because translation is pivoted to 'dev' model en-nav_language
-            const isPivotModelDev = navLangCode !== "en" && this.modelRegistry[`en${navLangCode}`].model.modelType === "dev";
-            if (isPivotModelDev || (this.modelRegistry[languagePair].model.modelType === "dev")) {
-                this.devLanguageSet.add(firstLang);
-                this.devLanguageSet.add(secondLang);
+                if (isPivotModelDev ||
+                  ((secondLang === navLangCode || (requiresPivoting && secondLang === "en")) &&
+                    this.modelRegistry[languagePair].model.modelType === "dev")) {
+                    this.devLanguageSet.add(firstLang);
+                }
             }
         }
     }
