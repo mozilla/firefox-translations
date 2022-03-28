@@ -356,7 +356,7 @@ class TranslationHelper {
 
             let donwloadedBuffersPromises = [];
             Object.entries(this.modelFileAlignments)
-                .filter(([fileType, fileAlignment]) => Reflect.apply(Object.prototype.hasOwnProperty, modelRegistry[languagePair], [fileType]))
+                .filter(([fileType]) => Reflect.apply(Object.prototype.hasOwnProperty, modelRegistry[languagePair], [fileType]))
                 .map(([fileType, fileAlignment]) => donwloadedBuffersPromises.push(this.downloadFiles(fileType, fileAlignment, languagePair)));
 
             let donwloadedBuffers = await Promise.all(donwloadedBuffersPromises);
@@ -404,9 +404,9 @@ class TranslationHelper {
                 throw new Error(`Error loading models from cache or web ("${fileType}")`);
             }
             return {
-                "buffer": buffer,
-                "fileAlignment": fileAlignment,
-                "fileType": fileType,
+                buffer,
+                fileAlignment,
+                fileType,
             };
         }
 
