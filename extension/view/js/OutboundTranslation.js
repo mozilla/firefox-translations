@@ -205,7 +205,10 @@ class OutboundTranslation {
   }
 
   updateselectedTextArea(content) {
-    this.selectedTextArea.value = content;
+    var nativeSetterTextarea = Reflect.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+    Reflect.apply(nativeSetterTextarea, this.selectedTextArea, content);
+    const nativeEvent = new Event("input", { bubbles: true });
+    this.selectedTextArea.dispatchEvent(nativeEvent);
     this.selectedTextArea.scrollTop = this.selectedTextArea.scrollHeight;
   }
 
