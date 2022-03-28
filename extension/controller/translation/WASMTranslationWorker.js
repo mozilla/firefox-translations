@@ -111,7 +111,7 @@ class WASMTranslationWorker {
         console.debug('Model config:', YAML.stringify(modelConfig));
                 
         const key = JSON.stringify({from,to});
-        this.models.set(key, new Module.TranslationModel(YAML.stringify(modelConfig), modelMemory, shortlistMemory, vocabs));
+        this.models.set(key, new Module.TranslationModel(YAML.stringify(modelConfig), modelMemory, shortlistMemory, vocabs, null));
     }
 
     /**
