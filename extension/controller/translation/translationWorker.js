@@ -384,8 +384,7 @@ class TranslationHelper {
             if (alignedMemories.length === Object.entries(this.modelFileAlignments).length) {
                 console.log(`Aligned memory sizes: Model:${alignedModelMemory.size()}  Shortlist:${alignedShortlistMemory.size()}  Vocab:${alignedMemories[2].size()}  QualityModel:${alignedMemories[3].size()}`);
                 translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabMemoryList, alignedMemories[3]);
-            }
-            else {
+            } else {
                 console.log(`Aligned memory sizes: Model:${alignedModelMemory.size()}  Shortlist:${alignedShortlistMemory.size()}  Vocab:${alignedMemories[2].size()}`);
                 translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabMemoryList, null);
             }
