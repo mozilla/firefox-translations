@@ -1,11 +1,5 @@
 /* global browser */
 
-function* product(as, bs) {
-    for (let a of as)
-        for (let b of bs)
-            yield [a, b];
-}
-
 function isSameDomain(url1, url2) {
     return url1 && url2 && new URL(url1).host === new URL(url2).host;
 }
@@ -17,18 +11,35 @@ const SimilarLanguages = [
     new Set(['no', 'nb', 'nn', 'da']) // no == nb for bicleaner
 ];
 
+// Just a little test to run in the web inspector for debugging
+async function test(provider) {
+    console.log(await Promise.all([
+        provider.translate({
+            from: 'de',
+            to: 'en',
+            text: 'Hallo Welt. Wie geht es dir?'
+        }),
+        provider.translate({
+            from: 'de',
+            to: 'en',
+            text: 'Mein Name ist <a href="#">Jelmer</a>.',
+            html: true
+        })
+    ]));
+}
+
 /**
  * Language detection function that also provides a sorted list of
  * from->to language pairs, based on the detected language, the preferred
  * target language, and what models are available.
  */
-async function detectLanguage({sample, suggested}, languageHelper) {
+async function detectLanguage({sample, suggested}, provider) {
     if (!sample)
         throw new Error('Empty sample');
 
     const [detected, models] = await Promise.all([
         browser.i18n.detectLanguage(sample),
-        translationHelper.registry
+        provider.registry
     ]);
 
     const modelsFromEng = models.filter(({from}) => from === 'en');
@@ -37,10 +48,10 @@ async function detectLanguage({sample, suggested}, languageHelper) {
     // List of all available from->to translation pairs including ones that we
     // achieve by pivoting through English.
     const pairs = [
-        ...models.map(({from, to}) => ({from, to, pivot: null})),
+        ...models.map(model => ({from: model.from, to: model.to, pivot: null, models: [model]})),
         ...Array.from(product(modelsToEng, modelsFromEng))
             .filter(([{from}, {to}]) => from !== to)
-            .map(([{from}, {to}]) => ({from, to, pivot: 'en'}))
+            .map(([from, to]) => ({from: from.from, to: to.to, pivot: 'en', models: [from, to]}))
     ];
 
     // {[lang]: 0.0 .. 1.0} map of likeliness the page is in this language
@@ -71,7 +82,12 @@ async function detectLanguage({sample, suggested}, languageHelper) {
     }, {});
     
     // Function to score a translation model. Higher score is better
-    const score = ({from, to, pivot}) => ((confidence[from] || 0.0) + (preferred[to] || 0.0) + (pivot ? 0.0 : 1.0));
+    const score = ({from, to, pivot, models}) => {
+        return (confidence[from] || 0.0)                                                  // from language is good
+             + (preferred[to] || 0.0)                                                     // to language is good
+             + (pivot ? 0.0 : 1.0)                                                        // preferably don't pivot
+             + (1.0 / models.reduce((acc, model) => acc + model.local ? 0.0 : 1.0, 1.0))  // prefer local models
+    };
 
     // Sort our possible models, best one first
     pairs.sort((a, b) => score(b) - score(a));
@@ -90,6 +106,7 @@ const State = {
     PAGE_LOADED: 'page-loaded',
     TRANSLATION_NOT_AVAILABLE: 'translation-not-available',
     TRANSLATION_AVAILABLE: 'translation-available',
+    DOWNLOADING_MODELS: 'downloading-models',
     TRANSLATION_IN_PROGRESS: 'translation-in-progress',
     TRANSLATION_FINISHED: 'translation-finished',
     TRANSLATION_ERROR: 'translation-error'
@@ -101,10 +118,16 @@ class Tab extends EventTarget {
         this.id = id;
         this.state = {
             state: State.PAGE_LOADING,
+            from: undefined,
+            to: undefined,
+            models: [],
+            debug: false,
+            error: null,
+            url: null,
             pendingTranslationRequests: 0,
             totalTranslationRequests: 0,
-            debug: false,
-            url: null
+            modelDownloadRead: undefined,
+            modelDownloadSize: undefined,
         };
         this.frames = new Map();
 
@@ -201,8 +224,16 @@ function showPopup(event) {
     }
 }
 
+// Supported translation providers
+const providers = {
+    'translatelocally': TLTranslationHelper,
+    'wasm': WASMTranslationHelper
+};
 
-const translationHelper = new TranslationHelper();
+// Global state (and defaults)
+const state = {
+    provider: 'wasm'
+};
 
 // State per tab
 const tabs = new Map();
@@ -216,6 +247,26 @@ function getTab(tabId) {
 
     return tabs.get(tabId);
 }
+
+// Instantiation of a TranslationHelper. Access it through .get().
+let provider = new class {
+    #provider;
+
+    get() {
+        if (this.#provider)
+            return this.#provider;
+
+        if (!(state.provider in providers))
+            throw new Error(`Provider ${state.provider} not in list of supported translation providers`);
+
+        return this.#provider = new providers[state.provider]();
+    }
+
+    reset() {
+        tabs.forEach(tab => tab.reset(tab.state.url));
+        this.#provider = null;
+    }
+};
 
 /**
  * Connects the port of a content-script or popup with the state management
@@ -266,7 +317,7 @@ function connectContentScript(contentScript) {
         
         // Also prune any pending translation requests that have this same
         // signal from the queue. No need to put any work into it.
-        translationHelper.remove((request) => request._abortSignal.aborted);
+        provider.get().remove((request) => request._abortSignal.aborted);
 
         // Create a new signal in case we want to start translating again.
         _abortSignal = {aborted: false};
@@ -291,7 +342,7 @@ function connectContentScript(contentScript) {
         switch (message.command) {
             // Send by the content-scripts inside this tab
             case "DetectLanguage":
-                detectLanguage(message.data, translationHelper).then(summary => {
+                detectLanguage(message.data, provider.get()).then(summary => {
                     // TODO: When we support multiple frames inside a tab, we
                     // should integrate the results from each frame somehow.
                     // For now we ignore it, because 90% of the time it will be
@@ -314,7 +365,7 @@ function connectContentScript(contentScript) {
                     pendingTranslationRequests: state.pendingTranslationRequests + 1,
                     totalTranslationRequests: state.totalTranslationRequests + 1
                 }));
-                translationHelper.translate({...message.data, _abortSignal})
+                provider.get().translate({...message.data, _abortSignal})
                     .then(response => {
                         if (!response.request._abortSignal.aborted) {
                             contentScript.postMessage({
@@ -358,8 +409,44 @@ function connectPopup(popup) {
     // Make the popup receive state updates
     connectTab(tab, popup);
 
-    popup.onMessage.addListener(message => {
+    popup.onMessage.addListener(async message => {
         switch (message.command) {
+            case "DownloadModels":
+                // Tell the tab we're downloading models
+                tab.update(state => ({
+                    state: State.DOWNLOADING_MODELS
+                }));
+
+                // Start the downloads and put them in a {[download:promise]: {read:int,size:int}}
+                const downloads = new Map(message.data.models.map(model => [provider.get().downloadModel(model), {read:0.0, size:0.0}]));
+
+                // For each download promise, add a progress listener that updates the tab state
+                // with how far all our downloads have progressed so far.
+                downloads.forEach((_, promise) => promise.addProgressListener(({read, size}) => {
+                    // Update download we got a notification about
+                    downloads.set(promise, {read, size});
+                    // Update tab state about all downloads combined (i.e. model, optionally pivot)
+                    tab.update(state => ({
+                        modelDownloadRead: Array.from(downloads.values()).reduce((sum, {read}) => sum + read, 0),
+                        modelDownloadSize: Array.from(downloads.values()).reduce((sum, {size}) => sum + size, 0)
+                    }));
+                }));
+
+                // Finally, when all downloads have finished, start translating the page.
+                try {
+                    await Promise.all(downloads.keys());
+
+                    tab.translate({
+                       from: message.data.from,
+                         to: message.data.to
+                    });
+                } catch (e) {
+                    tab.update(state => ({
+                        state: State.TRANSLATION_ERROR,
+                        error: e.toString()
+                    }));
+                }
+                break;
             case "TranslateStart":
                 tab.translate({
                     from: message.data.from,
@@ -374,25 +461,41 @@ function connectPopup(popup) {
     });
 }
 
-// Receive incoming connection requests from content-script and popup
-browser.runtime.onConnect.addListener((port) => {
-    if (port.name == 'content-script')
-        connectContentScript(port);   
-    else if (port.name.startsWith('popup-'))
-        connectPopup(port);
-});
+async function main() {
+    // Init global state
+    Object.assign(state, await browser.storage.local.get(Array.from(Object.keys(state))));
 
-// Initialize or update the state of a tab when navigating
-browser.webNavigation.onCommitted.addListener(({tabId, frameId, url}) => {
-    // Right now we're only interested in top-level navigation changes
-    if (frameId !== 0)
-        return;
+    // Receive incoming connection requests from content-script and popup
+    browser.runtime.onConnect.addListener((port) => {
+        if (port.name == 'content-script')
+            connectContentScript(port);   
+        else if (port.name.startsWith('popup-'))
+            connectPopup(port);
+    });
 
-    // Todo: treat reload and link different? Reload -> disable translation?
-    getTab(tabId).reset(url);
-});
+    // Initialize or update the state of a tab when navigating
+    browser.webNavigation.onCommitted.addListener(({tabId, frameId, url}) => {
+        // Right now we're only interested in top-level navigation changes
+        if (frameId !== 0)
+            return;
 
-// Remove the tab state if a tab is removed
-browser.tabs.onRemoved.addListener(({tabId}) => {
-    tabs.delete(tabId);
-});
+        // Todo: treat reload and link different? Reload -> disable translation?
+        getTab(tabId).reset(url);
+    });
+
+    // Remove the tab state if a tab is removed
+    browser.tabs.onRemoved.addListener(({tabId}) => {
+        tabs.delete(tabId);
+    });
+
+    browser.storage.onChanged.addListener(changes => {
+        Object.entries(changes).forEach(([key, change]) => {
+            state[key] = change.newValue;
+        });
+
+        if ('provider' in changes)
+            resetProvider();
+    });
+}
+
+main();

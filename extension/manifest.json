@@ -16,7 +16,8 @@
 		"<all_urls>",
 		"tabs",
 		"webNavigation",
-		"storage"
+		"storage",
+		"nativeMessaging"
 	],
 	"background":
 	{
@@ -24,8 +25,11 @@
 		[
 			"3rd_party/pako/pako_inflate.js",
 			"3rd_party/js-untar/untar.js",
+			"controller/translation/func.js",
+			"controller/translation/promise.js",
 			"controller/translation/yaml.js",
-			"controller/translation/translationHelper.js",
+			"controller/translation/TLTranslationHelper.js",
+			"controller/translation/WASMTranslationHelper.js",
 			"controller/backgroundScript.js"
 		]
 	},
@@ -61,6 +65,10 @@
 		},
 		"default_title": "Translation available",
 		"default_popup": "/view/static/popup.html"
+	},
+	"options_ui": {
+		"page": "/view/static/options.html",
+		"browser_style": true
 	},
 	"icons":
 	{

@@ -84,6 +84,6 @@ const inPageTranslation = new InPageTranslation({
 on('TranslateResponse', data => {
     inPageTranslation.mediatorNotification({
         ...data.request.user,
-        translatedParagraph: data.translation
+        translatedParagraph: data.target.text
     });
 });
