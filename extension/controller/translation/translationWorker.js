@@ -26,6 +26,12 @@ class TranslationHelper {
             this.WasmEngineModule = null;
             this.engineState = this.ENGINE_STATE.LOAD_PENDING;
             this.PIVOT_LANGUAGE = "en";
+            // alignment for each file type, file type strings should be same as in the model registry
+            this.modelFileAlignments = {
+                "model": 256,
+                "lex": 64,
+                "vocab": 64,
+            }
         }
 
         get ENGINE_STATE () {
@@ -345,73 +351,37 @@ class TranslationHelper {
             alignment: soft
             `;
 
-            const modelFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].model.name}`;
-            const modelSize = modelRegistry[languagePair].model.size;
-            const modelChecksum = modelRegistry[languagePair].model.expectedSha256Hash;
-
-            const shortlistFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].lex.name}`;
-            const shortlistSize = modelRegistry[languagePair].lex.size;
-            const shortlistChecksum = modelRegistry[languagePair].lex.expectedSha256Hash;
-
-            const vocabFile = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair].vocab.name}`;
-            const vocabFileSize = modelRegistry[languagePair].vocab.size;
-            const vocabFileChecksum = modelRegistry[languagePair].vocab.expectedSha256Hash;
-
-            // download the files as buffers from the given urls
+            // download files into buffers
             let start = Date.now();
-            const downloadedBuffers = await Promise.all([
-                this.getItemFromCacheOrWeb(modelFile, modelSize, modelChecksum),
-                this.getItemFromCacheOrWeb(shortlistFile, shortlistSize, shortlistChecksum)
-            ]);
-            const modelBuffer = downloadedBuffers[0];
-            const shortListBuffer = downloadedBuffers[1];
-            if (!modelBuffer || !shortListBuffer) {
-                console.log("Error loading models from cache or web (models)");
-                postMessage(["reportError", "model_download"]);
-                throw new Error("Error loading models from cache or web (models)");
-            }
-            const vocabAsArrayBuffer = await this.getItemFromCacheOrWeb(vocabFile, vocabFileSize, vocabFileChecksum);
-            if (!vocabAsArrayBuffer) {
-                console.log("Error loading models from cache or web (vocab)");
-                postMessage(["reportError", "model_download"]);
-                throw new Error("Error loading models from cache or web (vocab)");
-            }
-            const downloadedVocabBuffers = [];
-            downloadedVocabBuffers.push(vocabAsArrayBuffer);
+
+            let donwloadedBuffersPromises = [];
+            Object.entries(this.modelFileAlignments)
+                .filter(([fileType]) => Reflect.apply(Object.prototype.hasOwnProperty, modelRegistry[languagePair], [fileType]))
+                .map(([fileType, fileAlignment]) => donwloadedBuffersPromises.push(this.downloadFiles(fileType, fileAlignment, languagePair)));
+
+            let donwloadedBuffers = await Promise.all(donwloadedBuffersPromises);
 
             let finish = Date.now();
             console.log(`Total Download time for all files of '${languagePair}': ${(finish - start) / 1000} secs`);
-              postMessage([
+            postMessage([
                 "reportPerformanceTimespan",
                 "model_download_time_num",
                 finish-start
-              ]);
-
-
-            // cnstruct AlignedMemory objects with downloaded buffers
-            let constructedAlignedMemories = await Promise.all([
-                this.prepareAlignedMemoryFromBuffer(modelBuffer, 256),
-                this.prepareAlignedMemoryFromBuffer(shortListBuffer, 64)
             ]);
-            let alignedModelMemory = constructedAlignedMemories[0];
-            let alignedShortlistMemory = constructedAlignedMemories[1];
-            let alignedVocabsMemoryList = new this.WasmEngineModule.AlignedMemoryList();
-            for (let item of downloadedVocabBuffers) {
-              // eslint-disable-next-line no-await-in-loop
-              let alignedMemory = await this.prepareAlignedMemoryFromBuffer(item, 64);
-              alignedVocabsMemoryList.push_back(alignedMemory);
-            }
-            for (let vocabs=0; vocabs < alignedVocabsMemoryList.size(); vocabs+=1) {
-              console.log(`Aligned vocab memory${vocabs+1} size: ${alignedVocabsMemoryList.get(vocabs).size()}`);
-            }
-            console.log(`Aligned model memory size: ${alignedModelMemory.size()}`);
-            console.log(`Aligned shortlist memory size: ${alignedShortlistMemory.size()}`);
+
+            // prepare aligned memories from buffers
+            let alignedMemories = [];
+            donwloadedBuffers.forEach(entry => alignedMemories.push(this.prepareAlignedMemoryFromBuffer(entry.buffer, entry.fileAlignment)));
+
+            const alignedModelMemory = alignedMemories[0];
+            const alignedShortlistMemory = alignedMemories[1];
+            const alignedVocabMemoryList = new this.WasmEngineModule.AlignedMemoryList();
+            alignedVocabMemoryList.push_back(alignedMemories[2]);
+            console.log(`Aligned memory sizes: Model:${alignedModelMemory.size()} Shortlist:${alignedShortlistMemory.size()} Vocab:${alignedMemories[2].size()}`);
             console.log(`Translation Model config: ${modelConfig}`);
 
-            let translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabsMemoryList);
-            if (translationModel) {
-                this.translationModels.set(languagePair, translationModel);
-            }
+            let translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabMemoryList);
+            this.translationModels.set(languagePair, translationModel);
         }
 
         _isPivotingRequired(from, to) {
@@ -420,6 +390,24 @@ class TranslationHelper {
 
         _getLanguagePair(from, to) {
             return `${from}${to}`;
+        }
+
+        // download files as buffers from given urls
+        async downloadFiles(fileType, fileAlignment, languagePair) {
+            const fileName = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair][fileType].name}`;
+            const fileSize = modelRegistry[languagePair][fileType].size;
+            const fileChecksum = modelRegistry[languagePair][fileType].expectedSha256Hash;
+            const buffer = await this.getItemFromCacheOrWeb(fileName, fileSize, fileChecksum);
+            if (!buffer) {
+                console.error(`Error loading models from cache or web ("${fileType}")`);
+                postMessage(["onError", "model_download"]);
+                throw new Error(`Error loading models from cache or web ("${fileType}")`);
+            }
+            return {
+                buffer,
+                fileAlignment,
+                fileType,
+            };
         }
 
         // eslint-disable-next-line max-lines-per-function
@@ -542,13 +530,10 @@ class TranslationHelper {
 
         // this function constructs and initializes the AlignedMemory from the array buffer and alignment size
         prepareAlignedMemoryFromBuffer (buffer, alignmentSize) {
-            var byteArray = new Int8Array(buffer);
-            console.log(`Constructing Aligned memory. Size: ${byteArray.byteLength} bytes, Alignment: ${alignmentSize}`);
-            var alignedMemory = new this.WasmEngineModule.AlignedMemory(byteArray.byteLength, alignmentSize);
-            console.log("Aligned memory construction done");
+            let byteArray = new Int8Array(buffer);
+            let alignedMemory = new this.WasmEngineModule.AlignedMemory(byteArray.byteLength, alignmentSize);
             const alignedByteArrayView = alignedMemory.getByteArrayView();
             alignedByteArrayView.set(byteArray);
-            console.log("Aligned memory initialized");
             return alignedMemory;
         }
 
