@@ -10,19 +10,6 @@ Bergamot Translations is a fork of [Firefox Translations](https://github.com/moz
 - Browse to a page in any of the supported languages (https://github.com/mozilla/firefox-translations-models/#currently-supported-languages) to have the translation option to appear
 
 # Instructions for Native Messaging
-Place this in a file called `translateLocally.json`:
-- macOS: `~/Library/Application Support/Mozilla/NativeMessagingHosts/<name>.json`
-- Linux: `~/.mozilla/native-messaging-hosts/<name>.json`
-- Windows: more complicated, see [native manifest location docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_manifests#manifest_location).
+Download the latest build from the [native messaging branch of TranslateLocally](https://github.com/XapaJIaMnu/translateLocally/actions?query=branch%3Anativemsg_cli) and start it once. This will register the native client with Firefox.
 
-You'll want to update the path to reflect wherever you have translateLocally build or installed. The extension ID has to match what is in `manifest.json` in this repo.
-
-```json
-{
-  "name": "translateLocally",
-  "description": "Example host for native messaging",
-  "path": "/absolute/path/to/translateLocally/build/translateLocally",
-  "type": "stdio",
-  "allowed_extensions": [ "{c9cdf885-0431-4eed-8e18-967b1758c951}" ]
-}
-```
+You can select TranslateLocally as your translation provider in the Preferences pane of the extension settings. Go to about://addons, click "Bergamot Translations", and click "Preferences".
