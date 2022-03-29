@@ -73,6 +73,13 @@ class Translation {
                 });
                 break;
 
+            case "reportQeMetrics":
+                this.mediator.contentScriptsMessageListener(this, {
+                    command: "reportQeMetrics",
+                    payload: { is_supervised: translationMessage.data[1] }
+                });
+                break;
+
             default:
         }
     }

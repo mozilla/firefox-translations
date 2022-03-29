@@ -378,17 +378,24 @@ class TranslationHelper {
             const alignedShortlistMemory = alignedMemories[1];
             const alignedVocabMemoryList = new this.WasmEngineModule.AlignedMemoryList();
             alignedVocabMemoryList.push_back(alignedMemories[2]);
-            console.log(`Translation Model config: ${modelConfig}`);
-
-            let translationModel;
+            let alignedQEMemory = null;
             if (alignedMemories.length === Object.entries(this.modelFileAlignments).length) {
-                console.log(`Aligned memory sizes: Model:${alignedModelMemory.size()}  Shortlist:${alignedShortlistMemory.size()}  Vocab:${alignedMemories[2].size()}  QualityModel:${alignedMemories[3].size()}`);
-                translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabMemoryList, alignedMemories[3]);
-            } else {
-                console.log(`Aligned memory sizes: Model:${alignedModelMemory.size()}  Shortlist:${alignedShortlistMemory.size()}  Vocab:${alignedMemories[2].size()}`);
-                translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabMemoryList, null);
+                alignedQEMemory = alignedMemories[3];
             }
+
+            // construct model
+            console.log(`Translation Model config: ${modelConfig}`);
+            let translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabMemoryList, alignedQEMemory);
             this.translationModels.set(languagePair, translationModel);
+
+            // report metric about supervised/non-supervised qe model only if qe feature is on
+            if (withQualityEstimation) {
+                let isSuperVised = alignedQEMemory !== null;
+                postMessage([
+                    "reportQeMetrics",
+                    isSuperVised
+                ]);
+            }
         }
 
         _isPivotingRequired(from, to) {

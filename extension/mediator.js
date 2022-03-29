@@ -229,13 +229,24 @@ class Mediator {
                 this.recordTelemetry("event", "forms", message.payload);
                 break;
             case "reportQeMetrics":
-                this.recordTelemetry("boolean", "quality", "is_supervised", false);
-                browser.runtime.sendMessage({
-                    command: "reportQeStats",
-                    tabId: this.tabId,
-                    wordScores: message.payload.wordScores,
-                    sentScores: message.payload.sentScores
-                });
+
+                /*
+                 * qe metrics either come from Translation or from InPageTranslation. It is difficult to
+                 * unify them as they are produced for different events (post model construction and
+                 * post translation). Differentiating them here based on the properties to unify the metric
+                 * reporting for qe at one place.
+                 */
+                if (Reflect.apply(Object.prototype.hasOwnProperty, message.payload, ["is_supervised"])) {
+                    this.recordTelemetry("boolean", "quality", "is_supervised", message.payload.is_supervised);
+                }
+                if (Reflect.apply(Object.prototype.hasOwnProperty, message.payload, ["wordScores"]) && Reflect.apply(Object.prototype.hasOwnProperty, message.payload, ["sentScores"])) {
+                    browser.runtime.sendMessage({
+                        command: "reportQeStats",
+                        tabId: this.tabId,
+                        wordScores: message.payload.wordScores,
+                        sentScores: message.payload.sentScores
+                    });
+                }
                 break;
             case "domMutation":
                 if (this.outboundTranslation) {
