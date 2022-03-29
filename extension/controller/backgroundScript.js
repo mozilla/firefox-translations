@@ -35,7 +35,7 @@ const getTelemetry = tabId => {
     return telemetryByTab.get(tabId);
 }
 
-// eslint-disable-next-line max-lines-per-function
+// eslint-disable-next-line max-lines-per-function,complexity
 const messageListener = async function(message, sender) {
     let listeneronUpdatedLoad = null;
     let webNavigationCompletedLoad = null;
