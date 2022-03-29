@@ -73,9 +73,9 @@ class Translation {
                 });
                 break;
 
-            case "reportQeMetrics":
+            case "reportQeIsSupervised":
                 this.mediator.contentScriptsMessageListener(this, {
-                    command: "reportQeMetrics",
+                    command: "reportQeIsSupervised",
                     payload: { is_supervised: translationMessage.data[1] }
                 });
                 break;

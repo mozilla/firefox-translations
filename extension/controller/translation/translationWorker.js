@@ -396,7 +396,7 @@ class TranslationHelper {
             if (withQualityEstimation) {
                 let isSuperVised = alignedQEMemory !== null;
                 postMessage([
-                    "reportQeMetrics",
+                    "reportQeIsSupervised",
                     isSuperVised
                 ]);
             }
