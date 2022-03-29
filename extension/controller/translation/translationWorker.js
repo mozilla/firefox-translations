@@ -380,12 +380,15 @@ class TranslationHelper {
             const alignedVocabMemoryList = new this.WasmEngineModule.AlignedMemoryList();
             alignedVocabMemoryList.push_back(alignedMemories[2]);
             let alignedQEMemory = null;
+            let alignedMemoryLogMessage = `Aligned memory sizes: Model:${alignedModelMemory.size()}, Shortlist:${alignedShortlistMemory.size()}, Vocab:${alignedMemories[2].size()}, `;
             if (alignedMemories.length === Object.entries(this.modelFileAlignments).length) {
                 alignedQEMemory = alignedMemories[3];
+                alignedMemoryLogMessage = alignedMemoryLogMessage + `QualityModel: ${alignedQEMemory.size()}`;
             }
+            console.log(`Translation Model config: ${modelConfig}`);
+            console.log(alignedMemoryLogMessage);
 
             // construct model
-            console.log(`Translation Model config: ${modelConfig}`);
             let translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabMemoryList, alignedQEMemory);
             this.translationModels.set(languagePair, translationModel);
 
