@@ -25,6 +25,7 @@
   "background": {
     "persistent": true,
     "scripts": [
+      "sentry.js",
       "settings.js",
       "controller/translation/bergamotTranslatorVersion.js",
       "model/telemetry/schema.js",
@@ -44,6 +45,7 @@
         "<all_urls>"
       ],
       "js": [
+        "sentry.js",
         "settings.js",
         "model/modelRegistry.js",
         "controller/languageDetection/LanguageDetection.js",
