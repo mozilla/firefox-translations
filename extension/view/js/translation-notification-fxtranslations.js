@@ -93,6 +93,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this._getAnonElt("outboundtranslations-check").setAttribute("label", translationNotificationManager.localizedLabels.outboundTranslationsMessage);
     this._getAnonElt("qualityestimations-check").setAttribute("label", translationNotificationManager.localizedLabels.qualityEstimationMessage);
     this._getAnonElt("displayStatistics").setAttribute("label", translationNotificationManager.localizedLabels.displayStatisticsMessage);
+    this._getAnonElt("survey").setAttribute("label", translationNotificationManager.localizedLabels.surveyMessage);
 
     this.translationNotificationManager = translationNotificationManager;
     this.localizedLanguagesByCode = {};
@@ -184,6 +185,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
       this.translationNotificationManager.reportInfobarMetric("event","qe_unchecked");
       this.translationNotificationManager.reportInfobarMetric("boolean", "qe_enabled", false);
     }
+  }
+
+  onSurveyClick() {
+    this.translationNotificationManager.showSurvey();
   }
 
   /*

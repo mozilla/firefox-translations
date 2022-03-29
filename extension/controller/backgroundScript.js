@@ -130,7 +130,8 @@ const messageListener = async function(message, sender) {
                 {
                     displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
                     outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
-                    qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage")
+                    qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage"),
+                    surveyMessage: browser.i18n.getMessage("surveyMessage")
                 },
                 false
             );
@@ -154,6 +155,9 @@ const messageListener = async function(message, sender) {
                 message,
                 { frameId: 0 }
             );
+            break;
+        case "showSurvey":
+            browser.tabs.create({ url: "https://qsurvey.mozilla.com/s3/Firefox-Translations" });
             break;
         case "translationComplete":
             // propagate translation message from top frame to the source frame
