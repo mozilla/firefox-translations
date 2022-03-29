@@ -357,6 +357,7 @@ class TranslationHelper {
 
             let donwloadedBuffersPromises = [];
             Object.entries(this.modelFileAlignments)
+                .filter(([fileType]) => fileType !== "qualityModel" || withQualityEstimation)
                 .filter(([fileType]) => Reflect.apply(Object.prototype.hasOwnProperty, modelRegistry[languagePair], [fileType]))
                 .map(([fileType, fileAlignment]) => donwloadedBuffersPromises.push(this.downloadFiles(fileType, fileAlignment, languagePair)));
 
