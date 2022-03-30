@@ -64,58 +64,10 @@ const messageListener = async function(message, sender) {
             break;
         case "monitorTabLoad":
 
-            /*
-             * wait until the page within the tab is loaded, and then return
-             * with the tabId to the caller
-             */
-            listeneronUpdatedLoad = (tabId, changeInfo, tab) => {
-                if (tab.id === sender.tab.id || tab.url === sender.tab.url) {
-                    browser.tabs.onUpdated.removeListener(listeneronUpdatedLoad);
-                    browser.webNavigation.onCompleted.removeListener(webNavigationCompletedLoad);
-                    console.log("browser.tabs.onUpdated.addListener => notifying browser to display the infobar: ", changeInfo.status, tab.id, sender.tab.id, tab.url)
-
-                    /*
-                     * some specific race condition in the tab messaging API
-                     * demands that we wait before sending the message, hence the
-                     * setTimeout
-                     */
-                    setTimeout(() => {
-                        browser.tabs.sendMessage(
-                            tab.id,
-                            { command: "responseMonitorTabLoad", tabId: tab.id }
-                        );
-                    } ,250);
-                } else if (tab.id !== sender.tab.id) {
-                    browser.tabs.onUpdated.removeListener(listeneronUpdatedLoad);
-                    browser.webNavigation.onCompleted.removeListener(webNavigationCompletedLoad);
-                    console.log("browser.tabs.onUpdated.addListener => notifying browser to display the infobar:  tab.id !== sender.tab.id", changeInfo.status, tab.id, sender.tab.id, tab.url)
-
-                    setTimeout(() => {
-                        browser.tabs.sendMessage(
-                            sender.tab.id,
-                            { command: "responseMonitorTabLoad", tabId: sender.tab.id }
-
-                        );
-                    } ,250);
-                }
-            };
-
-            webNavigationCompletedLoad = details => {
-                if (details.tabId === sender.tab.id) {
-                    browser.webNavigation.onCompleted.removeListener(webNavigationCompletedLoad);
-                    browser.tabs.onUpdated.removeListener(listeneronUpdatedLoad);
-                    console.log("webNavigation.onCompleted => notifying browser to display the infobar")
-                    setTimeout(() => {
-                        browser.tabs.sendMessage(
-                            details.tabId ,
-                            { command: "responseMonitorTabLoad", tabId: details.tabId }
-                        );
-                    } ,250);
-                }
-            };
-
-            browser.webNavigation.onCompleted.addListener(webNavigationCompletedLoad);
-            browser.tabs.onUpdated.addListener(listeneronUpdatedLoad);
+            browser.tabs.sendMessage(
+                                 sender.tab.id,
+                                 { command: "responseMonitorTabLoad", tabId: sender.tab.id }
+                                 );
 
             break;
         case "displayTranslationBar":
