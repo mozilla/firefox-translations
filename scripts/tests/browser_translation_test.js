@@ -69,7 +69,7 @@ add_task(async function testTranslationBarDisplayed() {
        */
        document.getElementById("mainTextarea").focus();
        document.getElementById("OTapp").querySelectorAll("textarea")[0].value = "Hello World";
-       document.getElementById("OTapp").querySelectorAll("textarea")[0].dispatchEvent(new content.KeyboardEvent('keydown', {'key': 'Enter'}));
+       document.getElementById("OTapp").querySelectorAll("textarea")[0].dispatchEvent(new content.KeyboardEvent("keydown", { "key": "Enter" }));
        await new Promise(resolve => content.setTimeout(resolve, 5000));
 
        is(

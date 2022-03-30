@@ -37,8 +37,7 @@ const getTelemetry = tabId => {
 
 // eslint-disable-next-line max-lines-per-function
 const messageListener = async function(message, sender) {
-    let listeneronUpdatedLoad = null;
-    let webNavigationCompletedLoad = null;
+
     switch (message.command) {
         case "detectPageLanguage":
             if (!modelFastText) break;
