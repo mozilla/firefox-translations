@@ -27,11 +27,12 @@ window.MozTranslationNotification = class extends MozElements.Notification {
           <vbox class="translating-box" pack="center">
             <hbox>
               <label value="&translation.translatingContent.label;" style="display:none"/>
-              <label anonid="progress-label" value="" style="padding-left:5px"/>
+              <label anonid="progress-label" value="" style="padding-left:5px"/>     
             </hbox>
           </vbox>
         </deck>
-        <spacer flex="1"/>
+        <spacer flex="1"/>        
+        <button class="notification-button" label="" anonid="survey" oncommand="this.closest('notification').onSurveyClick();"/>
         <button type="menu" class="notification-button" anonid="options" label="&translation.options.menu;">
           <menupopup class="translation-menupopup" onpopupshowing="this.closest('notification').optionsShowing();">
             <menuitem anonid="neverForLanguage" oncommand="this.closest('notification').neverForLanguage();"/>
@@ -93,6 +94,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this._getAnonElt("outboundtranslations-check").setAttribute("label", translationNotificationManager.localizedLabels.outboundTranslationsMessage);
     this._getAnonElt("qualityestimations-check").setAttribute("label", translationNotificationManager.localizedLabels.qualityEstimationMessage);
     this._getAnonElt("displayStatistics").setAttribute("label", translationNotificationManager.localizedLabels.displayStatisticsMessage);
+    this._getAnonElt("survey").setAttribute("label", translationNotificationManager.localizedLabels.surveyMessage);
 
     this.translationNotificationManager = translationNotificationManager;
     this.localizedLanguagesByCode = {};
@@ -184,6 +186,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
       this.translationNotificationManager.reportInfobarMetric("event","qe_unchecked");
       this.translationNotificationManager.reportInfobarMetric("boolean", "qe_enabled", false);
     }
+  }
+
+  onSurveyClick() {
+    this.translationNotificationManager.showSurvey();
   }
 
   /*
