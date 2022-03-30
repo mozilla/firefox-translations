@@ -58,10 +58,21 @@ add_task(async function testTranslationBarDisplayed() {
   // and check if the translation happened
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async () => {
     const checkTranslation = async (document, message) => {
+      // check for the translated content
       is(
-        document.getElementById("translationDiv").innerHTML,
+        document.getElementById("translationDiv").innerText,
         "Hello world. That's a test of translation tests.",
         `Text was correctly translated. (${message})`
+      );
+
+      /*
+       * check for the quality scores in translated html content.
+       * The score values might change if different model is used.
+       */
+      is(
+        document.getElementById("translationDiv").innerHTML,
+        "<font x-bergamot-sentence-index=\"0\" x-bergamot-sentence-score=\"-0.304852\"><font x-bergamot-word-index=\"0\" x-bergamot-word-score=\"-0.248207\">Hello</font> <font x-bergamot-word-index=\"1\" x-bergamot-word-score=\"-0.361497\">world.</font></font> <font x-bergamot-sentence-index=\"1\" x-bergamot-sentence-score=\"-0.127826\"><font x-bergamot-word-index=\"0\" x-bergamot-word-score=\"-0.0742788\">That's</font> <font x-bergamot-word-index=\"1\" x-bergamot-word-score=\"-0.213941\">a</font> <font x-bergamot-word-index=\"2\" x-bergamot-word-score=\"-0.204642\">test</font> <font x-bergamot-word-index=\"3\" x-bergamot-word-score=\"-0.0640169\">of</font> <font x-bergamot-word-index=\"4\" x-bergamot-word-score=\"-0.00412017\">translation</font> <font x-bergamot-word-index=\"5\" x-bergamot-word-score=\"-0.205956\">tests.</font></font>",
+        `Quality Scores are present in translation. (${message})`
       );
 
       /*
