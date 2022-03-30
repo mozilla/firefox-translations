@@ -35,8 +35,9 @@ add_task(async function testTranslationBarDisplayed() {
   const selectedLanguage = languageDropdown.selectedItem.textContent;
   is(selectedLanguage, "Spanish", "Detected language is in spanish");
 
-  // now that the bar was displayed, let's select the form translations checkbox
+  // now that the bar was displayed, let's select the form translation and quality estimation checkboxes
   notification.querySelector("[anonid=outboundtranslations-check]").checked = true;
+  notification.querySelector("[anonid=qualityestimations-check]").checked = true;
   // and push the button to translate
   let translateButton = notification.querySelector("[anonid=translate]");
   translateButton.click();
