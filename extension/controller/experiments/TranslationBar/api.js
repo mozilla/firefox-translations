@@ -70,6 +70,10 @@
                   }
                 }
 
+                if (translationNotificationManagers.has(tabId)) {
+                  return;
+                }
+
                 /*
                  * as a workaround to be able to load updates for the translation notification on extension reload
                  * we use the current unix timestamp as part of the element id.
