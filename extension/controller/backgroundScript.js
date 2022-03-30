@@ -261,7 +261,8 @@ browser.pageAction.onClicked.addListener(tab => {
             displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
             outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
             qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage"),
-            surveyMessage: browser.i18n.getMessage("surveyMessage")
+            surveyMessage: browser.i18n.getMessage("surveyMessage"),
+            languageDefaultOption: browser.i18n.getMessage("languageDefaultOption")
         },
         true
     );
