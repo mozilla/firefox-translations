@@ -112,6 +112,11 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     const detectedLanguage = this._getAnonElt("detectedLanguage");
     const languagesSupported = sortByLocalizedName(this.translationNotificationManager.languageSet);
 
+    if (this.translationNotificationManager.detectedLanguage === "userrequest") {
+      detectedLanguage.appendItem(translationNotificationManager.localizedLabels.languageDefaultOption, "userrequest");
+      this._getAnonElt("translate").disabled = true;
+    }
+
     for (let [code, name] of languagesSupported) {
       if (this.translationNotificationManager.devLanguageSet.has(code)) {
             name += " (Beta)";
@@ -125,10 +130,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     const targetLanguages = sortByLocalizedName(this.translationNotificationManager.languageSet);
     for (const [code, name] of targetLanguages) {
       this.localizedLanguagesByCode[code] = name;
-    }
-
-    if (this.translationNotificationManager.detectedLanguage === "userrequest") {
-      this._getAnonElt("translate").disabled = true;
     }
 
     this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_OFFER;
@@ -149,7 +150,11 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 
   fromLanguageChanged() {
     this.translationNotificationManager.reportInfobarMetric("event","change_lang");
-    this._getAnonElt("translate").disabled = false;
+    if (this._getAnonElt("detectedLanguage").value === "userrequest") {
+      this._getAnonElt("translate").disabled = true;
+    } else {
+      this._getAnonElt("translate").disabled = false;
+    }
   }
 
   translate() {

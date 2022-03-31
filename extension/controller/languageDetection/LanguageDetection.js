@@ -14,12 +14,6 @@ class LanguageDetection {
         this.wordsToDetect = null;
     }
 
-    /*
-     * extracts the page's first 100 words in order to be used by the language
-     * detection module. This heuristic should be revisited in the future, to
-     * something like searching for the elements in the middle of the page
-     * instead of the top
-     */
     extractPageContent() {
         this.wordsToDetect = document.body.innerText;
     }
