@@ -62,12 +62,19 @@ const messageListener = async function(message, sender) {
                 languageDetection })
             break;
         case "monitorTabLoad":
-
+            // send to main frame immediately
             browser.tabs.sendMessage(
-                                 sender.tab.id,
-                                 { command: "responseMonitorTabLoad", tabId: sender.tab.id }
-                                 );
-
+                    sender.tab.id,
+                    { command: "responseMonitorTabLoad", tabId: sender.tab.id },
+                    { frameId: 0 }
+                    );
+            // send to other frames with delay to give them time to load and subscribe to bgScript
+            setTimeout(() => {
+                browser.tabs.sendMessage(
+                    sender.tab.id,
+                    { command: "responseMonitorTabLoad", tabId: sender.tab.id }
+                );
+            } ,1000);
             break;
         case "displayTranslationBar":
 
