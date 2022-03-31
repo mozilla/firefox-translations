@@ -4,9 +4,21 @@
  */
 
 /* global LanguageDetection, OutboundTranslation, Translation , browser,
-InPageTranslation, browser, modelRegistryVersion */
+InPageTranslation, browser, modelRegistryVersion, Sentry, settings */
 
 /* eslint-disable max-lines */
+
+
+window.addEventListener("load", function () {
+  Sentry.init({
+    dsn:
+      settings.sentryDsn,
+      tracesSampleRate: 1.0,
+      debug: settings.sentryDebug,
+      release: `firefox-translations@${browser.runtime.getManifest().version}`
+  });
+});
+
 
 class Mediator {
 
