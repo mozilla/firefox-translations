@@ -55,7 +55,7 @@ add_task(async function testTranslationBarDisplayed() {
     200
   );
 
-  // and check if the translation happened
+  // check if the translation happened
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async () => {
     const checkTranslation = async (document, message) => {
       // check for the translated content
@@ -63,16 +63,6 @@ add_task(async function testTranslationBarDisplayed() {
         document.getElementById("translationDiv").innerText,
         "Hello world. That's a test of translation tests.",
         `Text was correctly translated. (${message})`
-      );
-
-      /*
-       * check for the quality scores in translated html content.
-       * The score values might change if different model is used.
-       */
-      is(
-        document.getElementById("translationDiv").innerHTML,
-        "<font x-bergamot-sentence-index=\"0\" x-bergamot-sentence-score=\"-0.304852\"><font x-bergamot-word-index=\"0\" x-bergamot-word-score=\"-0.248207\">Hello</font> <font x-bergamot-word-index=\"1\" x-bergamot-word-score=\"-0.361497\">world.</font></font> <font x-bergamot-sentence-index=\"1\" x-bergamot-sentence-score=\"-0.127826\"><font x-bergamot-word-index=\"0\" x-bergamot-word-score=\"-0.0742788\">That's</font> <font x-bergamot-word-index=\"1\" x-bergamot-word-score=\"-0.213941\">a</font> <font x-bergamot-word-index=\"2\" x-bergamot-word-score=\"-0.204642\">test</font> <font x-bergamot-word-index=\"3\" x-bergamot-word-score=\"-0.0640169\">of</font> <font x-bergamot-word-index=\"4\" x-bergamot-word-score=\"-0.00412017\">translation</font> <font x-bergamot-word-index=\"5\" x-bergamot-word-score=\"-0.205956\">tests.</font></font>",
-        `Quality Scores are present in translation. (${message})`
       );
 
       /*
@@ -97,9 +87,69 @@ add_task(async function testTranslationBarDisplayed() {
        );
     }
 
+    // check quality estimation
+    const checkQualityEstimation = async (document, message) => {
+      const translation = document.getElementById("translationDiv").innerText;
+      const translatedHTMLWithQEScores = document.getElementById("translationDiv").innerHTML;
+
+      // just check for the translated content before checking quality estimation
+      is(
+        translation,
+        "Hello world. That's a test of translation tests.",
+        `Text was correctly translated. (${message})`
+      );
+
+      // check if number of sentences and the number of sentence score attributes match in the translation
+      let sentenceCount = translation.match(/\w\s*([.?!]|$)/g).length;
+      let sentenceScoreAttributeCount = (translatedHTMLWithQEScores.match(/x-bergamot-sentence-score/g) || []).length;
+      is(
+        sentenceScoreAttributeCount,
+        sentenceCount,
+        `Quality Scores available for every sentence in translation.
+          translatedHTML:${translatedHTMLWithQEScores}
+          translatedText:${translation}
+          message:${message}`
+      );
+
+      // check if number of words and the number of word score attributes match in the translation
+      let wordCount = translation.match(/\w[.?!,;]*(\s|$)/g).length;
+      let wordScoreAttributeCount = (translatedHTMLWithQEScores.match(/x-bergamot-word-score/g) || []).length;
+      is(
+        wordScoreAttributeCount,
+        wordCount,
+        `Quality Scores available for every word in translation.
+          translatedHTML:${translatedHTMLWithQEScores}
+          translatedText:${translation}
+          message:${message}`
+      );
+
+      // check if all the sentence and word quality scores are valid i.e. in range [-1.0, 0.0]
+      const validQEScores = (translatedHTMLWithQEScores) => {
+        const regex = /x-bergamot-sentence-score=\"|x-bergamot-word-score=\"/;
+        for (const substring of translatedHTMLWithQEScores.split(regex)) {
+          let val = parseFloat(substring);
+          if (!isNaN(val) && (val > 0 && val < -1.00))
+            return false;
+        }
+        return true;
+      };
+
+      is(
+        validQEScores(translatedHTMLWithQEScores),
+        true,
+        `Quality Scores are not in valid range for every word/sentence in translation.
+          translatedHTML:${translatedHTMLWithQEScores}
+          translatedText:${translation}
+          message:${message}`
+      );
+    }
+
     await new Promise(resolve => content.setTimeout(resolve, 10000));
     await checkTranslation(content.document, "main frame");
     await checkTranslation(content.document.getElementById("iframe").contentWindow.document, "iframe");
+
+    await checkQualityEstimation(content.document, "main frame");
+    await checkQualityEstimation(content.document.getElementById("iframe").contentWindow.document, "iframe");
   });
 
   delete window.MozTranslationNotification;
