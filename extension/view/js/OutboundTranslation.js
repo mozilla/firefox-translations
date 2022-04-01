@@ -1,5 +1,5 @@
 
-/* global browser */
+/* global browser, Sentry */
 
 // eslint-disable-next-line no-unused-vars
 class OutboundTranslation {
@@ -17,79 +17,81 @@ class OutboundTranslation {
   }
 
   // eslint-disable-next-line max-lines-per-function
-  async start(navigatorLanguage, pageLanguage) {
+  start(navigatorLanguage, pageLanguage) {
+    // eslint-disable-next-line max-lines-per-function
+    Sentry.wrap(async () => {
+      let pageFragment = null;
+      try {
+        // first we load the pageFragment (UI)
+        const response = await fetch(browser
+          .runtime.getURL("view/static/outboundTranslation.html"), { mode: "no-cors" });
+        if (response.ok) {
+          pageFragment = await response.text();
+        } else {
+          pageFragment = "Error loading outbound translation code fragment";
+        }
+      } catch (exception) {
 
-    let pageFragment = null;
-    try {
-      // first we load the pageFragment (UI)
-      const response = await fetch(browser
-        .runtime.getURL("view/static/outboundTranslation.html"), { mode: "no-cors" });
-      if (response.ok) {
-        pageFragment = await response.text();
-      } else {
-        pageFragment = "Error loading outbound translation code fragment";
+        console.error(exception.message, exception.stack);
       }
-    } catch (exception) {
 
-      console.error(exception.message, exception.stack);
-    }
+      // then we create the div that holds it
+      this.otDiv = document.createElement("div");
+      this.otDiv.className = "fxtranslations-ot";
+      this.otDiv.innerHTML = pageFragment;
+      this.otDiv.id = "fxtranslations-ot";
+      this.pageStatusLabel = this.otDiv.querySelector(".fxtranslations-status");
+      this.otDiv.querySelector(".fxtranslations-header").innerHTML =
+        browser.i18n.getMessage("formtranslationsDescription", [navigatorLanguage, pageLanguage]);
 
-    // then we create the div that holds it
-    this.otDiv = document.createElement("div");
-    this.otDiv.className = "fxtranslations-ot";
-    this.otDiv.innerHTML = pageFragment;
-    this.otDiv.id = "fxtranslations-ot";
-    this.pageStatusLabel = this.otDiv.querySelector(".fxtranslations-status");
-    this.otDiv.querySelector(".fxtranslations-header").innerHTML =
-      browser.i18n.getMessage("formtranslationsDescription", [navigatorLanguage, pageLanguage]);
+      // it's safe to hardcode the widget to have the highest possible zindex in the page
+      this.otDiv.style.zIndex = 2147483647;
 
-    // it's safe to hardcode the widget to have the highest possible zindex in the page
-    this.otDiv.style.zIndex = 2147483647;
+      /*
+       * we scan all textareas and attach our listeners to display
+       * the widget when the element receives focus
+       */
+      this.addFormListeners(document.querySelectorAll("textarea"));
 
-    /*
-     * we scan all textareas and attach our listeners to display
-     * the widget when the element receives focus
-     */
-    this.addFormListeners(document.querySelectorAll("textarea"));
+      /*
+       * we then add the typying listeners to the outbound translation main
+       * textarea in order to capture what's input and push it to the
+       * translatinon queue
+       */
+      this.otDiv.querySelector("textarea").addEventListener("keydown", () => Sentry.wrap(() => {
+        if (!this.isUserTyping) {
+          this.isUserTyping = true;
+          this.updateStatusLabel(browser.i18n.getMessage("formtranslationsTyping"));
+        }
+        if (this.translationTimeout) {
+          clearTimeout(this.translationTimeout);
+        }
+        this.translationTimeout = setTimeout(
+          this.sendTextToTranslation.bind(this),
+          this.TYPING_TIMEOUT
+        );
+      }));
 
-    /*
-     * we then add the typying listeners to the outbound translation main
-     * textarea in order to capture what's input and push it to the
-     * translatinon queue
-     */
-    this.otDiv.querySelector("textarea").addEventListener("keydown", () => {
-      if (!this.isUserTyping) {
-        this.isUserTyping = true;
-        this.updateStatusLabel(browser.i18n.getMessage("formtranslationsTyping"));
-      }
-      if (this.translationTimeout) {
-        clearTimeout(this.translationTimeout);
-      }
-      this.translationTimeout = setTimeout(
-        this.sendTextToTranslation.bind(this),
-        this.TYPING_TIMEOUT
-      );
+      /*
+       * we need to list to then scroll in the main textarea in order to scroll
+       * all other at same time.
+       */
+      this.otDiv.querySelector("textarea").addEventListener("scroll", e => Sentry.wrap(() => {
+        window.requestAnimationFrame(() => {
+          this.scrollTextAreas(e.target.scrollTop);
+        });
+      }));
+
+      this.startMutationObserver();
+      this.updateStatusLabel(browser.i18n.getMessage("formtranslationsReady"));
     });
-
-    /*
-     * we need to list to then scroll in the main textarea in order to scroll
-     * all other at same time.
-     */
-    this.otDiv.querySelector("textarea").addEventListener("scroll", e => {
-      window.requestAnimationFrame(() => {
-        this.scrollTextAreas(e.target.scrollTop);
-      });
-    });
-
-    this.startMutationObserver();
-    this.updateStatusLabel(browser.i18n.getMessage("formtranslationsReady"));
   }
 
   addFormListeners(formElements) {
     for (const formElement of formElements) {
-      formElement.addEventListener("focus", () => {
+      formElement.addEventListener("focus", () => Sentry.wrap(() => {
         this.attachOtToTextAreaListener(formElement);
-      });
+      }));
     }
   }
 
@@ -108,22 +110,22 @@ class OutboundTranslation {
     .querySelectorAll("textarea")[1];
 
     // listen to when the textarea loses focus in order to remove the div
-    this.otTextArea.addEventListener("blur", () => {
-      // if the widget is still in the dom
-      if (document.body.contains(this.otDiv)) {
-        // first we save the content of the widget
-        this.textareaContentsMap.set(this.selectedTextArea, {
+    this.otTextArea.addEventListener("blur", () => Sentry.wrap(() => {
+        // if the widget is still in the dom
+        if (document.body.contains(this.otDiv)) {
+          // first we save the content of the widget
+          this.textareaContentsMap.set(this.selectedTextArea, {
             typedContent: this.otTextArea.value,
             translatedContent: this.backTranslationsTextArea.value
-        });
-        // remove it from the dom
-        document.body.removeChild(this.otDiv);
-        // and clear its forms
-        this.otTextArea.value = "";
-        this.backTranslationsTextArea.value = "";
-        this.notifyMediator("reportFormsEvent", "hidden");
-      }
-    });
+          });
+          // remove it from the dom
+          document.body.removeChild(this.otDiv);
+          // and clear its forms
+          this.otTextArea.value = "";
+          this.backTranslationsTextArea.value = "";
+          this.notifyMediator("reportFormsEvent", "hidden");
+        }
+      }));
 
     // update the widget content's if we have it stored
     const widgetContent = this.textareaContentsMap.get(formElement);
@@ -295,5 +297,4 @@ class OutboundTranslation {
     this.backTranslationsTextArea.scrollTop = scrollTop;
     this.selectedTextArea.scrollTop = scrollTop;
   }
-
 }

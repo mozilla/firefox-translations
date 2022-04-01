@@ -3,7 +3,7 @@
  * interacting with the web worker, handle the language models, and communicate with the
  * mediator
  */
-/* global browser, TranslationMessage, Queue */
+/* global browser, TranslationMessage, Queue, Sentry */
 
 // eslint-disable-next-line no-unused-vars
 class Translation {
@@ -40,41 +40,43 @@ class Translation {
      * handles all communication received from the translation webworker
      */
     translationWorkerMessageListener(translationMessage) {
-        switch (translationMessage.data[0]) {
-            case "translationComplete":
-                this.mediator.contentScriptsMessageListener(this, {
-                    command: "translationComplete",
-                    payload: translationMessage.data
-                });
-                break;
-            case "updateProgress":
-                this.mediator.contentScriptsMessageListener(this, {
-                    command: "updateProgress",
-                    payload: translationMessage.data
-                });
-                break;
-            case "displayOutboundTranslation":
-                this.mediator.contentScriptsMessageListener(this, {
-                    command: "displayOutboundTranslation",
-                    payload: null
-                });
-                break;
-            case "reportError":
-                this.mediator.contentScriptsMessageListener(this, {
-                    command: "reportError",
-                    payload: translationMessage.data[1]
-                });
-                break;
+        Sentry.wrap(() => {
+            switch (translationMessage.data[0]) {
+                case "translationComplete":
+                    this.mediator.contentScriptsMessageListener(this, {
+                        command: "translationComplete",
+                        payload: translationMessage.data
+                    });
+                    break;
+                case "updateProgress":
+                    this.mediator.contentScriptsMessageListener(this, {
+                        command: "updateProgress",
+                        payload: translationMessage.data
+                    });
+                    break;
+                case "displayOutboundTranslation":
+                    this.mediator.contentScriptsMessageListener(this, {
+                        command: "displayOutboundTranslation",
+                        payload: null
+                    });
+                    break;
+                case "reportError":
+                    this.mediator.contentScriptsMessageListener(this, {
+                        command: "reportError",
+                        payload: translationMessage.data[1]
+                    });
+                    break;
 
-            case "reportPerformanceTimespan":
-                this.mediator.contentScriptsMessageListener(this, {
-                    command: "reportPerformanceTimespan",
-                    payload: { metric: translationMessage.data[1], timeMs: translationMessage.data[2] }
-                });
-                break;
+                case "reportPerformanceTimespan":
+                    this.mediator.contentScriptsMessageListener(this, {
+                        command: "reportPerformanceTimespan",
+                        payload: { metric: translationMessage.data[1], timeMs: translationMessage.data[2] }
+                    });
+                    break;
 
-            default:
-        }
+                default:
+            }
+        });
     }
 
     /*
@@ -107,27 +109,29 @@ class Translation {
     }
 
     submitMessages() {
-        // timeout invoked. let's submit the messages
-        const messagesToGo = [];
+        Sentry.wrap(() => {
+            // timeout invoked. let's submit the messages
+            const messagesToGo = [];
 
-        // we'll process until the buffer is empty or we reach
-        while (!this.translationMessageBuffer.isEmpty() && messagesToGo.length < this.MAX_TRANSLATION_MSGS) {
-            const message = this.translationMessageBuffer.dequeue();
-            messagesToGo.push(message);
-        }
-        if (this.translationWorker) {
-            this.translationWorker.postMessage([
-                "translate",
-                messagesToGo
-            ]);
-        }
+            // we'll process until the buffer is empty or we reach
+            while (!this.translationMessageBuffer.isEmpty() && messagesToGo.length < this.MAX_TRANSLATION_MSGS) {
+                const message = this.translationMessageBuffer.dequeue();
+                messagesToGo.push(message);
+            }
+            if (this.translationWorker) {
+                this.translationWorker.postMessage([
+                    "translate",
+                    messagesToGo
+                ]);
+            }
 
-        // and schedule an update if required
-        if (this.translationMessageBuffer.length() > 0) {
-            setTimeout(this.submitMessages.bind(this), this.TRANSLATION_INTERVAL);
-        }
-        // inform it is complete
-        this.translateSchedule = null;
+            // and schedule an update if required
+            if (this.translationMessageBuffer.length() > 0) {
+                setTimeout(this.submitMessages.bind(this), this.TRANSLATION_INTERVAL);
+            }
+            // inform it is complete
+            this.translateSchedule = null;
+        });
     }
 
     // eslint-disable-next-line max-params

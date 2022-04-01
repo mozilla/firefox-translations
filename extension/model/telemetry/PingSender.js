@@ -2,7 +2,7 @@
  * sends telemetry pings to telemetry API
  */
 
-/* global settings, browser */
+/* global settings, browser, Sentry */
 
 const DELETION_REQUEST_PING = "deletion-request";
 const TELEMETRY_APP_ID = "firefox-translations";
@@ -21,37 +21,38 @@ class PingSender {
         this._seq = null;
         this._firstRunDate = null;
         this._browserEnv = null;
-        this._initialized = false;
-        this._load().catch(e => this._log(`initialization failed: ${e}`));
+        this._load()
     }
 
-    async _load() {
-        this._log("started loading")
-        let state = await browser.storage.local.get();
-        this._log("state loaded", state);
+    _load() {
+        Sentry.wrap(async () => {
+            this._log("started loading")
+            let state = await browser.storage.local.get();
+            this._log("state loaded", state);
 
-        if (STORAGE_CLIENT_ID in state) {
-            this._clientId = state[STORAGE_CLIENT_ID];
-            this._seq = state[STORAGE_SEQ];
-            this._firstRunDate = state[STORAGE_FIRST_RUN];
-        } else {
-            // this information is generated once for a user
-            this._clientId = self.crypto.randomUUID();
-            this._seq = {};
-            this._firstRunDate = new Date().toISOString()
-            await this._save();
-        }
+            if (STORAGE_CLIENT_ID in state) {
+                this._clientId = state[STORAGE_CLIENT_ID];
+                this._seq = state[STORAGE_SEQ];
+                this._firstRunDate = state[STORAGE_FIRST_RUN];
+            } else {
+                // this information is generated once for a user
+                this._clientId = self.crypto.randomUUID();
+                this._seq = {};
+                this._firstRunDate = new Date().toISOString()
+                await this._save();
+            }
 
-        const platformInfo = await browser.runtime.getPlatformInfo();
-        this._browserEnv = { os: platformInfo.os, arch: platformInfo.arch };
+            const platformInfo = await browser.runtime.getPlatformInfo();
+            this._browserEnv = { os: platformInfo.os, arch: platformInfo.arch };
 
-        await this._loadUploadPref();
-        browser.experiments.telemetryPreferences.onUploadEnabledPrefChange.addListener(async () => {
             await this._loadUploadPref();
-        });
+            browser.experiments.telemetryPreferences.onUploadEnabledPrefChange.addListener(async () => {
+                await this._loadUploadPref();
+            });
 
-        this._isInitialized = true;
-        this._log("initialized");
+            this._isInitialized = true;
+            this._log("initialized");
+        });
     }
 
     async _loadUploadPref() {

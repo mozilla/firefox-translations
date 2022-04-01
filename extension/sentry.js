@@ -5997,6 +5997,7 @@ var Sentry = (function (exports) {
         return function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
+                // eslint-disable-next-line prefer-rest-params
                 args[_i] = arguments[_i];
             }
             var originalCallback = args[0];
@@ -6036,6 +6037,7 @@ var Sentry = (function (exports) {
         return function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
+                // eslint-disable-next-line prefer-rest-params
                 args[_i] = arguments[_i];
             }
             // eslint-disable-next-line @typescript-eslint/no-this-alias
