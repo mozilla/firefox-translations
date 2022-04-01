@@ -22,11 +22,11 @@ let translationRequestsByTab = new Map();
 let outboundRequestsByTab = new Map();
 
 const init = async () => {
-    //console.log(`BGSCRIPT::init()`);
+    // console.log(`BGSCRIPT::init()`);
     cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
-    //console.log(`BGSCRIPT::init() MIDDLE`);
+    // console.log(`BGSCRIPT::init() MIDDLE`);
     telemetryByTab.forEach(t => t.environment(cachedEnvInfo));
-    //console.log(`BGSCRIPT::init() DONE`);
+    // console.log(`BGSCRIPT::init() DONE`);
 }
 
 const getTelemetry = tabId => {
@@ -43,7 +43,7 @@ const getTelemetry = tabId => {
 
 // eslint-disable-next-line max-lines-per-function,complexity
 const messageListener = async function(message, sender) {
-    //console.log(`BGSCRIPT:messageListener(): message:${JSON.stringify(message)}, sender.tab.id:${JSON.stringify(sender.tab.id)}`);
+    // console.log(`BGSCRIPT:messageListener(): message:${JSON.stringify(message)}, sender.tab.id:${JSON.stringify(sender.tab.id)}`);
     switch (message.command) {
         case "detectPageLanguage":
             if (!modelFastText) break;
@@ -69,7 +69,10 @@ const messageListener = async function(message, sender) {
             break;
         case "monitorTabLoad":
             if (platformInfo === null) {
-                platformInfo = await browser.runtime.getPlatformInfo();
+                let value = await browser.runtime.getPlatformInfo();
+                if (platformInfo === null) {
+                    platformInfo = value;
+                }
             }
             // send to main frame immediately
             browser.tabs.sendMessage(

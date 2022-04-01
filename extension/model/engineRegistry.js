@@ -3,12 +3,6 @@
 let engineRegistryRootURL = "https://github.com/mozilla/bergamot-translator/releases/download/v0.4.3/";
 const engineRegistryRootURLTest = "https://example.com/browser/browser/extensions/translations/test/browser/";
 
-let engineRegistry;
-
-function getBergamotTranslatorWasmEngineRegistry(platformInfo) {
-    return (platformInfo.arch === "x86-32") || (platformInfo.arch === "x86-64") ? engineRegistryShared.X86 : engineRegistryShared.NonX86;
-}
-
 const engineRegistryShared = {
     X86: {
         bergamotTranslatorWasm: {
@@ -25,3 +19,9 @@ const engineRegistryShared = {
         }
     }
 };
+
+const getBergamotTranslatorWasmEngineRegistry = platformInfo => {
+    return (platformInfo.arch === "x86-32") || (platformInfo.arch === "x86-64")
+? engineRegistryShared.X86
+: engineRegistryShared.NonX86;
+}

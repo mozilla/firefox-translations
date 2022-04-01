@@ -68,7 +68,7 @@ class Mediator {
     // eslint-disable-next-line max-lines-per-function
     determineIfTranslationisRequired() {
 
-        //console.log(`Mediator::determineIfTranslationisRequired() function, platform info is: ${JSON.stringify(this.platformInfo)}`);
+        // console.log(`Mediator::determineIfTranslationisRequired() function, platform info is: ${JSON.stringify(this.platformInfo)}`);
         /*
          * here we:
          * - determine if the infobar should be displayed or not and if yes,
@@ -119,8 +119,10 @@ class Mediator {
                     languageDetection: this.languageDetection
                 });
                 this.translationBarDisplayed = true;
-                // create the translation object
-                //console.log(`Mediator::new Translation() function, platform info is: ${JSON.stringify(this.platformInfo)}`);
+
+                /*
+                 *  create the translation object
+                 */
                 this.translation = new Translation(this);
             } else {
                 this.recordTelemetry("counter", "service", "not_supported");
@@ -135,7 +137,7 @@ class Mediator {
 
     // eslint-disable-next-line max-lines-per-function
     contentScriptsMessageListener(sender, message) {
-        //console.log(`Mediator:contentScriptsMessageListener: message:${JSON.stringify(message)}, sender.tab.id:${JSON.stringify(sender.tab.id)}`);
+        // console.log(`Mediator:contentScriptsMessageListener: message:${JSON.stringify(message)}, sender.tab.id:${JSON.stringify(sender.tab.id)}`);
         switch (message.command) {
             case "translate":
                 if (window.self === window.top) {
@@ -301,7 +303,7 @@ class Mediator {
 
     // eslint-disable-next-line max-lines-per-function
     bgScriptsMessageListener(message) {
-        //console.log(`Mediator:bgScriptsMessageListener: message:${JSON.stringify(message)}`);
+        // console.log(`Mediator:bgScriptsMessageListener: message:${JSON.stringify(message)}`);
         switch (message.command) {
             case "responseMonitorTabLoad":
                 this.start(message.tabId, message.platformInfo);

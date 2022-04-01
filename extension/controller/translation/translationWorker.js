@@ -2,8 +2,10 @@
 /* eslint-disable no-native-reassign */
 /* eslint-disable max-lines */
 
-/* global engineRegistryRootURL, engineRegistryRootURLTest, engineRegistry, loadEmscriptenGlueCode, Queue */
+/* global engineRegistryRootURL, engineRegistryRootURLTest, getBergamotTranslatorWasmEngineRegistry, loadEmscriptenGlueCode, Queue */
 /* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts */
+
+let engineRegistry;
 
 /*
  * this class should only be instantiated the web worker
