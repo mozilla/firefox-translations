@@ -35,7 +35,7 @@ with open('gecko/browser/extensions/moz.build', 'a') as fp:
     fp.write('      "translations", \n')
     fp.write('  ] \n')
 
-# let's download bergamot-translator-worker-with-wormhole.wasm
+# let's download bergamot-translator's wasm artifacts
 engineRegistryRootURL = ""
 fileName = ""
 with open('extension/model/engineRegistry.js') as fp:
@@ -43,10 +43,10 @@ with open('extension/model/engineRegistry.js') as fp:
         for line in Lines:
             if "engineRegistryRootURL " in line:
                 engineRegistryRootURL = line.split("=")[1].replace("\"","").replace(";","").strip()
-            if "fileName:" in line:
+            if "bergamot-translator-worker-with-wormhole.wasm" in line or "bergamot-translator-worker-without-wormhole.wasm" in line:
                 fileName = line.split(":")[1].replace("\"","").replace(",","").strip()
-
-subprocess.call(("curl", "-L", "-o", "gecko/browser/extensions/translations/test/browser/"+fileName, engineRegistryRootURL + fileName), cwd=root)
+                print("Downloading:" + fileName)
+                subprocess.call(("curl", "-L", "-o", "gecko/browser/extensions/translations/test/browser/"+fileName, engineRegistryRootURL + fileName), cwd=root)
 
 # patching BrowserGlue.jsm to add the extension's version so it could be loaded
 f = open("extension/manifest.json")
@@ -96,19 +96,30 @@ except CalledProcessError as cpe:
     print(cpe.output)
     sys.exit("Tests with faster gemm failed")
 
-# build and run test for fallback gemm
-print("****** Test with fallback gemm ******")
+def disable_faster_gemm(engine_js_artifact_name):
+    FASTER_GEMM = "mozIntGemm"
+    DISABLE_FASTER_GEMM = "DISABLE_" + FASTER_GEMM
+    ENGINE_JS_ARTIFACT = "gecko/browser/extensions/translations/extension/controller/translation/" + engine_js_artifact_name
 
-FASTER_GEMM = "mozIntGemm"
-DISABLE_FASTER_GEMM = "DISABLE_" + FASTER_GEMM
-ENGINE_JS_ARTIFACT = "gecko/browser/extensions/translations/extension/controller/translation/bergamot-translator-worker.js"
+    with open(ENGINE_JS_ARTIFACT, "rt") as f:
+        x = f.read()
+    with open(ENGINE_JS_ARTIFACT, "wt") as f:
+        x = x.replace(FASTER_GEMM, DISABLE_FASTER_GEMM)
+        f.write(x)
 
+def enable_arm_platform():
+    PLATFORM_DETECTION_FILE = "gecko/browser/extensions/translations/extension/controller/backgroundScript.js"
+
+    with open(PLATFORM_DETECTION_FILE, "rt") as f:
+        x = f.read()
+    with open(PLATFORM_DETECTION_FILE, "wt") as f:
+        x = x.replace("platformInfo = await browser.runtime.getPlatformInfo();", "platformInfo = await browser.runtime.getPlatformInfo(); platformInfo.arch = \"arm\";")
+        f.write(x)
+
+# build and run test for wormhole fallback gemm
+print("****** Test with wormhole fallback gemm ******")
 print("Disabling faster gemm")
-with open(ENGINE_JS_ARTIFACT, "rt") as f:
-    x = f.read()
-with open(ENGINE_JS_ARTIFACT, "wt") as f:
-    x = x.replace(FASTER_GEMM, DISABLE_FASTER_GEMM)
-    f.write(x)
+disable_faster_gemm("bergamot-translator-worker.js")
 
 try:
     print("Building gecko")
@@ -119,3 +130,20 @@ try:
 except CalledProcessError as cpe:
     print(cpe.output)
     sys.exit("Tests with fallback gemm failed")
+
+# build and run test for non-wormhole fallback gemm
+print("****** Test with non-wormhole fallback gemm ******")
+print("Disabling faster gemm")
+disable_faster_gemm("bergamot-translator-worker-without-wormhole.js")
+print("Hardcoding platform detected as arm")
+enable_arm_platform()
+
+try:
+    print("Building gecko")
+    subprocess.check_output("./mach build", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
+    print("Running test with non-wormhole fallback gemm")
+    subprocess.check_output("./mach test browser/extensions/translations/test/browser/browser_translation_test.js", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
+    print("Test with non-wormhole fallback gemm Succeeded")
+except CalledProcessError as cpe:
+    print(cpe.output)
+    sys.exit("Tests with non-wormhole fallback gemm failed")
