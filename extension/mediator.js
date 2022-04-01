@@ -18,6 +18,7 @@ class Mediator {
         this.isStarted = false;
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
+        this.platformInfo = null;
         this.statsMode = false;
         // if we are in the protected mochitest page, we flag it.
         if ((window.location.href ===
@@ -33,8 +34,9 @@ class Mediator {
     }
 
     // main entrypoint to handle the extension's load
-    start(tabId) {
+    start(tabId, platformInfo) {
         this.tabId = tabId;
+        this.platformInfo = platformInfo;
 
         if (!this.isStarted && (window.self === window.top)) { // is main frame
             this.isStarted = true;
@@ -66,6 +68,7 @@ class Mediator {
     // eslint-disable-next-line max-lines-per-function
     determineIfTranslationisRequired() {
 
+        //console.log(`Mediator::determineIfTranslationisRequired() function, platform info is: ${JSON.stringify(this.platformInfo)}`);
         /*
          * here we:
          * - determine if the infobar should be displayed or not and if yes,
@@ -117,6 +120,7 @@ class Mediator {
                 });
                 this.translationBarDisplayed = true;
                 // create the translation object
+                //console.log(`Mediator::new Translation() function, platform info is: ${JSON.stringify(this.platformInfo)}`);
                 this.translation = new Translation(this);
             } else {
                 this.recordTelemetry("counter", "service", "not_supported");
@@ -131,6 +135,7 @@ class Mediator {
 
     // eslint-disable-next-line max-lines-per-function
     contentScriptsMessageListener(sender, message) {
+        //console.log(`Mediator:contentScriptsMessageListener: message:${JSON.stringify(message)}, sender.tab.id:${JSON.stringify(sender.tab.id)}`);
         switch (message.command) {
             case "translate":
                 if (window.self === window.top) {
@@ -296,9 +301,10 @@ class Mediator {
 
     // eslint-disable-next-line max-lines-per-function
     bgScriptsMessageListener(message) {
+        //console.log(`Mediator:bgScriptsMessageListener: message:${JSON.stringify(message)}`);
         switch (message.command) {
             case "responseMonitorTabLoad":
-                this.start(message.tabId);
+                this.start(message.tabId, message.platformInfo);
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);

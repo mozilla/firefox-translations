@@ -15,7 +15,14 @@ class Translation {
         this.translationMessageBuffer = new Queue();
         this.mediator = mediator;
         this.htmlRegex = new RegExp("<(.*)>.*?|<(.*) />", "gi");
-        const engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
+        //console.log(`inside Translation() constructor: ${JSON.stringify(this.mediator.platformInfo)}`);
+        let engineLocalPath = null;
+        if (this.mediator.platformInfo.arch === "x86-32" || (this.mediator.platformInfo.arch === "x86-64")) {
+            engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
+        }
+        else {
+            engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker-without-wormhole.js");
+        }
         const engineRemoteRegistry = browser.runtime.getURL("model/engineRegistry.js");
         const modelRegistry = browser.runtime.getURL("model/modelRegistry.js");
         if (window.Worker) {
@@ -30,7 +37,8 @@ class Translation {
                     engineLocalPath,
                     engineRemoteRegistry,
                     modelRegistry,
-                    isMochitest: this.mediator.isMochitest
+                    isMochitest: this.mediator.isMochitest,
+                    platformInfo: this.mediator.platformInfo,
                 }
             ])
         }

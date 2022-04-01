@@ -48,6 +48,7 @@ class TranslationHelper {
                 "updateProgress",
                 "loadingTranslationEngine"
             ]);
+            console.log(`loadTranslationEngine: ENGINE REGISTRY: ${JSON.stringify(engineRegistry)}`);
             const itemURL = `${engineRegistryRootURL}${engineRegistry.bergamotTranslatorWasm.fileName}`;
             // first we load the wasm engine
             const wasmArrayBuffer = await this.getItemFromCacheOrWeb(
@@ -696,6 +697,7 @@ onmessage = function(message) {
                 // eslint-disable-next-line no-global-assign
                 modelRegistryRootURL = modelRegistryRootURLTest;
             }
+            engineRegistry = getBergamotTranslatorWasmEngineRegistry(message.data[1].platformInfo);
             break;
         case "translate":
             translationHelper.requestTranslation(message.data[1]);
