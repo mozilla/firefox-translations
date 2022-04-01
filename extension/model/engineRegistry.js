@@ -1,12 +1,12 @@
 /* eslint-disable no-unused-vars */
 
-let engineRegistryRootURL = "https://github.com/mozilla/bergamot-translator/releases/download/v0.4.2/";
+let engineRegistryRootURL = "https://github.com/mozilla/bergamot-translator/releases/download/v0.4.3/";
 const engineRegistryRootURLTest = "https://example.com/browser/browser/extensions/translations/test/browser/";
 
 const engineRegistry = {
     bergamotTranslatorWasm: {
         fileName: "bergamot-translator-worker-with-wormhole.wasm",
-        fileSize: 6929232,
-        sha256: "cccc905f2ccbdbf13d38e640151f06f04ed5568f34fd1ee1a6c4bf73147e2c3f"
+        fileSize: 6935339,
+        sha256: "7e7f4d0b78342d7921a1b196d42ba1ecf5a172f8fe7a2b47143b4f16c9a8c8b5"
     }
 }

@@ -35,8 +35,9 @@ add_task(async function testTranslationBarDisplayed() {
   const selectedLanguage = languageDropdown.selectedItem.textContent;
   is(selectedLanguage, "Spanish", "Detected language is in spanish");
 
-  // now that the bar was displayed, let's select the form translations checkbox
+  // now that the bar was displayed, let's select the form translation and quality estimation checkboxes
   notification.querySelector("[anonid=outboundtranslations-check]").checked = true;
+  notification.querySelector("[anonid=qualityestimations-check]").checked = true;
   // and push the button to translate
   let translateButton = notification.querySelector("[anonid=translate]");
   // wait a bit after infobar appears, it gives time for frames to load
@@ -56,11 +57,12 @@ add_task(async function testTranslationBarDisplayed() {
     200
   );
 
-  // and check if the translation happened
+  // check if the translation happened
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async () => {
     const checkTranslation = async (document, message) => {
+      // check for the translated content
       is(
-        document.getElementById("translationDiv").innerHTML,
+        document.getElementById("translationDiv").innerText,
         "Hello world. That's a test of translation tests.",
         `Text was correctly translated. (${message})`
       );
@@ -87,9 +89,69 @@ add_task(async function testTranslationBarDisplayed() {
        );
     }
 
+    // check quality estimation
+    const checkQualityEstimation = async (document, message) => {
+      const translation = document.getElementById("translationDiv").innerText;
+      const translatedHTMLWithQEScores = document.getElementById("translationDiv").innerHTML;
+
+      // just check for the translated content before checking quality estimation
+      is(
+        translation,
+        "Hello world. That's a test of translation tests.",
+        `Text was correctly translated. (${message})`
+      );
+
+      // check if number of sentences and the number of sentence score attributes match in the translation
+      let sentenceCount = translation.match(/\w\s*([.?!]|$)/g).length;
+      let sentenceScoreAttributeCount = (translatedHTMLWithQEScores.match(/x-bergamot-sentence-score/g) || []).length;
+      is(
+        sentenceScoreAttributeCount,
+        sentenceCount,
+        `Quality Scores available for every sentence in translation.
+          translatedHTML:${translatedHTMLWithQEScores}
+          translatedText:${translation}
+          message:${message}`
+      );
+
+      // check if number of words and the number of word score attributes match in the translation
+      let wordCount = translation.match(/\w[.?!,;]*(\s|$)/g).length;
+      let wordScoreAttributeCount = (translatedHTMLWithQEScores.match(/x-bergamot-word-score/g) || []).length;
+      is(
+        wordScoreAttributeCount,
+        wordCount,
+        `Quality Scores available for every word in translation.
+          translatedHTML:${translatedHTMLWithQEScores}
+          translatedText:${translation}
+          message:${message}`
+      );
+
+      // check if all the sentence and word quality scores are valid i.e. in range [-1.0, 0.0]
+      const validQEScores = (translatedHTMLWithQEScores) => {
+        const regex = /x-bergamot-sentence-score=\"|x-bergamot-word-score=\"/;
+        for (const substring of translatedHTMLWithQEScores.split(regex)) {
+          let val = parseFloat(substring);
+          if (!isNaN(val) && (val > 0 && val < -1.00))
+            return false;
+        }
+        return true;
+      };
+
+      is(
+        validQEScores(translatedHTMLWithQEScores),
+        true,
+        `Quality Scores are not in valid range for every word/sentence in translation.
+          translatedHTML:${translatedHTMLWithQEScores}
+          translatedText:${translation}
+          message:${message}`
+      );
+    }
+
     await new Promise(resolve => content.setTimeout(resolve, 10000));
     await checkTranslation(content.document, "main frame");
     await checkTranslation(content.document.getElementById("iframe").contentWindow.document, "iframe");
+
+    await checkQualityEstimation(content.document, "main frame");
+    await checkQualityEstimation(content.document.getElementById("iframe").contentWindow.document, "iframe");
   });
 
   delete window.MozTranslationNotification;

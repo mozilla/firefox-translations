@@ -231,8 +231,10 @@ class Mediator {
                 // payload is a metric name from metrics.yaml
                 this.recordTelemetry("event", "forms", message.payload);
                 break;
+            case "reportQeIsSupervised":
+                this.recordTelemetry("boolean", "quality", "is_supervised", message.payload.is_supervised);
+                break;
             case "reportQeMetrics":
-                this.recordTelemetry("boolean", "quality", "is_supervised", false);
                 browser.runtime.sendMessage({
                     command: "reportQeStats",
                     tabId: this.tabId,
