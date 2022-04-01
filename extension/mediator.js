@@ -27,6 +27,7 @@ class Mediator {
         this.languageDetection = new LanguageDetection();
         this.inPageTranslation = new InPageTranslation(this);
         this.outboundTranslation = null;
+        this.isStarted = false;
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
         this.statsMode = false;
@@ -49,7 +50,8 @@ class Mediator {
     start(tabId) {
         this.tabId = tabId;
 
-        if (window.self === window.top) { // is main frame
+        if (!this.isStarted && (window.self === window.top)) { // is main frame
+            this.isStarted = true;
             // request the language detection class to extract a page's snippet
             this.languageDetection.extractPageContent();
 
@@ -97,7 +99,8 @@ class Mediator {
             if (this.translationBarDisplayed) return;
 
             // is iframe
-            if ((window.self !== window.top) && this.languageDetection.shouldDisplayTranslation()) {
+            if (window.self !== window.top) {
+                if (this.languageDetection.shouldDisplayTranslation()) this.translationBarDisplayed = true;
                 this.translationBarDisplayed = true;
                 return;
             }

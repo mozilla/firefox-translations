@@ -78,13 +78,20 @@ const messageListener = function(message, sender) {
           })
           break;
         case "monitorTabLoad":
-
-          browser.tabs.sendMessage(
-            sender.tab.id,
-            { command: "responseMonitorTabLoad", tabId: sender.tab.id }
-          );
-
-          break;
+            // send to main frame immediately
+            browser.tabs.sendMessage(
+                    sender.tab.id,
+                    { command: "responseMonitorTabLoad", tabId: sender.tab.id },
+                    { frameId: 0 }
+                    );
+            // send to other frames with delay to give them time to load and subscribe to bgScript
+            setTimeout(() => {
+                browser.tabs.sendMessage(
+                    sender.tab.id,
+                    { command: "responseMonitorTabLoad", tabId: sender.tab.id }
+                );
+            } ,1000);
+            break;
         case "displayTranslationBar":
 
           /*
