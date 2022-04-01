@@ -18,6 +18,9 @@ class Translation {
         const engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
         const engineRemoteRegistry = browser.runtime.getURL("model/engineRegistry.js");
         const modelRegistry = browser.runtime.getURL("model/modelRegistry.js");
+        const sentryScript = browser.runtime.getURL("sentry.js");
+        const settingsScript = browser.runtime.getURL("settings.js");
+        const version = browser.runtime.getManifest().version;
         if (window.Worker) {
             this.translationWorker = new Worker(browser.runtime.getURL("controller/translation/translationWorker.js"));
             this.translationWorker.addEventListener(
@@ -30,6 +33,9 @@ class Translation {
                     engineLocalPath,
                     engineRemoteRegistry,
                     modelRegistry,
+                    sentryScript,
+                    settingsScript,
+                    version,
                     isMochitest: this.mediator.isMochitest
                 }
             ])
