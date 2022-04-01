@@ -80,6 +80,13 @@ class Translation {
                     });
                     break;
 
+                case "reportQeIsSupervised":
+                    this.mediator.contentScriptsMessageListener(this, {
+                        command: "reportQeIsSupervised",
+                        payload: { is_supervised: translationMessage.data[1] }
+                    });
+                    break;
+
                 default:
             }
         });

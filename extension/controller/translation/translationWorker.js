@@ -32,6 +32,7 @@ class TranslationHelper {
                 "model": 256,
                 "lex": 64,
                 "vocab": 64,
+                "qualityModel": 64,
             }
         }
 
@@ -357,6 +358,7 @@ class TranslationHelper {
 
             let donwloadedBuffersPromises = [];
             Object.entries(this.modelFileAlignments)
+                .filter(([fileType]) => fileType !== "qualityModel" || withQualityEstimation)
                 .filter(([fileType]) => Reflect.apply(Object.prototype.hasOwnProperty, modelRegistry[languagePair], [fileType]))
                 .map(([fileType, fileAlignment]) => donwloadedBuffersPromises.push(this.downloadFiles(fileType, fileAlignment, languagePair)));
 
@@ -378,11 +380,27 @@ class TranslationHelper {
             const alignedShortlistMemory = alignedMemories[1];
             const alignedVocabMemoryList = new this.WasmEngineModule.AlignedMemoryList();
             alignedVocabMemoryList.push_back(alignedMemories[2]);
-            console.log(`Aligned memory sizes: Model:${alignedModelMemory.size()} Shortlist:${alignedShortlistMemory.size()} Vocab:${alignedMemories[2].size()}`);
+            let alignedQEMemory = null;
+            let alignedMemoryLogMessage = `Aligned memory sizes: Model:${alignedModelMemory.size()}, Shortlist:${alignedShortlistMemory.size()}, Vocab:${alignedMemories[2].size()}, `;
+            if (alignedMemories.length === Object.entries(this.modelFileAlignments).length) {
+                alignedQEMemory = alignedMemories[3];
+                alignedMemoryLogMessage += `QualityModel: ${alignedQEMemory.size()}`;
+            }
             console.log(`Translation Model config: ${modelConfig}`);
+            console.log(alignedMemoryLogMessage);
 
-            let translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabMemoryList);
+            // construct model
+            let translationModel = new this.WasmEngineModule.TranslationModel(modelConfig, alignedModelMemory, alignedShortlistMemory, alignedVocabMemoryList, alignedQEMemory);
             this.translationModels.set(languagePair, translationModel);
+
+            // report metric about supervised/non-supervised qe model only if qe feature is on
+            if (withQualityEstimation) {
+                let isSuperVised = alignedQEMemory !== null;
+                postMessage([
+                    "reportQeIsSupervised",
+                    isSuperVised
+                ]);
+            }
         }
 
         _isPivotingRequired(from, to) {
