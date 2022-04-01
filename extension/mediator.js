@@ -119,10 +119,7 @@ class Mediator {
                     languageDetection: this.languageDetection
                 });
                 this.translationBarDisplayed = true;
-
-                /*
-                 *  create the translation object
-                 */
+                // create the translation object
                 this.translation = new Translation(this);
             } else {
                 this.recordTelemetry("counter", "service", "not_supported");

@@ -77,7 +77,7 @@ const messageListener = async function(message, sender) {
             // send to main frame immediately
             browser.tabs.sendMessage(
                     sender.tab.id,
-                    { command: "responseMonitorTabLoad", tabId: sender.tab.id },
+                    { command: "responseMonitorTabLoad", tabId: sender.tab.id, platformInfo },
                     { frameId: sender.frameId }
                     );
             // loading of other frames may be delayed
