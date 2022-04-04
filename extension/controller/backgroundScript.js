@@ -22,6 +22,9 @@ let translationRequestsByTab = new Map();
 let outboundRequestsByTab = new Map();
 
 const init = async () => {
+    //console.log("BGSCRIPT::getPlatformInfo()");
+    platformInfo = await browser.runtime.getPlatformInfo();
+    //console.log(`BGSCRIPT::getPlatformInfo() Done: ${JSON.stringify(platformInfo)}`);
     // console.log(`BGSCRIPT::init()`);
     cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
     // console.log(`BGSCRIPT::init() MIDDLE`);
@@ -68,12 +71,6 @@ const messageListener = async function(message, sender) {
                 languageDetection })
             break;
         case "monitorTabLoad":
-            if (platformInfo === null) {
-                let value = await browser.runtime.getPlatformInfo();
-                if (platformInfo === null) {
-                    platformInfo = value;
-                }
-            }
             // send to main frame immediately
             browser.tabs.sendMessage(
                     sender.tab.id,
