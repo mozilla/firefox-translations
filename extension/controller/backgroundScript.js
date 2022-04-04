@@ -24,6 +24,7 @@ let cachedEnvInfo = null;
 let pingSender = new PingSender();
 let modelFastText = null;
 let languageDetection = null;
+let platformInfo = null;
 
 // as soon we load, we should turn off the legacy prefs to avoid UI conflicts
 browser.experiments.translationbar.switchOnPreferences();
@@ -33,6 +34,7 @@ let outboundRequestsByTab = new Map();
 
 const init = () => {
   Sentry.wrap(async () => {
+    platformInfo = await browser.runtime.getPlatformInfo();
     cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
     telemetryByTab.forEach(t => t.environment(cachedEnvInfo));
   });
@@ -82,7 +84,7 @@ const messageListener = function(message, sender) {
         case "monitorTabLoad":
             browser.tabs.sendMessage(
                     sender.tab.id,
-                    { command: "responseMonitorTabLoad", tabId: sender.tab.id },
+                    { command: "responseMonitorTabLoad", tabId: sender.tab.id, platformInfo },
                     { frameId: sender.frameId }
                     );
             // loading of other frames may be delayed

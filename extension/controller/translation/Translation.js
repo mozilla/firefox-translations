@@ -15,7 +15,12 @@ class Translation {
         this.translationMessageBuffer = new Queue();
         this.mediator = mediator;
         this.htmlRegex = new RegExp("<(.*)>.*?|<(.*) />", "gi");
-        const engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
+        let engineLocalPath = null;
+        if (this.mediator.platformInfo.arch === "x86-32" || (this.mediator.platformInfo.arch === "x86-64")) {
+            engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
+        } else {
+            engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker-without-wormhole.js");
+        }
         const engineRemoteRegistry = browser.runtime.getURL("model/engineRegistry.js");
         const modelRegistry = browser.runtime.getURL("model/modelRegistry.js");
         const sentryScript = browser.runtime.getURL("model/static/errorReporting/sentry.js");
@@ -36,7 +41,8 @@ class Translation {
                     sentryScript,
                     settingsScript,
                     version,
-                    isMochitest: this.mediator.isMochitest
+                    isMochitest: this.mediator.isMochitest,
+                    platformInfo: this.mediator.platformInfo,
                 }
             ])
         }

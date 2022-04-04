@@ -3,8 +3,10 @@
 /* eslint-disable max-lines */
 
 /* global engineRegistryRootURL, engineRegistryRootURLTest, engineRegistry, loadEmscriptenGlueCode, Queue */
-/* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts, Sentry, settings */
+/* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts, Sentry, settings, getBergamotTranslatorWasmEngineRegistry */
 
+
+let engineRegistry;
 
 /*
  * this class should only be instantiated the web worker
@@ -705,6 +707,7 @@ onmessage = function(message) {
               debug: settings.sentryDebug,
               release: `firefox-translations@${message.data[1].version}`
             });
+            engineRegistry = getBergamotTranslatorWasmEngineRegistry(message.data[1].platformInfo);
             break;
         case "translate":
             Sentry.wrap(() => translationHelper.requestTranslation(message.data[1]));

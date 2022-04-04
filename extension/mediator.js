@@ -30,6 +30,7 @@ class Mediator {
         this.isStarted = false;
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
+        this.platformInfo = null;
         this.statsMode = false;
         // if we are in the protected mochitest page, we flag it.
         if ((window.location.href ===
@@ -45,8 +46,9 @@ class Mediator {
     }
 
     // main entrypoint to handle the extension's load
-    start(tabId) {
+    start(tabId, platformInfo) {
         this.tabId = tabId;
+        this.platformInfo = platformInfo;
 
         if (!this.isStarted && (window.self === window.top)) { // is main frame
             this.isStarted = true;
@@ -312,7 +314,7 @@ class Mediator {
         Sentry.wrap(() => {
             switch (message.command) {
                 case "responseMonitorTabLoad":
-                    this.start(message.tabId);
+                    this.start(message.tabId, message.platformInfo);
                     break;
                 case "responseDetectPageLanguage":
                     this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
