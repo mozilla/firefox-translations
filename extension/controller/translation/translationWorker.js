@@ -2,8 +2,10 @@
 /* eslint-disable no-native-reassign */
 /* eslint-disable max-lines */
 
-/* global engineRegistryRootURL, engineRegistryRootURLTest, engineRegistry, loadEmscriptenGlueCode, Queue */
+/* global engineRegistryRootURL, engineRegistryRootURLTest, getBergamotTranslatorWasmEngineRegistry, loadEmscriptenGlueCode, Queue */
 /* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts */
+
+let engineRegistry;
 
 /*
  * this class should only be instantiated the web worker
@@ -696,6 +698,7 @@ onmessage = function(message) {
                 // eslint-disable-next-line no-global-assign
                 modelRegistryRootURL = modelRegistryRootURLTest;
             }
+            engineRegistry = getBergamotTranslatorWasmEngineRegistry(message.data[1].platformInfo);
             break;
         case "translate":
             translationHelper.requestTranslation(message.data[1]);

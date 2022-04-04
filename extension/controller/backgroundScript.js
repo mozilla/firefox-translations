@@ -13,6 +13,7 @@ let cachedEnvInfo = null;
 let pingSender = new PingSender();
 let modelFastText = null;
 let languageDetection = null;
+let platformInfo = null;
 
 // as soon we load, we should turn off the legacy prefs to avoid UI conflicts
 browser.experiments.translationbar.switchOnPreferences();
@@ -21,6 +22,7 @@ let translationRequestsByTab = new Map();
 let outboundRequestsByTab = new Map();
 
 const init = async () => {
+    platformInfo = await browser.runtime.getPlatformInfo();
     cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
     telemetryByTab.forEach(t => t.environment(cachedEnvInfo));
 }
@@ -39,7 +41,6 @@ const getTelemetry = tabId => {
 
 // eslint-disable-next-line max-lines-per-function,complexity
 const messageListener = async function(message, sender) {
-
     switch (message.command) {
         case "detectPageLanguage":
             if (!modelFastText) break;
@@ -66,7 +67,7 @@ const messageListener = async function(message, sender) {
         case "monitorTabLoad":
             browser.tabs.sendMessage(
                     sender.tab.id,
-                    { command: "responseMonitorTabLoad", tabId: sender.tab.id },
+                    { command: "responseMonitorTabLoad", tabId: sender.tab.id, platformInfo },
                     { frameId: sender.frameId }
                     );
             // loading of other frames may be delayed
