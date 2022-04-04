@@ -40,8 +40,6 @@ add_task(async function testTranslationBarDisplayed() {
   notification.querySelector("[anonid=qualityestimations-check]").checked = true;
   // and push the button to translate
   let translateButton = notification.querySelector("[anonid=translate]");
-  // wait a bit after infobar appears, it gives time for frames to load
-  await new Promise(resolve => setTimeout(resolve, 3000));
   translateButton.click();
 
   // we wait until the models and engine are loaded

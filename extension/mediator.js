@@ -29,9 +29,7 @@ class Mediator {
     }
 
     init() {
-        if (window.self === window.top) { // is main frame
-            browser.runtime.sendMessage({ command: "monitorTabLoad" });
-        }
+        browser.runtime.sendMessage({ command: "monitorTabLoad" });
     }
 
     // main entrypoint to handle the extension's load
@@ -307,6 +305,8 @@ class Mediator {
                 this.determineIfTranslationisRequired();
                 break;
             case "translationRequested":
+                // not started yet
+                if (!this.tabId) return;
 
                 /*
                  * here we handle when the user's translation request in the infobar
@@ -353,6 +353,7 @@ class Mediator {
         }
     }
 }
+
 
 const mediator = new Mediator();
 mediator.init();
