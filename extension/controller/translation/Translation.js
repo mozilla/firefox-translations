@@ -18,7 +18,7 @@ class Translation {
         const engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
         const engineRemoteRegistry = browser.runtime.getURL("model/engineRegistry.js");
         const modelRegistry = browser.runtime.getURL("model/modelRegistry.js");
-        const sentryScript = browser.runtime.getURL("sentry.js");
+        const sentryScript = browser.runtime.getURL("model/static/errorReporting/sentry.js");
         const settingsScript = browser.runtime.getURL("settings.js");
         const version = browser.runtime.getManifest().version;
         if (window.Worker) {
