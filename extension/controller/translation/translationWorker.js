@@ -50,7 +50,6 @@ class TranslationHelper {
                 "updateProgress",
                 "loadingTranslationEngine"
             ]);
-            console.log(`loadTranslationEngine: ENGINE REGISTRY: ${JSON.stringify(engineRegistry)}`);
             const itemURL = `${engineRegistryRootURL}${engineRegistry.bergamotTranslatorWasm.fileName}`;
             // first we load the wasm engine
             const wasmArrayBuffer = await this.getItemFromCacheOrWeb(

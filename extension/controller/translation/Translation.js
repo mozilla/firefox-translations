@@ -15,7 +15,6 @@ class Translation {
         this.translationMessageBuffer = new Queue();
         this.mediator = mediator;
         this.htmlRegex = new RegExp("<(.*)>.*?|<(.*) />", "gi");
-        // console.log(`inside Translation() constructor: ${JSON.stringify(this.mediator.platformInfo)}`);
         let engineLocalPath = null;
         if (this.mediator.platformInfo.arch === "x86-32" || (this.mediator.platformInfo.arch === "x86-64")) {
             engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");

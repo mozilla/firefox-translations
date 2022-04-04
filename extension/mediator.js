@@ -68,7 +68,6 @@ class Mediator {
     // eslint-disable-next-line max-lines-per-function
     determineIfTranslationisRequired() {
 
-        // console.log(`Mediator::determineIfTranslationisRequired() function, platform info is: ${JSON.stringify(this.platformInfo)}`);
         /*
          * here we:
          * - determine if the infobar should be displayed or not and if yes,
@@ -134,7 +133,6 @@ class Mediator {
 
     // eslint-disable-next-line max-lines-per-function
     contentScriptsMessageListener(sender, message) {
-        // console.log(`Mediator:contentScriptsMessageListener: message:${JSON.stringify(message)}, sender.tab.id:${JSON.stringify(sender.tab.id)}`);
         switch (message.command) {
             case "translate":
                 if (window.self === window.top) {
@@ -300,7 +298,6 @@ class Mediator {
 
     // eslint-disable-next-line max-lines-per-function
     bgScriptsMessageListener(message) {
-        // console.log(`Mediator:bgScriptsMessageListener: message:${JSON.stringify(message)}`);
         switch (message.command) {
             case "responseMonitorTabLoad":
                 this.start(message.tabId, message.platformInfo);
