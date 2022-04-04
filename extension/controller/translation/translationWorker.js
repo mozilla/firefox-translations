@@ -2,7 +2,7 @@
 /* eslint-disable no-native-reassign */
 /* eslint-disable max-lines */
 
-/* global engineRegistryRootURL, engineRegistryRootURLTest, engineRegistry, loadEmscriptenGlueCode, Queue */
+/* global engineRegistryRootURL, engineRegistryRootURLTest, loadEmscriptenGlueCode, Queue */
 /* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts, Sentry, settings, getBergamotTranslatorWasmEngineRegistry */
 
 
