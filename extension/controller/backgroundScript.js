@@ -28,6 +28,8 @@ let languageDetection = null;
 // as soon we load, we should turn off the legacy prefs to avoid UI conflicts
 browser.experiments.translationbar.switchOnPreferences();
 let telemetryByTab = new Map();
+let translationRequestsByTab = new Map();
+let outboundRequestsByTab = new Map();
 
 const init = () => {
   Sentry.wrap(async () => {
@@ -78,19 +80,35 @@ const messageListener = function(message, sender) {
           })
           break;
         case "monitorTabLoad":
-            // send to main frame immediately
             browser.tabs.sendMessage(
                     sender.tab.id,
                     { command: "responseMonitorTabLoad", tabId: sender.tab.id },
-                    { frameId: 0 }
+                    { frameId: sender.frameId }
                     );
-            // send to other frames with delay to give them time to load and subscribe to bgScript
-            setTimeout(() => {
+            // loading of other frames may be delayed
+            if (sender.frameId !== 0) {
+              if (translationRequestsByTab.has(sender.tab.id)) {
+                let requestMessage = translationRequestsByTab.get(sender.tab.id);
                 browser.tabs.sendMessage(
-                    sender.tab.id,
-                    { command: "responseMonitorTabLoad", tabId: sender.tab.id }
+                  requestMessage.tabId,
+                  {
+                      command: "translationRequested",
+                      tabId: requestMessage.tabId,
+                      from: requestMessage.from,
+                      to: requestMessage.to,
+                      withOutboundTranslation: requestMessage.withOutboundTranslation,
+                      withQualityEstimation: requestMessage.withQualityEstimation
+                  },
+                  { frameId: sender.frameId }
                 );
-            } ,1000);
+              }
+              if (outboundRequestsByTab.has(sender.tab.id)) {
+                   browser.tabs.sendMessage(
+                    sender.tab.id,
+                    outboundRequestsByTab.get(sender.tab.id)
+                  );
+              }
+            }
             break;
         case "displayTranslationBar":
 
@@ -144,12 +162,13 @@ const messageListener = function(message, sender) {
           );
           break;
         case "displayOutboundTranslation":
-          // propagate "display outbound" command from top frame to other frames
-          browser.tabs.sendMessage(
-            message.tabId,
-            message
-          );
-          break;
+            outboundRequestsByTab.set(message.tabId, message)
+            // propagate "display outbound" command from top frame to other frames
+            browser.tabs.sendMessage(
+                message.tabId,
+                message
+            );
+            break;
         case "recordTelemetry":
 
           /*
@@ -186,24 +205,27 @@ const messageListener = function(message, sender) {
           break;
 
         case "submitPing":
-          getTelemetry(message.tabId).submit();
-          telemetryByTab.delete(message.tabId);
-          break;
+            getTelemetry(message.tabId).submit();
+            telemetryByTab.delete(message.tabId);
+            translationRequestsByTab.delete(message.tabId);
+            outboundRequestsByTab.delete(message.tabId);
+            break;
 
         case "translationRequested":
-          // requested for translation received. let's inform the mediator
-          browser.tabs.sendMessage(
-            message.tabId,
-            {
-              command: "translationRequested",
-              tabId: message.tabId,
-              from: message.from,
-              to: message.to,
-              withOutboundTranslation: message.withOutboundTranslation,
-              withQualityEstimation: message.withQualityEstimation
-            }
-          );
-          break;
+            translationRequestsByTab.set(message.tabId, message);
+            // requested for translation received. let's inform the mediator
+            browser.tabs.sendMessage(
+                message.tabId,
+                {
+                    command: "translationRequested",
+                    tabId: message.tabId,
+                    from: message.from,
+                    to: message.to,
+                    withOutboundTranslation: message.withOutboundTranslation,
+                    withQualityEstimation: message.withQualityEstimation
+                }
+            );
+            break;
         case "updateProgress":
           browser.experiments.translationbar.updateProgress(
             message.tabId,
