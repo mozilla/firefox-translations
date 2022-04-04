@@ -85,9 +85,37 @@ with open('gecko/browser/extensions/translations/moz.build', 'a') as f:
     print('BROWSER_CHROME_MANIFESTS += [\"test/browser/browser.ini\"]', file=f)
 
 # build and run our test
+print("****** Test with faster gemm ******")
 try:
+    print("Building gecko")
     subprocess.check_output("./mach build", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
+    print("Running test with faster gemm")
     subprocess.check_output("./mach test browser/extensions/translations/test/browser/browser_translation_test.js", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
+    print("Test with faster gemm Succeeded")
 except CalledProcessError as cpe:
     print(cpe.output)
-    sys.exit("Tests failed")
+    sys.exit("Tests with faster gemm failed")
+
+# build and run test for fallback gemm
+print("****** Test with fallback gemm ******")
+
+FASTER_GEMM = "mozIntGemm"
+DISABLE_FASTER_GEMM = "DISABLE_" + FASTER_GEMM
+ENGINE_JS_ARTIFACT = "gecko/browser/extensions/translations/extension/controller/translation/bergamot-translator-worker.js"
+
+print("Disabling faster gemm")
+with open(ENGINE_JS_ARTIFACT, "rt") as f:
+    x = f.read()
+with open(ENGINE_JS_ARTIFACT, "wt") as f:
+    x = x.replace(FASTER_GEMM, DISABLE_FASTER_GEMM)
+    f.write(x)
+
+try:
+    print("Building gecko")
+    subprocess.check_output("./mach build", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
+    print("Running test with fallback gemm")
+    subprocess.check_output("./mach test browser/extensions/translations/test/browser/browser_translation_test.js", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
+    print("Test with fallback gemm Succeeded")
+except CalledProcessError as cpe:
+    print(cpe.output)
+    sys.exit("Tests with fallback gemm failed")
