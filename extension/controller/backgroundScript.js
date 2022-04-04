@@ -22,10 +22,13 @@ let translationRequestsByTab = new Map();
 let outboundRequestsByTab = new Map();
 
 const init = async () => {
-    //console.log("BGSCRIPT::getPlatformInfo()");
+    // console.log("BGSCRIPT::getPlatformInfo()");
     platformInfo = await browser.runtime.getPlatformInfo();
-    //console.log(`BGSCRIPT::getPlatformInfo() Done: ${JSON.stringify(platformInfo)}`);
-    // console.log(`BGSCRIPT::init()`);
+
+    /*
+     * console.log(`BGSCRIPT::getPlatformInfo() Done: ${JSON.stringify(platformInfo)}`);
+     *  console.log(`BGSCRIPT::init()`);
+     */
     cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
     // console.log(`BGSCRIPT::init() MIDDLE`);
     telemetryByTab.forEach(t => t.environment(cachedEnvInfo));
