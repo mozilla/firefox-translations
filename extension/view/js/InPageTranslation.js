@@ -648,6 +648,7 @@ class InPageTranslation {
 
             merge(node, scratch);
 
+
             /*
              * remove node again from nodesSent because someone might change
              * the innerHTML or add children, and then we want to translate
