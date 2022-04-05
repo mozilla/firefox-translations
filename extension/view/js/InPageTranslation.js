@@ -149,7 +149,9 @@ class InPageTranslation {
          * title to be translated
          */
         this.started = true;
-        this.addDebugStylesheet();
+
+        if (this.mediator.statsMode) this.addDebugStylesheet();
+        if (this.withQualityEstimation) this.addQEStylesheet();
 
         // language we expect. If we find elements that do not match, nope out.
         this.language = language;
@@ -173,6 +175,51 @@ class InPageTranslation {
         sheet.insertRule("html[x-bergamot-debug] [x-bergamot-translated=\"\"] { border: 2px solid blue; }", 3);
         sheet.insertRule("html[x-bergamot-debug] [x-bergamot-translated=\"\"] [x-bergamot-translated~=\"is-excluded-node\"] { border: 4px dashed red; }", 4);
     }
+
+    addQEStylesheet() {
+        const element = document.createElement("style");
+        document.head.appendChild(element);
+        if (!element.sheet) return;
+        const sheet = element.sheet;
+        sheet.insertRule(`
+        [x-bergamot-word-score].bad { background-image:
+            linear-gradient(45deg, transparent 65%, red 80%, transparent 90%),
+            linear-gradient(135deg, transparent 5%, red 15%, transparent 25%),
+            linear-gradient(135deg, transparent 45%, red 55%, transparent 65%),
+            linear-gradient(45deg, transparent 25%, red 35%, transparent 50%);
+          background-repeat:repeat-x;
+          background-size: 8px 2px;
+          background-position:0 95%;
+        }`, 0);
+        sheet.insertRule(`
+        [x-bergamot-sentence-score].bad {
+            background: rgba(255, 128, 128, 0.8);
+          }`, 1);
+        sheet.insertRule(`
+        [x-bergamot-sentence-index].highlight-sentence {
+            background: rgba(255, 255, 128, 0.8);
+          }
+        `,2);
+    }
+
+    addQualityClasses () {
+        document.querySelectorAll("[x-bergamot-sentence-score]").forEach(el => {
+            const sentenceScore = parseFloat(el.getAttribute("x-bergamot-sentence-score"));
+            el.classList.toggle("bad", sentenceScore < 0 && sentenceScore < Math.log(0.5));
+        });
+
+        document.querySelectorAll("[x-bergamot-word-score]").forEach(el => {
+            const wordScore = parseFloat(el.getAttribute("x-bergamot-word-score"));
+            el.classList.toggle("bad", wordScore < 0 && wordScore < Math.log(0.5));
+        });
+
+        // add tooltips to each (sub)word with sentence and word score.
+        document.querySelectorAll("[x-bergamot-sentence-score] > [x-bergamot-word-score]").forEach(el => {
+          const sentenceScore = parseFloat(el.parentNode.getAttribute("x-bergamot-sentence-score"));
+          const wordScore = parseFloat(el.getAttribute("x-bergamot-word-score"));
+          el.title = `Sentence: ${sentenceScore}  Word: ${wordScore}`;
+        });
+      }
 
     startTreeWalker(root) {
 
@@ -623,9 +670,11 @@ class InPageTranslation {
 
         try {
             this.updateMap.forEach(updateElement);
-            this.reportQualityEstimation(this.updateMap.keys());
+            // let's test this here to prevent unnecessary traversals
+            if (this.withQualityEstimation) this.reportQualityEstimation(this.updateMap.keys());
             this.updateMap.clear();
             this.updateTimeout = null;
+            if (this.withQualityEstimation) this.addQualityClasses();
         } finally {
             this.startMutationObserver();
         }
