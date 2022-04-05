@@ -530,11 +530,11 @@ class InPageTranslation {
 
             const originalHTML = node.innerHTML;
 
-
-             console.log(node);
-             console.log(`Translated: ${translatedHTML}`);
-             console.log(`Original:   ${originalHTML}`);
-
+            /*
+             * console.log(node);
+             * console.log(`Translated: ${translatedHTML}`);
+             * console.log(`Original:   ${originalHTML}`);
+             */
 
             const clonedNodes = new Set();
 
