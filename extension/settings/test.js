@@ -2,5 +2,7 @@
 const settings = {
     logTelemetry: false,
     uploadTelemetry: false,
-    sendDebugPing: false
+    sendDebugPing: false,
+    sentryDsn: "",
+    sentryDebug: false
 }

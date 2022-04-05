@@ -4,9 +4,21 @@
  */
 
 /* global LanguageDetection, OutboundTranslation, Translation , browser,
-InPageTranslation, browser, modelRegistryVersion */
+InPageTranslation, browser, modelRegistryVersion, Sentry, settings */
 
 /* eslint-disable max-lines */
+
+
+window.addEventListener("load", function () {
+  Sentry.init({
+    dsn:
+      settings.sentryDsn,
+      tracesSampleRate: 1.0,
+      debug: settings.sentryDebug,
+      release: `firefox-translations@${browser.runtime.getManifest().version}`
+  });
+});
+
 
 class Mediator {
 
@@ -298,61 +310,64 @@ class Mediator {
 
     // eslint-disable-next-line max-lines-per-function
     bgScriptsMessageListener(message) {
-        switch (message.command) {
-            case "responseMonitorTabLoad":
-                this.start(message.tabId, message.platformInfo);
-                break;
-            case "responseDetectPageLanguage":
-                this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
-                this.determineIfTranslationisRequired();
-                break;
-            case "translationRequested":
-                // not started yet
-                if (!this.tabId) return;
+        // eslint-disable-next-line max-lines-per-function
+        Sentry.wrap(() => {
+            switch (message.command) {
+                case "responseMonitorTabLoad":
+                    this.start(message.tabId, message.platformInfo);
+                    break;
+                case "responseDetectPageLanguage":
+                    this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
+                    this.determineIfTranslationisRequired();
+                    break;
+                case "translationRequested":
+                    // not started yet
+                    if (!this.tabId) return;
 
-                /*
-                 * here we handle when the user's translation request in the infobar
-                 * let's start the in-page translation widget
-                 */
+                    /*
+                     * here we handle when the user's translation request in the infobar
+                     * let's start the in-page translation widget
+                     */
 
-                // the user might have changed the page language, so we just accept it
-                this.languageDetection.pageLanguage = message.from;
-                if (!this.inPageTranslation.started){
-                    this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
-                    this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
-                    this.inPageTranslation.start(this.languageDetection.pageLanguage);
-                }
-                break;
-            case "translate":
-                this.translate(message)
-                break
-            case "translationComplete":
-                this.updateElements(message.translationMessage);
-                break;
-            case "displayOutboundTranslation":
-                this.startOutbound();
-                break;
-            case "displayStatistics":
-                this.statsMode = true;
-                document.querySelector("html").setAttribute("x-bergamot-debug", true);
-                break;
-            case "updateStats":
-                if (this.statsMode) {
-                    // if the user chose to see stats in the infobar, we display them
-                    browser.runtime.sendMessage({
-                        command: "updateProgress",
-                        progressMessage: browser.i18n.getMessage("statsMessage", message.wps),
-                        tabId: this.tabId
-                    });
-                }
-                break;
-            case "localizedLanguages":
-                this.localizedPageLanguage = message.localizedPageLanguage;
-                this.localizedNavigatorLanguage = message.localizedNavigatorLanguage;
-                break;
-            default:
-                // ignore
-        }
+                    // the user might have changed the page language, so we just accept it
+                    this.languageDetection.pageLanguage = message.from;
+                    if (!this.inPageTranslation.started) {
+                        this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
+                        this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
+                        this.inPageTranslation.start(this.languageDetection.pageLanguage);
+                    }
+                    break;
+                case "translate":
+                    this.translate(message)
+                    break
+                case "translationComplete":
+                    this.updateElements(message.translationMessage);
+                    break;
+                case "displayOutboundTranslation":
+                    this.startOutbound();
+                    break;
+                case "displayStatistics":
+                    this.statsMode = true;
+                    document.querySelector("html").setAttribute("x-bergamot-debug", true);
+                    break;
+                case "updateStats":
+                    if (this.statsMode) {
+                        // if the user chose to see stats in the infobar, we display them
+                        browser.runtime.sendMessage({
+                            command: "updateProgress",
+                            progressMessage: browser.i18n.getMessage("statsMessage", message.wps),
+                            tabId: this.tabId
+                        });
+                    }
+                    break;
+                case "localizedLanguages":
+                    this.localizedPageLanguage = message.localizedPageLanguage;
+                    this.localizedNavigatorLanguage = message.localizedNavigatorLanguage;
+                    break;
+                default:
+              // ignore
+            }
+        });
     }
 }
 

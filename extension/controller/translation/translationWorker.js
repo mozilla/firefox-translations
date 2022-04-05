@@ -2,8 +2,9 @@
 /* eslint-disable no-native-reassign */
 /* eslint-disable max-lines */
 
-/* global engineRegistryRootURL, engineRegistryRootURLTest, getBergamotTranslatorWasmEngineRegistry, loadEmscriptenGlueCode, Queue */
-/* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts */
+/* global engineRegistryRootURL, engineRegistryRootURLTest, loadEmscriptenGlueCode, Queue */
+/* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts, Sentry, settings, getBergamotTranslatorWasmEngineRegistry */
+
 
 let engineRegistry;
 
@@ -185,6 +186,7 @@ class TranslationHelper {
                             postMessage(["reportError", "translation"]);
                             postMessage(["updateProgress", "translationLoadedWithErrors"]);
                             console.error("Translation error: ", e)
+                            Sentry.captureException(e);
                             throw e;
                         }
                     }
@@ -226,7 +228,6 @@ class TranslationHelper {
                     break;
 
                 case this.ENGINE_STATE.LOADED:
-
                     if (message[0] && message[0].type === "outbound") {
 
                         /*
@@ -691,6 +692,8 @@ onmessage = function(message) {
             importScripts(message.data[1].engineLocalPath);
             importScripts(message.data[1].engineRemoteRegistry);
             importScripts(message.data[1].modelRegistry);
+            importScripts(message.data[1].sentryScript);
+            importScripts(message.data[1].settingsScript);
             if (message.data[1].isMochitest){
                 // running tests. let's setup the proper tests endpoints
                 // eslint-disable-next-line no-global-assign
@@ -698,10 +701,16 @@ onmessage = function(message) {
                 // eslint-disable-next-line no-global-assign
                 modelRegistryRootURL = modelRegistryRootURLTest;
             }
+            Sentry.init({
+                dsn: settings.sentryDsn,
+              tracesSampleRate: 1.0,
+              debug: settings.sentryDebug,
+              release: `firefox-translations@${message.data[1].version}`
+            });
             engineRegistry = getBergamotTranslatorWasmEngineRegistry(message.data[1].platformInfo);
             break;
         case "translate":
-            translationHelper.requestTranslation(message.data[1]);
+            Sentry.wrap(() => translationHelper.requestTranslation(message.data[1]));
             break;
         default:
             // ignore
