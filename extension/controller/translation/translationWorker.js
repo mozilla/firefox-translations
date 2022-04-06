@@ -125,7 +125,7 @@ class TranslationHelper {
                 const translationMessagesBatch = this.translationQueue.dequeue();
                 // eslint-disable-next-line max-lines-per-function
                 Promise.resolve().then(function () {
-                    if (translationMessagesBatch) {
+                    if (translationMessagesBatch && translationMessagesBatch.length > 0) {
                         try {
                             let total_words = 0;
                             translationMessagesBatch.forEach(message => {
@@ -152,7 +152,6 @@ class TranslationHelper {
                             });
 
                             const t0 = performance.now();
-
                             const translationResultBatch = this.translate(translationMessagesBatch);
                             const timeElapsed = [total_words, performance.now() - t0];
 
