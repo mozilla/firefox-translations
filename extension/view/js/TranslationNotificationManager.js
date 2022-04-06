@@ -13,6 +13,7 @@ class TranslationNotificationManager {
         this._navigatorLanguage = navigatorLanguage;
         this.languageSet = new Set();
         this.devLanguageSet = new Set();
+        this.storage = null;
         this.loadLanguages();
     }
 
@@ -131,6 +132,15 @@ class TranslationNotificationManager {
          * notify the mediator that the user wants to see statistics
          */
         const message = { command: "displayStatistics", tabId: this.tabId };
+        this.bgScriptListenerCallback(message);
+    }
+
+    setStorage(key, value) {
+
+        /*
+         * informs the bgscript to persist settings on storage
+         */
+        const message = { command: "setStorage", payload: { [key]: value } };
         this.bgScriptListenerCallback(message);
     }
 }

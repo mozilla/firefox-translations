@@ -127,7 +127,11 @@ const messageListener = function(message, sender) {
               qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage"),
               surveyMessage: browser.i18n.getMessage("surveyMessage")
             },
-            false
+            false,
+            {
+              outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
+              qualityestimations: await browser.storage.local.get("qualityestimations-check")
+            }
           );
 
           // we then ask the api for the localized version of the language codes
@@ -267,6 +271,9 @@ const messageListener = function(message, sender) {
         case "reportClosedInfobar":
           browser.experiments.translationbar.closeInfobar(message.tabId);
           break;
+        case "setStorage":
+          await browser.storage.local.set(message.payload)
+          break;
         default:
           // ignore
           break;
@@ -300,7 +307,7 @@ fetch(browser
 });
 
 browser.pageAction.onClicked.addListener(tab => {
-    Sentry.wrap(() => {
+    Sentry.wrap(async () => {
 
         /*
          * if the user clicks the pageAction, we summon the infobar, and for that we
@@ -319,7 +326,11 @@ browser.pageAction.onClicked.addListener(tab => {
                 surveyMessage: browser.i18n.getMessage("surveyMessage"),
                 languageDefaultOption: browser.i18n.getMessage("languageDefaultOption")
             },
-            true
+            true,
+            {
+              outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
+              qualityestimations: await browser.storage.local.get("qualityestimations-check")
+            }
         );
     });
 });
