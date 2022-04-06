@@ -25,6 +25,7 @@
   "background": {
     "persistent": true,
     "scripts": [
+      "model/modelRegistry.js",
       "model/static/errorReporting/sentry.js",
       "settings.js",
       "controller/translation/bergamotTranslatorVersion.js",
