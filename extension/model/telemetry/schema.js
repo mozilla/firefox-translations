@@ -107,6 +107,12 @@ const telemetrySchema = {
                 "send_in_pings": [
                     "custom"
                 ]
+            },
+            "channel": {
+                "type": "string",
+                "send_in_pings": [
+                    "custom"
+                ]
             }
         },
         "performance": {

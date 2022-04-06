@@ -131,6 +131,7 @@ class Telemetry {
         this._client.quantity("metadata", "cpu_speed", env.systemCpuSpeedMhz);
         this._client.string("metadata", "cpu_vendor", env.systemCpuVendor);
         this._client.string("metadata", "cpu_extensions", env.systemCpuExtensions.join(","));
+        this._client.string("metadata", "channel", env.channel);
     }
 
     versions(extensionVersion, extensionBuild, engineVersion) {

@@ -35,6 +35,7 @@ this.experiment_telemetryEnvironment = class extends ExtensionAPI {
         systemCpuL3cacheKB: environment.system.cpu.l3cacheKB,
         systemCpuSpeedMhz: environment.system.cpu.speedMHz,
         systemCpuExtensions: environment.system.cpu.extensions,
+        channel: environment.settings.update.channel
       };
     };
 
