@@ -39,6 +39,7 @@ class Mediator {
             "https://example.com/browser/browser/extensions/translations/test/browser/frame.html")) {
             this.isMochitest = true;
         }
+        this.isMainFrame = window.self === window.top;
     }
 
     init() {
@@ -50,7 +51,7 @@ class Mediator {
         this.tabId = tabId;
         this.platformInfo = platformInfo;
 
-        if (!this.isStarted && (window.self === window.top)) { // is main frame
+        if (!this.isStarted && this.isMainFrame) {
             this.isStarted = true;
             // request the language detection class to extract a page's snippet
             this.languageDetection.extractPageContent();
@@ -98,14 +99,6 @@ class Mediator {
              */
             if (this.translationBarDisplayed) return;
 
-            // is iframe
-            if (window.self !== window.top) {
-                if (this.languageDetection.shouldDisplayTranslation()) this.translationBarDisplayed = true;
-                this.translationBarDisplayed = true;
-                return;
-            }
-
-            // is main frame
             const pageLang = this.languageDetection.pageLanguage;
             const navLang = this.languageDetection.navigatorLanguage;
             this.recordTelemetry("string", "metadata", "from_lang", pageLang);
@@ -147,7 +140,7 @@ class Mediator {
     contentScriptsMessageListener(sender, message) {
         switch (message.command) {
             case "translate":
-                if (window.self === window.top) {
+                if (this.isMainFrame) {
                     // eslint-disable-next-line no-case-declarations
                     this.translate(message);
                 } else {
@@ -180,7 +173,7 @@ class Mediator {
 
                 message.payload[1].forEach(translationMessage => {
                     // if this message is originated from another frame, pass it back through bgScript
-                    if ((window.self === window.top) && (typeof translationMessage.frameId !== "undefined")) {
+                    if (this.isMainFrame && (typeof translationMessage.frameId !== "undefined")) {
                         browser.runtime.sendMessage({
                             command: "translationComplete",
                             tabId: this.tabId,
@@ -318,7 +311,7 @@ class Mediator {
                     break;
                 case "responseDetectPageLanguage":
                     this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
-                    this.determineIfTranslationisRequired();
+                    if (this.isMainFrame) this.determineIfTranslationisRequired();
                     break;
                 case "translationRequested":
                     // not started yet

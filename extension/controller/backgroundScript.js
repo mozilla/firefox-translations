@@ -52,6 +52,21 @@ const getTelemetry = tabId => {
     return telemetryByTab.get(tabId);
 }
 
+const isFrameLoaded = async (tabId, frameId) => {
+  let loadedFrames = await browser.webNavigation.getAllFrames({ tabId });
+  for (let frame of loadedFrames) {
+    if (frame.frameId === frameId) return true;
+  }
+  return false;
+}
+
+const onError = error => {
+  // this means frame is already unloaded. Even though we check it, race conditions are still possible
+  if (error.message.endsWith("Could not establish connection. Receiving end does not exist.")) {
+    console.warn(error);
+  } else throw error;
+}
+
 // eslint-disable-next-line max-lines-per-function,complexity
 const messageListener = function(message, sender) {
   // eslint-disable-next-line complexity,max-lines-per-function
@@ -82,15 +97,17 @@ const messageListener = function(message, sender) {
           })
           break;
         case "monitorTabLoad":
+          if (!await isFrameLoaded(sender.tab.id, sender.frameId)) return;
             browser.tabs.sendMessage(
                     sender.tab.id,
                     { command: "responseMonitorTabLoad", tabId: sender.tab.id, platformInfo },
                     { frameId: sender.frameId }
-                    );
+                    ).catch(onError);
             // loading of other frames may be delayed
             if (sender.frameId !== 0) {
               if (translationRequestsByTab.has(sender.tab.id)) {
                 let requestMessage = translationRequestsByTab.get(sender.tab.id);
+                if (!await isFrameLoaded(sender.tab.id, sender.frameId)) return;
                 browser.tabs.sendMessage(
                   requestMessage.tabId,
                   {
@@ -102,13 +119,15 @@ const messageListener = function(message, sender) {
                       withQualityEstimation: requestMessage.withQualityEstimation
                   },
                   { frameId: sender.frameId }
-                );
+                ).catch(onError);
               }
               if (outboundRequestsByTab.has(sender.tab.id)) {
+                if (!await isFrameLoaded(sender.tab.id, sender.frameId)) return;
                    browser.tabs.sendMessage(
                     sender.tab.id,
-                    outboundRequestsByTab.get(sender.tab.id)
-                  );
+                    outboundRequestsByTab.get(sender.tab.id),
+                  { frameId: sender.frameId }
+                  ).catch(onError);
               }
             }
             break;
@@ -144,24 +163,27 @@ const messageListener = function(message, sender) {
 
           break;
         case "translate":
+          if (!await isFrameLoaded(sender.tab.id, sender.frameId)) return;
           // propagate translation message from iframe to top frame
+          // eslint-disable-next-line require-atomic-updates
           message.frameId = sender.frameId;
           browser.tabs.sendMessage(
             message.tabId,
             message,
             { frameId: 0 }
-          );
+          ).catch(onError);
           break;
         case "showSurvey":
           browser.tabs.create({ url: "https://qsurvey.mozilla.com/s3/Firefox-Translations" });
           break;
         case "translationComplete":
+          if (!await isFrameLoaded(sender.tab.id, message.translationMessage.frameId)) return;
           // propagate translation message from top frame to the source frame
           browser.tabs.sendMessage(
             message.tabId,
             message,
             { frameId: message.translationMessage.frameId }
-          );
+          ).catch(onError);
           break;
         case "displayOutboundTranslation":
             outboundRequestsByTab.set(message.tabId, message)
