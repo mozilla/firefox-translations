@@ -157,7 +157,7 @@ class InPageTranslation {
         this.language = language;
 
         const pageTitle = document.getElementsByTagName("title")[0];
-        if (pageTitle) {
+        if (pageTitle && !this.withQualityEstimation) {
             this.queueTranslation(pageTitle);
         }
         this.startTreeWalker(document.body);
