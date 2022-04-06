@@ -95,7 +95,8 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this._getAnonElt("qualityestimations-check").setAttribute("label", translationNotificationManager.localizedLabels.qualityEstimationMessage);
     this._getAnonElt("displayStatistics").setAttribute("label", translationNotificationManager.localizedLabels.displayStatisticsMessage);
     this._getAnonElt("survey").setAttribute("label", translationNotificationManager.localizedLabels.surveyMessage);
-
+    this._getAnonElt("outboundtranslations-check").checked = translationNotificationManager.infobarSettings.outboundtranslations["outboundtranslations-check"];
+    this._getAnonElt("qualityestimations-check").checked = translationNotificationManager.infobarSettings.qualityestimations["qualityestimations-check"];
     this.translationNotificationManager = translationNotificationManager;
     this.localizedLanguagesByCode = {};
 
@@ -173,6 +174,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   onOutboundClick() {
+    this.translationNotificationManager.setStorage(
+      "outboundtranslations-check",
+      this._getAnonElt("outboundtranslations-check").checked
+    );
     if (this._getAnonElt("outboundtranslations-check").checked) {
       this.translationNotificationManager.reportInfobarMetric("event", "outbound_checked");
       this.translationNotificationManager.reportInfobarMetric("boolean", "outbound_enabled", true);
@@ -183,7 +188,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   onQeClick() {
-    // eslint-disable-next-line no-warning-comments
+    this.translationNotificationManager.setStorage(
+      "qualityestimations-check",
+      this._getAnonElt("qualityestimations-check").checked
+    );
     if (this._getAnonElt("qualityestimations-check").checked) {
       this.translationNotificationManager.reportInfobarMetric("event","qe_checked");
       this.translationNotificationManager.reportInfobarMetric("boolean", "qe_enabled", true);
