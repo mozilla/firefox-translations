@@ -26,6 +26,7 @@ class InPageTranslation {
         this.initialWordsInViewportReported = false;
         this.withOutboundTranslation = null;
         this.withQualityEstimation = null;
+        this.QE_THRESHOLD = Math.log(0.5);
 
         /*
          * reference for all tags:
@@ -205,12 +206,16 @@ class InPageTranslation {
     addQualityClasses () {
         document.querySelectorAll("[x-bergamot-sentence-score]").forEach(el => {
             const sentenceScore = parseFloat(el.getAttribute("x-bergamot-sentence-score"));
-            el.classList.toggle("bad", sentenceScore < 0 && sentenceScore < Math.log(0.5));
+            if (sentenceScore > 0 || sentenceScore < this.QE_THRESHOLD) {
+                el.classList.toggle("bad", true);
+            }
         });
 
         document.querySelectorAll("[x-bergamot-word-score]").forEach(el => {
             const wordScore = parseFloat(el.getAttribute("x-bergamot-word-score"));
-            el.classList.toggle("bad", wordScore < 0 && wordScore < Math.log(0.5));
+            if (wordScore > 0 || wordScore < this.QE_THRESHOLD) {
+                el.classList.toggle("bad",true);
+            }
         });
 
         // add tooltips to each (sub)word with sentence and word score.
