@@ -45,6 +45,19 @@
         "<all_urls>"
       ],
       "js": [
+        "model/Queue.js",
+        "controller/translation/TranslationMessage.js",
+        "controller/translation/translationWorker.js",
+        "controller/translation/Translation.js"
+      ],
+      "all_frames": false,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
         "model/static/errorReporting/sentry.js",
         "settings.js",
         "model/modelRegistry.js",
@@ -58,20 +71,8 @@
       ],
       "all_frames": true,
       "run_at": "document_idle"
-    },
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "model/Queue.js",
-        "controller/translation/Translation.js",
-        "controller/translation/TranslationMessage.js",
-        "controller/translation/translationWorker.js"
-      ],
-      "all_frames": false,
-      "run_at": "document_idle"
     }
+
   ],
   "web_accessible_resources": [
     "view/static/outboundTranslation.html",
