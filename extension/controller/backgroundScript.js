@@ -31,6 +31,7 @@ browser.experiments.translationbar.switchOnPreferences();
 let telemetryByTab = new Map();
 let translationRequestsByTab = new Map();
 let outboundRequestsByTab = new Map();
+const translateAsBrowseMap = new Map();
 
 const init = () => {
   Sentry.wrap(async () => {
@@ -154,13 +155,16 @@ const messageListener = function(message, sender) {
               displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
               outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
               qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage"),
-              surveyMessage: browser.i18n.getMessage("surveyMessage")
+              surveyMessage: browser.i18n.getMessage("surveyMessage"),
+              translateAsBrowseOn: browser.i18n.getMessage("translateAsBrowseOn"),
+              translateAsBrowseOff: browser.i18n.getMessage("translateAsBrowseOff")
             },
             false,
             {
               outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
               qualityestimations: await browser.storage.local.get("qualityestimations-check")
-            }
+            },
+            translateAsBrowseMap.get(sender.tab.id)?.translatingAsBrowse
           );
 
           // we then ask the api for the localized version of the language codes
@@ -306,6 +310,19 @@ const messageListener = function(message, sender) {
         case "setStorage":
           await browser.storage.local.set(message.payload)
           break;
+        case "translateAsBrowse":
+
+          /*
+           * we received a request to translate as browse. so this means
+           * we need to record both the tabid, the website and the pagelanguage
+           * so that when there's a navigation in this tab, site and samelanguage
+           * we should automatically start the translation
+           */
+          const tab = await browser.tabs.get(message.tabId);
+          translateAsBrowseMap.set(message.tabId, {
+            translatingAsBrowse: message.translatingAsBrowse
+          });
+          break;
         default:
           // ignore
           break;
@@ -357,13 +374,16 @@ browser.pageAction.onClicked.addListener(tab => {
                     outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
                     qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage"),
                     surveyMessage: browser.i18n.getMessage("surveyMessage"),
-                    languageDefaultOption: browser.i18n.getMessage("languageDefaultOption")
+                    languageDefaultOption: browser.i18n.getMessage("languageDefaultOption"),
+                    translateAsBrowseOn: browser.i18n.getMessage("translateAsBrowseOn"),
+                    translateAsBrowseOff: browser.i18n.getMessage("translateAsBrowseOff")
                 },
                 true,
                 {
                   outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
                   qualityestimations: await browser.storage.local.get("qualityestimations-check")
-                }
+                },
+                false
             );
           } else {
 
