@@ -312,6 +312,22 @@ metadata:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
+  channel:
+    type: string
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Firefox distribution channel
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/195
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
 
 performance:
   total_usage_time:
