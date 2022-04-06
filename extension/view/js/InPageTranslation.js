@@ -206,14 +206,14 @@ class InPageTranslation {
     addQualityClasses () {
         document.querySelectorAll("[x-bergamot-sentence-score]").forEach(el => {
             const sentenceScore = parseFloat(el.getAttribute("x-bergamot-sentence-score"));
-            if (sentenceScore > 0 || sentenceScore < this.QE_THRESHOLD) {
+            if (sentenceScore < this.QE_THRESHOLD) {
                 el.classList.toggle("bad", true);
             }
         });
 
         document.querySelectorAll("[x-bergamot-word-score]").forEach(el => {
             const wordScore = parseFloat(el.getAttribute("x-bergamot-word-score"));
-            if (wordScore > 0 || wordScore < this.QE_THRESHOLD) {
+            if (wordScore < this.QE_THRESHOLD) {
                 el.classList.toggle("bad",true);
             }
         });
