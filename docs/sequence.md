@@ -13,7 +13,8 @@ sequenceDiagram
     participant w as Worker
     participant q as Queue
     participant ipt as InPageTranslation
-    activate m
+    participant obt as OutboundTranslation
+    User->>+m: load page
     m-)+bg: monitorTabLoad
     deactivate m
     bg-)-m: responseMonitorTabLoad
@@ -38,7 +39,8 @@ sequenceDiagram
     t->>w: config engine
     deactivate w
     deactivate t
-    User->>+nt: press "Translate" button
+    User->>+nt: enable translate of forms
+    User->>nt: press "Translate" button
     nt->>+ntm: request translation
     deactivate nt
     ntm-)-bg: translationRequested
@@ -50,23 +52,40 @@ sequenceDiagram
     deactivate ipt
     activate ipt
     ipt->>+m: translate
+    deactivate ipt
+    m-)+bg: translate frame
+    bg-)-m: pass to top frame
     m->>+t: translate
     deactivate m
     t-)+w: translate
     deactivate t
     w->>w: load engine
     w->>w: load models
+    w-)+t: displayOutboundTranslation
+    t-)+m: displayOutboundTranslation
+    deactivate t
+    m-)+bg: displayOutboundTranslation
+    bg-)-m: pass to all frames
+    m->>+obt: start
+    deactivate obt
+    deactivate m
     w->>q: enqueue
     w->>q: consume
     w-)+t: translationComplete
     deactivate w
     t->>+m: translationComplete
     deactivate t
+    m-)+bg: frame translationComplete
+    bg-)-m: pass back to frame
     m->>+ipt: notify
     deactivate m
     ipt->>+ipt: update DOM
     deactivate ipt
-
+    User->>+obt: edit forms
+    obt->>+m: translate
+    deactivate obt
+    deactivate m
+    
     
     
     
