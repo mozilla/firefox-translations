@@ -318,7 +318,6 @@ const messageListener = function(message, sender) {
            * so that when there's a navigation in this tab, site and samelanguage
            * we should automatically start the translation
            */
-          const tab = await browser.tabs.get(message.tabId);
           translateAsBrowseMap.set(message.tabId, {
             translatingAsBrowse: message.translatingAsBrowse
           });
