@@ -75,11 +75,21 @@ const messageListener = function(message, sender) {
         case "detectPageLanguage":
           if (!modelFastText) break;
 
+          languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
+
+          /*
+           * if we don't support this browser's language, we nede to hide the
+           * page action and bail right away
+           */
+          if (!languageDetection.isBrowserSupported()) {
+            browser.pageAction.hide(sender.tab.id);
+            break;
+          }
+
           /*
            * call the cld experiment to detect the language of the snippet
            * extracted from the page
            */
-          languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
           languageDetection.pageLanguage = modelFastText
             .predict(languageDetection.wordsToDetect.trim().replace(/(\r\n|\n|\r)/gm, ""), 1, 0.0)
             .get(0)[1]
@@ -335,24 +345,33 @@ browser.pageAction.onClicked.addListener(tab => {
          * if the user clicks the pageAction, we summon the infobar, and for that we
          * need to let the infobar api know that this is on demand-request, which
          * doesn't have a language detected, so for that reason we set the language
-         * parameter as 'userrequest', in order to override the preferences
+         * parameter as 'userrequest', in order to override the preferences.
          */
-        browser.experiments.translationbar.show(
-            tab.id,
-            "userrequest",
-            languageDetection.navigatorLanguage,
-            {
-                displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
-                outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
-                qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage"),
-                surveyMessage: browser.i18n.getMessage("surveyMessage"),
-                languageDefaultOption: browser.i18n.getMessage("languageDefaultOption")
-            },
-            true,
-            {
-              outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
-              qualityestimations: await browser.storage.local.get("qualityestimations-check")
-            }
-        );
+          if (languageDetection.isBrowserSupported()) {
+            browser.experiments.translationbar.show(
+                tab.id,
+                "userrequest",
+                languageDetection.navigatorLanguage,
+                {
+                    displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
+                    outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
+                    qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage"),
+                    surveyMessage: browser.i18n.getMessage("surveyMessage"),
+                    languageDefaultOption: browser.i18n.getMessage("languageDefaultOption")
+                },
+                true,
+                {
+                  outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
+                  qualityestimations: await browser.storage.local.get("qualityestimations-check")
+                }
+            );
+          } else {
+
+            /*
+             * if we don't support this browser's language, we nede to hide the
+             * page action and bail right away
+             */
+            browser.pageAction.hide(tab.id);
+          }
     });
 });

@@ -45,4 +45,13 @@ class LanguageDetection {
     isLangMismatch() {
         return !this.navigatorLanguage.includes(this.pageLanguage);
     }
+
+    isBrowserSupported() {
+        const languageSet = new Set()
+        for (const languagePair of Object.keys(modelRegistry)) {
+            const secondLang = languagePair.substring(2, 4);
+            languageSet.add(secondLang);
+        }
+        return languageSet.has(this.navigatorLanguage);
+    }
 }
