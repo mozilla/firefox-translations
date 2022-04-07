@@ -859,6 +859,54 @@ infobar:
     notification_emails:
       - anatal-all@mozilla.com
     expires: 2022-08-10
+  auto_translate_on:
+    type: event
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      "Automatically translate as browse" turned on.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/232
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  auto_translate_off:
+    type: event
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      "Automatically translate as browse" turned off.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/232
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  auto_translate_enabled:
+    type: boolean
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      "Automatically translate as browse" is enabled.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/232
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
 
 service:
   not_supported:
