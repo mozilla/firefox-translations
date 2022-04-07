@@ -14,6 +14,7 @@ class TranslationNotificationManager {
         this.languageSet = new Set();
         this.devLanguageSet = new Set();
         this.storage = null;
+        this.autoTranslate = false;
         this.loadLanguages();
     }
 
@@ -140,7 +141,16 @@ class TranslationNotificationManager {
         /*
          * informs the bgscript to persist settings on storage
          */
-        const message = { command: "setStorage", payload: { [key]: value } };
+        const message = { command: "setStorage", payload: { [key]: value } }
+        this.bgScriptListenerCallback(message);
+    }
+
+    translateAsBrowse() {
+        const message = {
+            command: "translateAsBrowse",
+            tabId: this.tabId,
+            translatingAsBrowse: this.autoTranslate
+        }
         this.bgScriptListenerCallback(message);
     }
 }

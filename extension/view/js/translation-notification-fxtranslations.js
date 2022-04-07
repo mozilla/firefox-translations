@@ -25,13 +25,14 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             <checkbox anonid="qualityestimations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onQeClick();"/>
           </hbox>
           <vbox class="translating-box" pack="center">
-            <hbox>
+            <hbox class="translate-offer-box" align="center">
               <label value="&translation.translatingContent.label;" style="display:none"/>
-              <label anonid="progress-label" value="" style="padding-left:5px"/>     
+              <label anonid="progress-label" value="" style="padding-left:5px;"/>
+              <button class="notification-button" label="" anonid="translateAsBrowse" oncommand="this.closest('notification').translateAsBrowse();"/>
             </hbox>
           </vbox>
         </deck>
-        <spacer flex="1"/>        
+        <spacer flex="1"/>
         <button class="notification-button" label="" anonid="survey" oncommand="this.closest('notification').onSurveyClick();"/>
         <button type="menu" class="notification-button" anonid="options" label="&translation.options.menu;">
           <menupopup class="translation-menupopup" onpopupshowing="this.closest('notification').optionsShowing();">
@@ -97,6 +98,8 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this._getAnonElt("survey").setAttribute("label", translationNotificationManager.localizedLabels.surveyMessage);
     this._getAnonElt("outboundtranslations-check").checked = translationNotificationManager.infobarSettings.outboundtranslations["outboundtranslations-check"];
     this._getAnonElt("qualityestimations-check").checked = translationNotificationManager.infobarSettings.qualityestimations["qualityestimations-check"];
+    this._getAnonElt("translateAsBrowse").setAttribute("label", translationNotificationManager.localizedLabels.translateAsBrowseOn);
+
     this.translationNotificationManager = translationNotificationManager;
     this.localizedLanguagesByCode = {};
 
@@ -143,6 +146,13 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         "boolean", "qe_enabled",
             this._getAnonElt("qualityestimations-check").checked === true
         );
+    if (translationNotificationManager.autoTranslate) {
+      this._getAnonElt("translateAsBrowse").setAttribute(
+        "label",
+        translationNotificationManager.localizedLabels.translateAsBrowseOff,
+      );
+      this.translate();
+    }
   }
 
   _getAnonElt(anonId) {
@@ -199,6 +209,18 @@ window.MozTranslationNotification = class extends MozElements.Notification {
       this.translationNotificationManager.reportInfobarMetric("event","qe_unchecked");
       this.translationNotificationManager.reportInfobarMetric("boolean", "qe_enabled", false);
     }
+  }
+
+  translateAsBrowse() {
+    this.translationNotificationManager.autoTranslate =
+      !this.translationNotificationManager.autoTranslate
+    this._getAnonElt("translateAsBrowse").setAttribute(
+      "label",
+      this.translationNotificationManager.autoTranslate
+      ? this.translationNotificationManager.localizedLabels.translateAsBrowseOff
+      : this.translationNotificationManager.localizedLabels.translateAsBrowseOn
+    );
+    this.translationNotificationManager.translateAsBrowse();
   }
 
   onSurveyClick() {
