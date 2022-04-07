@@ -394,3 +394,8 @@ browser.pageAction.onClicked.addListener(tab => {
           }
     });
 });
+
+// here we remove the closed tabs from translateAsBrowseMap
+browser.tabs.onRemoved.addListener(tabId => {
+  translateAsBrowseMap.delete(tabId);
+});

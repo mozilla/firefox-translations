@@ -28,7 +28,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             <hbox class="translate-offer-box" align="center">
               <label value="&translation.translatingContent.label;" style="display:none"/>
               <label anonid="progress-label" value="" style="padding-left:5px;"/>
-              <button class="notification-button primary" label="" anonid="translateAsBrowse" oncommand="this.closest('notification').translateAsBrowse();"/>
+              <button class="notification-button" label="" anonid="translateAsBrowse" oncommand="this.closest('notification').translateAsBrowse();"/>
             </hbox>
           </vbox>
         </deck>
