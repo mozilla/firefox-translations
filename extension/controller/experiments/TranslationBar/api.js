@@ -44,7 +44,7 @@
       return {
         experiments: {
           translationbar: {
-            show: function show(tabId, detectedLanguage, navigatorLanguage, localizedLabels, pageActionRequest, infobarSettings) {
+            show: function show(tabId, detectedLanguage, navigatorLanguage, localizedLabels, pageActionRequest, infobarSettings, autoTranslate) {
               try {
 
                 const { tabManager } = context.extension;
@@ -111,6 +111,8 @@
                 translationNotificationManager.logoIcon = context.extension.getURL("/view/icons/translation.16x16.png",)
                 translationNotificationManager.localizedLabels = localizedLabels;
                 translationNotificationManager.infobarSettings = infobarSettings;
+                translationNotificationManager.autoTranslate = autoTranslate;
+
                 notif.init(translationNotificationManager);
                 translationNotificationManagers.set(tabId, translationNotificationManager);
               } catch (error) {

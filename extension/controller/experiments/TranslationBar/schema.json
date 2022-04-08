@@ -37,6 +37,11 @@
               "name": "infobarSettings",
               "type": "any",
               "description": "persisted settings for the infobar"
+            },
+            {
+              "name": "autoTranslate",
+              "type": "any",
+              "description": "determines if the auto translate is set"
             }
           ]
         },
