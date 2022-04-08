@@ -20,7 +20,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
               <menupopup/>
             </menulist>
             <label value="&translation.translateThisPage.label;"/>
-            <button class="notification-button primary" label="&translation.translate.button;" anonid="translate" oncommand="this.closest('notification').translate();"/>
+            <button class="notification-button primary" label="&translation.translate.button;" anonid="translate" oncommand="this.closest('notification').onTranslate();"/>
             <checkbox anonid="outboundtranslations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onOutboundClick();" />
             <checkbox anonid="qualityestimations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onQeClick();"/>
           </hbox>
@@ -146,6 +146,11 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         "boolean", "qe_enabled",
             this._getAnonElt("qualityestimations-check").checked === true
         );
+    this.translationNotificationManager.reportInfobarMetric(
+      "boolean", "auto_translate_enabled",
+      translationNotificationManager.autoTranslate === true
+    );
+
     if (translationNotificationManager.autoTranslate) {
       this._getAnonElt("translateAsBrowse").setAttribute(
         "label",
@@ -168,8 +173,12 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     }
   }
 
+  onTranslate() {
+    this.translationNotificationManager.reportInfobarMetric("event", "translate");
+    this.translate();
+  }
+
   translate() {
-    this.translationNotificationManager.reportInfobarMetric("event","translate");
     const from = this._getSourceLang();
     const to = this._getTargetLang();
     this.translationNotificationManager.requestInPageTranslation(
@@ -221,6 +230,13 @@ window.MozTranslationNotification = class extends MozElements.Notification {
       : this.translationNotificationManager.localizedLabels.translateAsBrowseOn
     );
     this.translationNotificationManager.translateAsBrowse();
+    if (this.translationNotificationManager.autoTranslate) {
+      this.translationNotificationManager.reportInfobarMetric("event","auto_translate_on");
+      this.translationNotificationManager.reportInfobarMetric("boolean", "auto_translate_enabled", true);
+    } else {
+      this.translationNotificationManager.reportInfobarMetric("event","auto_translate_off");
+      this.translationNotificationManager.reportInfobarMetric("boolean", "auto_translate_enabled", false);
+    }
   }
 
   onSurveyClick() {

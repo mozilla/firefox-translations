@@ -299,6 +299,24 @@ const telemetrySchema = {
                 "send_in_pings": [
                     "custom"
                 ]
+            },
+            "auto_translate_on": {
+                "type": "event",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "auto_translate_off": {
+                "type": "event",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
+            "auto_translate_enabled": {
+                "type": "boolean",
+                "send_in_pings": [
+                    "custom"
+                ]
             }
         },
         "service": {
