@@ -528,6 +528,14 @@ class TranslationHelper {
             }
             const arraybuffer = await cache_match.arrayBuffer();
             const sha256 = await this.digestSha256(arraybuffer);
+            if (!sha256) {
+                postMessage([
+                    "updateProgress",
+                    "sslIncompatibility"
+                ]);
+                return null;
+            }
+
             if (sha256 !== fileChecksum) {
                 cache.delete(itemURL);
                 postMessage([
@@ -541,6 +549,7 @@ class TranslationHelper {
 
         async digestSha256 (buffer) {
             // hash the message
+            if (!crypto.subtle) return null;
             const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
             // convert buffer to byte array
             const hashArray = Array.from(new Uint8Array(hashBuffer));
