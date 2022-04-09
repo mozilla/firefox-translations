@@ -208,6 +208,10 @@ class Mediator {
                     localizedMessage = browser.i18n.getMessage(message.payload[1][0], message.payload[1][1]);
                 }
 
+                if (message.payload[1][0] === "translationProgress") {
+                    localizedMessage = `${browser.i18n.getMessage("translationEnabled")} ${localizedMessage}`;
+                }
+
                 browser.runtime.sendMessage({
                     command: "updateProgress",
                     progressMessage: localizedMessage,
