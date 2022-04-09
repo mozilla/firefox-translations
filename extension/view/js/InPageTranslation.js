@@ -232,8 +232,9 @@ class InPageTranslation {
         if (!root) return;
 
         // if we have a textNode we walk through its parent and reject it
-        if (root.nodeType === 3){
-            this.startTreeWalker(root.parentNode);
+        if (root.nodeType === 3 &&
+            root.parentNode?.parentNode.attributes["x-bergamot-translated"].value === "skipped contains-excluded-node"){
+                this.startTreeWalker(root.parentNode);
             return;
         }
 
