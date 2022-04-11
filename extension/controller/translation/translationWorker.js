@@ -531,7 +531,7 @@ class TranslationHelper {
             if (!sha256) {
                 postMessage([
                     "updateProgress",
-                    "sslIncompatibility"
+                    "tlsIncompatibility"
                 ]);
                 return null;
             }
