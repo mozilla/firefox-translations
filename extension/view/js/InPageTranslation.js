@@ -270,13 +270,18 @@ class InPageTranslation {
         if (node.lang && node.lang.substr(0,2) !== this.language)
             return true;
 
+        // Exclude elements that have an translate=no attribute
+        // (See https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/translate)
+        if (node.translate === false)
+            return true;
+
         return false;
     }
 
     containsExcludedNode(node) {
         // TODO describe this in terms of the function above, but I assume
         // using querySelector is faster for now.
-        return node.querySelector(`[lang]:not([lang|="${this.language}"]), ${Array.from(this.excludedTags).join(',')}`);
+        return node.querySelector(`[lang]:not([lang|="${this.language}"]),[translate=no],${Array.from(this.excludedTags).join(',')}`);
     }
 
     validateNode(node) {
