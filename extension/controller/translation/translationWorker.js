@@ -29,6 +29,7 @@ class TranslationHelper {
             this.WasmEngineModule = null;
             this.engineState = this.ENGINE_STATE.LOAD_PENDING;
             this.PIVOT_LANGUAGE = "en";
+            this.totalPendingElements = 0;
             // alignment for each file type, file type strings should be same as in the model registry
             this.modelFileAlignments = {
                 "model": 256,
@@ -123,6 +124,11 @@ class TranslationHelper {
 
             while (this.translationQueue.length() > 0) {
                 const translationMessagesBatch = this.translationQueue.dequeue();
+                this.totalPendingElements += translationMessagesBatch.length;
+                postMessage([
+                    "updateProgress",
+                    ["translationProgress", [`${this.totalPendingElements}`]]
+                ]);
                 // eslint-disable-next-line max-lines-per-function
                 Promise.resolve().then(function () {
                     if (translationMessagesBatch && translationMessagesBatch.length > 0) {
@@ -180,6 +186,11 @@ class TranslationHelper {
                                 "translationComplete",
                                 translationMessagesBatch,
                                 timeElapsed
+                            ]);
+                            this.totalPendingElements -= translationMessagesBatch.length;
+                            postMessage([
+                                "updateProgress",
+                                ["translationProgress", [`${this.totalPendingElements}`]]
                             ]);
                         } catch (e) {
                             postMessage(["reportError", "translation"]);
