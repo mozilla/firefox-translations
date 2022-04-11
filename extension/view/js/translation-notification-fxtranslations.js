@@ -28,12 +28,14 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             <hbox class="translate-offer-box" align="center">
               <label value="&translation.translatingContent.label;" style="display:none"/>
               <label anonid="progress-label" value="" style="padding-left:5px;"/>
-              <button class="notification-button" label="" anonid="translateAsBrowse" oncommand="this.closest('notification').translateAsBrowse();"/>
             </hbox>
           </vbox>
         </deck>
         <spacer flex="1"/>
-        <button class="notification-button" label="" anonid="survey" oncommand="this.closest('notification').onSurveyClick();"/>
+        <hbox anonid="aftertranslatedOptions" class="translating-box" pack="center" style="display:none">
+          <button class="notification-button" label="" anonid="translateAsBrowse" oncommand="this.closest('notification').translateAsBrowse();"/>
+          <button class="notification-button" label="" anonid="survey" oncommand="this.closest('notification').onSurveyClick();"/>
+        </hbox>
         <button type="menu" class="notification-button" anonid="options" label="&translation.options.menu;">
           <menupopup class="translation-menupopup" onpopupshowing="this.closest('notification').optionsShowing();">
             <menuitem anonid="neverForLanguage" oncommand="this.closest('notification').neverForLanguage();"/>
@@ -190,6 +192,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATING;
     this._getAnonElt("closeButton").disabled = true;
     this._getAnonElt("options").disabled = true;
+    this._getAnonElt("aftertranslatedOptions").style.display = "block";
   }
 
   onOutboundClick() {
