@@ -50,16 +50,17 @@ function renderBoundElements(state) {
 						break;
 					default:
 						// Special case for <progress value=undefined> to get an indeterminate progress bar
-						if (match[1] === 'value' && el instanceof HTMLProgressElement && typeof state[value] !== 'number')
+						if (match[1] === 'value' && el instanceof HTMLProgressElement && typeof state[value] !== 'number') {
 							el.removeAttribute('value');
-						else
+						} else {
 							if (!(value in state))
 								console.warn('render state has no key', value);
 							el[match[1]] = state[value];
+						}
 						break;
 				}
 			} catch (e) {
-				console.error('Error while setting', value, 'of', el, ':', e);
+				console.error('Error while setting', match[1], 'of', el, 'to the value of', value, ':', e, state[value]);
 			}
 		});
 	});
