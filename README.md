@@ -8,7 +8,7 @@ Firefox Translations is a WebExtension that enables client side in-page translat
 
 ### Nightly builds
 
-You can test nightly builds of the extension in Firefox Nightly or Developer Edition in one of the [langauges supported](https://pontoon.mozilla.org/projects/firefox-translations-add-on/) by following the steps below:
+You can test nightly builds of the extension in Firefox Nightly or Developer Edition in one of the [languages supported](https://pontoon.mozilla.org/projects/firefox-translations-add-on/) by following the steps below:
 - Type `about:config` in the navigation bar and set the following preferences:
 
 ```
