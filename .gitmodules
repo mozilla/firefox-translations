@@ -1,3 +1,4 @@
 [submodule "extension/_locales"]
 	path = extension/_locales
 	url = https://github.com/mozilla-l10n/firefox-translations-l10n/
+	branch = main
