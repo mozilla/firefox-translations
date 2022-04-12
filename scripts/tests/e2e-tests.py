@@ -6,6 +6,9 @@ import shutil
 import sys
 import json
 
+if (os.environ.get("MOZ_AUTOMATION")):
+    sys.exit(0)
+
 if not os.path.exists("scripts/tests/e2e-tests.py"):
     sys.exit("This script is intended to be executed from the root folder.")
 root = os.getcwd()

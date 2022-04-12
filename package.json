@@ -1,5 +1,5 @@
 {
-  "name": "firefox-translations",
+  "name": "firefox_translations",
   "scripts": {
     "test": "python scripts/tests/e2e-tests.py",
     "lint:js": "eslint -c  .eslintrc.js extension",
@@ -17,5 +17,6 @@
   "devDependencies": {
     "eslint": "^7.32.0",
     "web-ext": "^6.8.0"
-  }
+  },
+  "version": "1.0.0"
 }
