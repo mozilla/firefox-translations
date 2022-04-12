@@ -1,5 +1,5 @@
 {
-  "name": "firefox-translations",
+  "name": "firefox_translations",
   "scripts": {
     "test": "python scripts/tests/e2e-tests.py",
     "lint:js": "eslint -c  .eslintrc.js extension",
