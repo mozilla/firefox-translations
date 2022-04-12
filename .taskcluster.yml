@@ -19,8 +19,8 @@ tasks:
               branch: taskgraph
               revision: 8051b20c975711d4ce09537285cef7451d043d8b
           template:
-              repo: https://github.com/mozilla-extensions/firefox-translations
-              branch: release
+              repo: https://github.com/mozilla-extensions/xpi-template
+              branch: master
           trustDomain: xpi
       in:
           $if: 'tasks_for in ["github-pull-request", "github-push", "action", "cron"]'
