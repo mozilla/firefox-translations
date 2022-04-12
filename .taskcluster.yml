@@ -15,12 +15,9 @@ tasks:
           # to enable siging on push/PR.
           xpiSigningType: "privileged"
           # The below doesn't need changing on initial repo setup
-          taskgraph:
-              branch: taskgraph
-              revision: 8051b20c975711d4ce09537285cef7451d043d8b
           template:
               repo: https://github.com/mozilla-extensions/xpi-template
-              branch: master
+              branch: main
           trustDomain: xpi
       in:
           $if: 'tasks_for in ["github-pull-request", "github-push", "action", "cron"]'
@@ -144,8 +141,6 @@ tasks:
                                 then:
                                     source: '${repoUrl}/raw/${head_sha}/.taskcluster.yml'
                                 else:
-                                    # XXX revisit after https://github.com/taskcluster/taskcluster/pull/2812
-                                    #     is deployed to the firefoxci cluster.
                                     source: 'ssh://github.com/${repoUrl[15:-4]}/raw/${head_sha}/.taskcluster.yml'
                               - $if: 'tasks_for in ["github-push", "github-pull-request"]'
                                 then:
@@ -181,7 +176,6 @@ tasks:
                                     - "index.${trustDomain}.v2.${project}.revision.${head_sha}.taskgraph.decision"
                                 else: []
                       scopes:
-                          # `https://` is 8 characters so, ${repoUrl[8:]} is the repository without the protocol.
                           $if: 'tasks_for == "github-push"'
                           then:
                               $let:
@@ -229,13 +223,9 @@ tasks:
                                     TEMPLATE_HEAD_REPOSITORY: '${template.repo}'
                                     TEMPLATE_HEAD_REV: '${template.branch}'
                                     TEMPLATE_HEAD_REF: '${template.branch}'
+                                    TEMPLATE_PIP_REQUIREMENTS: taskcluster/requirements.txt
                                     TEMPLATE_REPOSITORY_TYPE: git
-                                    TASKGRAPH_BASE_REPOSITORY: https://hg.mozilla.org/ci/taskgraph
-                                    TASKGRAPH_HEAD_REPOSITORY: https://hg.mozilla.org/ci/${taskgraph.branch}
-                                    TASKGRAPH_HEAD_REV: '${taskgraph.revision}'
-                                    TASKGRAPH_REPOSITORY_TYPE: hg
-                                    REPOSITORIES: {$json: {xpi: "XPI Manifest", taskgraph: "Taskgraph", template: "XPI Template"}}
-                                    HG_STORE_PATH: /builds/worker/checkouts/hg-store
+                                    REPOSITORIES: {$json: {xpi: "XPI Manifest", template: "XPI Template"}}
                                   - $if: 'privateRepo'
                                     then:
                                         XPI_SSH_SECRET_NAME: project/xpi/xpi-github-clone-ssh
@@ -253,8 +243,7 @@ tasks:
                               chainOfTrust: true
                           # Note: This task is built server side without the context or tooling that
                           # exist in tree so we must hard code the hash
-                          image:
-                              mozillareleases/taskgraph:decision-d9fab4448ee5e00b0a29825c3f0609af957279daf102547d715414782710ef06@sha256:79eb469838621168a6364476b96850fc9f2d353686195c010ad078fdcf29568e
+                          image: mozillareleases/taskgraph:decision-cf4b4b4baff57d84c1f9ec8fcd70c9839b70a7d66e6430a6c41ffe67252faa19@sha256:425e07f6813804483bc5a7258288a7684d182617ceeaa0176901ccc7702dfe28
 
                           maxRunTime: 1800
 
@@ -262,7 +251,6 @@ tasks:
                               - /usr/local/bin/run-task
                               - '--xpi-checkout=/builds/worker/checkouts/src'
                               - '--template-checkout=/builds/worker/checkouts/template'
-                              - '--taskgraph-checkout=/builds/worker/checkouts/taskgraph'
                               - '--task-cwd=/builds/worker/checkouts/src'
                               - '--'
                               - bash
@@ -272,14 +260,12 @@ tasks:
                                 in:
                                     $if: 'tasks_for == "action"'
                                     then: >
-                                        PIP_IGNORE_INSTALLED=0 pip install --user /builds/worker/checkouts/taskgraph &&
                                         cd /builds/worker/checkouts/src &&
                                         rm -rf taskcluster &&
                                         ln -s /builds/worker/checkouts/template/taskcluster taskcluster &&
                                         ln -s /builds/worker/artifacts artifacts &&
                                         ~/.local/bin/taskgraph action-callback
                                     else: >
-                                        PIP_IGNORE_INSTALLED=0 pip install --user /builds/worker/checkouts/taskgraph &&
                                         rm -rf taskcluster &&
                                         ln -s /builds/worker/checkouts/template/taskcluster taskcluster &&
                                         ln -s /builds/worker/artifacts artifacts &&
