@@ -1,29 +1,40 @@
 "use strict";
 
-const backgroundScript = browser.runtime.connect({name: 'content-script'});
+let backgroundScript;
+
+const listeners = new Map();
 
 const state = {
-    state: 'page-loading'
+    state: 'page-loaded'
 };
 
 function on(command, callback) {
-    backgroundScript.onMessage.addListener(message => {
-        if (message.command === command)
-            callback(message.data);
-    });
+    if (!listeners.has(command))
+        listeners.set(command, []);
+
+    listeners.get(command).push(callback);
 }
 
 on('Update', diff => {
     Object.assign(state, diff);
+    document.body.dataset.xBergamotState = JSON.stringify(state);
 });
 
 on('Update', diff => {
-    if ('state' in diff && diff.state === 'translation-in-progress')
-        inPageTranslation.start(diff.from);
+    if ('state' in diff) {
+        switch (diff.state) {
+            case 'translation-in-progress':
+            inPageTranslation.start(state.from);
+            break;
+        default:
+            inPageTranslation.stop();
+            break;
+        }
+    }
 });
 
 on('Update', async diff => {
-    if ('state' in diff && diff.state === 'page-loading') {
+    if ('state' in diff && diff.state === 'page-loaded') {
         // request the language detection class to extract a page's snippet
         const languageDetection = new LanguageDetection();
         const sample = await languageDetection.extractPageContent();
@@ -34,6 +45,7 @@ on('Update', async diff => {
         backgroundScript.postMessage({
             command: "DetectLanguage",
             data: {
+                url: document.location.href,
                 sample,
                 suggested
             }
@@ -74,5 +86,33 @@ const inPageTranslation = new InPageTranslation({
 
 on('TranslateResponse', data => {
     inPageTranslation.enqueueTranslationResponse(data.target.text, data.request.user);
+});
+
+// When this page shows up (either through onload or through history navigation)
+window.addEventListener('pageshow', e => {
+    // Connect to 
+    backgroundScript = browser.runtime.connect({name: 'content-script'});
+
+    // Connect all message listeners (the "on()" calls above)
+    backgroundScript.onMessage.addListener(({command, data}) => {
+        if (listeners.has(command))
+            listeners.get(command).forEach(callback => callback(data));
     });
+
+    // When the background script disconnects, also pause in-page translation
+    backgroundScript.onDisconnect.addListener(() => {
+        inPageTranslation.stop();
+    });
+
+    // Request a state update. If the state is 'translation-in-progress' then
+    // the on() listener will also re-activate the inPageTranslation.
+    backgroundScript.postMessage({
+        command: "UpdateRequest",
+        data: state
+    });
+});
+
+// When this page disappears (either onunload, or through history navigation)
+window.addEventListener('pagehide', e => {
+    backgroundScript.disconnect();
 });
