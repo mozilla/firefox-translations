@@ -50,14 +50,8 @@ on('Update', diff => {
     }
 });
 
-const PRIORITIES = {
-    'viewportNodeMap': 1,
-    'nonviewportNodeMap': 2,
-    'hiddenNodeMap': 3
-};
-
 const inPageTranslation = new InPageTranslation({
-    contentScriptsMessageListener: (sender, {command, payload}) => {
+    translate(text, user) {
         console.assert(state.from !== undefined && state.to !== undefined);
         backgroundScript.postMessage({
             command: "TranslateRequest",
@@ -66,24 +60,19 @@ const inPageTranslation = new InPageTranslation({
                 from: state.from,
                 to: state.to,
                 html: true,
-                text: payload.text,
-                
-                // data useful for the scheduling
-                priority: PRIORITIES[payload.attrId[0]],
+                text,
 
                 // data useful for the response
-                user: {
-                    type: payload.type,
-                    attrId: payload.attrId
-                }
+                user,
+                
+                // data useful for the scheduling
+                priority: user.priority || 0
             }
         });
     }
 });
 
 on('TranslateResponse', data => {
-    inPageTranslation.mediatorNotification({
-        ...data.request.user,
-        translatedParagraph: data.target.text
+    inPageTranslation.enqueueTranslationResponse(data.target.text, data.request.user);
     });
 });

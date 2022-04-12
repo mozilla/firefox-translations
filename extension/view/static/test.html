@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Page title</title>
+		<style>
+			body {
+				font: 14px/18px sans-serif;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="controls" translate="no">
+			<button id="toggle">Start</button>
+			<button id="translate-head">Translate head</button>
+			<button id="translate-tail">Translate tail</button>
+			<span id="status"></span>
+		</div>
+
+		<header>
+			<h1>Test page</h1>
+			<p>This is a webpage to test the InPageTranslator feature.</p>
+		</header>
+		<section>
+			<p>Physics is the natural science that studies matter, its fundamental constituents, its <em>motion</em> and <em>behaviour</em> through <a href="#">space and time</a>, and the related entities of energy and force. Physics is one of the most fundamental scientific disciplines, with its main goal being to understand how the universe behaves.</p>
+		</section>
+		<section id="dynamic">
+			<p>This is a bit of a dynamic section. For example: <span id="counter">This is the first iteration of this sentence.</span> <button data-callback="increment" data-selector="#counter" translate="no">Increment!</button> After that, this text should stay the same.</p>
+			<button data-callback="addParagraph" data-selector="#dynamic" translate="no">Add paragraph</button>
+		</section>
+		<section>
+			<form>
+				<fieldset>
+					<legend>Personal information</legend>
+					<label>
+						First name:
+						<input type="text" name="fist_name">
+					</label>
+					<label>
+						Family name:
+						<input type="text" name="family_name">
+					</label>
+				</fieldset>
+				<button type="submit">Register</button>
+			</form>
+		</section>
+		<script src="../js/InPageTranslation.js"></script>
+		<script src="test.js"></script>
+	</body>
+</html>

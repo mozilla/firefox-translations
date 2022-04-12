@@ -75,6 +75,11 @@
 		"16": "/view/icons/translation.16x16.png",
 		"32": "/view/icons/translation.32x32.png"
 	},
+	"web_accessible_resources": [
+		"view/static/test.html",
+		"view/static/test.js",
+		"view/js/InPageTranslation.js"
+	],
 	"description": "Experimental Bergamot Translations translates any webpage utilizing client based machine learning algorithms and models.",
 	"homepage_url": "https://github.com/jelmervdl/firefox-translations"
 }
