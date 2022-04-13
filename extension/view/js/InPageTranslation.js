@@ -17,37 +17,6 @@ function *ancestors(node) {
         yield parent;
 }
 
-class WeakQueue {
-    #list;
-    #set;
-
-    constructor() {
-        this.clear();
-    }
-
-    push(node, data) {
-        this.#list.push({ref: new WeakRef(node), data});
-        this.#set.add(node);
-    }
-
-    has(node) {
-        return this.#set.has(node);
-    }
-
-    clear() {
-        this.#list = [];
-        this.#set = new WeakSet();
-    }
-
-    forEach(callback) {
-        this.#list.forEach(({ref, data}) => {
-            const node = ref.deref();
-            if (node !== undefined)
-                callback(data, node);
-        });
-    }
-}
-
 // eslint-disable-next-line no-unused-vars
 class InPageTranslation {
 
@@ -63,24 +32,25 @@ class InPageTranslation {
 
         // Table of [Element]:Object to be submitted, and some info about them.
         // Filled by enqueueTranslation(), emptied by dispatchTranslation().
-        this.queuedNodes = new WeakQueue();
+        this.queuedNodes = new Map();
 
-        // Table of [Number]:WeakRef<Element> of nodes that have been submitted, and are
+        // Table of [Number]:Element of nodes that have been submitted, and are
         // waiting for a translation.
         this.pendingTranslations = new Map();
 
         // Table of [Element]:Number, inverse of pendingTranslations for easy
-        // cancelling of incoming responses.
-        this.submittedNodes = new WeakMap();
+        // cancelling of incoming responses when the node changed after
+        // submission of the request.
+        this.submittedNodes = new Map();
 
-        // List with the translation text that they should
+        // Queue with the translation text that they should
         // be filled with once updateTimeout is reached. Filled by
         // `enqueueTranslationResponse()` and emptied by `updateElements()`.
-        this.translatedNodes = new WeakQueue();
+        this.translatedNodes = new Map();
 
         // Set of elements that have been translated and should not be submitted
         // again unless their contents changed.
-        this.processedNodes = new WeakSet();
+        this.processedNodes = new Set();
         
         // Reference for all tags:
         // https://developer.mozilla.org/en-US/docs/Web/HTML/Element
@@ -207,7 +177,7 @@ class InPageTranslation {
         this.language = language;
 
         const pageTitle = document.querySelector("head > title");
-        if (pageTitle && this.validateNode(pageTitle) === NodeFilter.FILTER_ACCEPT)
+        if (pageTitle && this.validateNodeForQueue(pageTitle) === NodeFilter.FILTER_ACCEPT)
             this.enqueueTranslation(pageTitle);
 
         this.startTreeWalker(document.body);
@@ -231,13 +201,14 @@ class InPageTranslation {
         
         // Remove all elements for which we haven't received a translation yet
         // from the 'sent' list.
-        this.submittedNodes = new WeakMap();
+        this.submittedNodes.clear();
 
-        this.pendingTranslations.forEach(ref => {
-            this.processedNodes.delete(ref.deref());
+        this.pendingTranslations.forEach((node, id) => {
+            this.processedNodes.delete(node);
+            this.enqueueTranslation(node);
         })
 
-        this.pendingTranslations = new Map();
+        this.pendingTranslations.clear();
 
         this.started = false;
     }
@@ -258,7 +229,7 @@ class InPageTranslation {
         // TODO: Bit of added complicated logic to include `root` in the set
         // of nodes that is being evaluated. Normally TreeWalker will only
         // look at the descendants.
-        switch (this.validateNode(root)) {
+        switch (this.validateNodeForQueue(root)) {
             // If even the root is already rejected, no need to look further
             case NodeFilter.FILTER_REJECT:
                 return;
@@ -276,7 +247,7 @@ class InPageTranslation {
                 const nodeIterator = document.createTreeWalker(
                     root,
                     NodeFilter.SHOW_ELEMENT,
-                    this.validateNode.bind(this)
+                    this.validateNodeForQueue.bind(this)
                 );
 
                 let currentNode;
@@ -303,7 +274,7 @@ class InPageTranslation {
         }
 
         // Remove node from processed list: we want to reprocess it.
-        [root, ...ancestors(root)].forEach(node => this.processedNodes.delete(node));
+        this.processedNodes.delete(root);
 
         // Start submitting it again
         this.startTreeWalker(root);
@@ -442,7 +413,10 @@ class InPageTranslation {
 
     /**
      * Used by TreeWalker to determine whether to ACCEPT, REJECT or SKIP a
-     * subtree.
+     * subtree. Only checks if the element is acceptable. It does not check
+     * whether the element has been translated already, which makes it usable
+     * on parent nodes to validate whether a child node is in a translatable
+     * context.
      * 
      * Returns:
      *   - FILTER_ACCEPT: this subtree should be a translation request.
@@ -451,12 +425,6 @@ class InPageTranslation {
      *   - FILTER_REJECT: skip this node and everything beneath it.
      */
     validateNode(node) {
-        // Skip nodes already seen (for the partial subtree change, or restart of the
-        // whole InPageTranslation process.)
-        if (this.processedNodes.has(node)) {
-            return NodeFilter.FILTER_REJECT;
-        }
-
         // Don't resubmit subtrees that are already in progress (unless their
         // contents have been changed
         if (this.queuedNodes.has(node) || this.isParentQueued(node)) {
@@ -490,6 +458,21 @@ class InPageTranslation {
     }
 
     /**
+     * Used by TreeWalker to determine whether to ACCEPT, REJECT or SKIP a
+     * subtree. Checks whether element is acceptable, and hasn't been
+     * translated already.
+     */
+    validateNodeForQueue(node) {
+        // Skip nodes already seen (for the partial subtree change, or restart of the
+        // whole InPageTranslation process.)
+        if (this.processedNodes.has(node)) {
+            return NodeFilter.FILTER_REJECT;
+        }
+
+        return this.validateNode(node);
+    }
+
+    /**
      * Enqueue a node for translation. Called during startTreeWalker. Queues
      * are emptied by dispatchTranslation().
      */
@@ -505,7 +488,7 @@ class InPageTranslation {
         else if (this.isElementInViewport(node))
             priority = 1;
 
-        this.queuedNodes.push(node, {
+        this.queuedNodes.set(node, {
             id: this.translationsCounter,
             priority
         });
@@ -530,7 +513,7 @@ class InPageTranslation {
         this.mediator.translate(text, {priority, id});
 
         // Keep reference to this node for once we receive a translation response.
-        this.pendingTranslations.set(id, new WeakRef(node));
+        this.pendingTranslations.set(id, node);
         this.submittedNodes.set(node, id);
 
         // Also mark this node as not to be translated again unless the contents
@@ -669,23 +652,23 @@ class InPageTranslation {
      * Batches translation responses for a single big updateElements() call.
      */
     enqueueTranslationResponse(translated, {id}) {
+        console.log('[in-page-translation] Received response to', id);
+        
         // Look up node by message id. This can fail 
-        const nodeRef = this.pendingTranslations.get(id);
-        if (nodeRef === undefined)
+        const node = this.pendingTranslations.get(id);
+        if (node === undefined) {
+            console.debug('[in-page-translation] Message',id,'is not found in pendingTranslations');
             return;
+        }
 
-        // Remove message -> node mapping
+        // Prune it.
         this.pendingTranslations.delete(id);
-
-        const node = nodeRef.deref();
-        if (node === undefined)
-            return;
 
         // Node still exists! Remove node -> (pending) message mapping
         this.submittedNodes.delete(node);
         
         // Queue node to be populated with translation next update.
-        this.translatedNodes.push(node, {id, translated});
+        this.translatedNodes.set(node, {id, translated});
 
         // we schedule the UI update
         if (!this.updateTimeout)
