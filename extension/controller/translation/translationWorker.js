@@ -2,11 +2,11 @@
 /* eslint-disable no-native-reassign */
 /* eslint-disable max-lines */
 
-/* global engineRegistryRootURL, engineRegistryRootURLTest, loadEmscriptenGlueCode, Queue */
-/* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts, Sentry, settings, getBergamotTranslatorWasmEngineRegistry */
+/* global loadEmscriptenGlueCode, Queue */
+/* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts, Sentry, settings */
 
 
-let engineRegistry;
+let engineWasmLocalPath;
 
 /*
  * this class should only be instantiated the web worker
@@ -52,18 +52,14 @@ class TranslationHelper {
                 "updateProgress",
                 "loadingTranslationEngine"
             ]);
-            const itemURL = `${engineRegistryRootURL}${engineRegistry.bergamotTranslatorWasm.fileName}`;
             // first we load the wasm engine
-            const wasmArrayBuffer = await this.getItemFromCacheOrWeb(
-                itemURL,
-                engineRegistry.bergamotTranslatorWasm.fileSize,
-                engineRegistry.bergamotTranslatorWasm.sha256
-            );
-            if (!wasmArrayBuffer) {
+            const response = await fetch(engineWasmLocalPath);
+            if (!response.ok) {
                 postMessage(["reportError", "engine_download"]);
-                console.log("Error loading engine from cache or web.");
+                console.log("Error loading engine as buffer.");
                 return;
             }
+            const wasmArrayBuffer = await response.arrayBuffer();
             const initialModule = {
                 preRun: [
                     function() {
@@ -708,15 +704,13 @@ onmessage = function(message) {
     switch (message.data[0]) {
         case "configEngine":
             importScripts("/model/Queue.js");
-            importScripts(message.data[1].engineLocalPath);
-            importScripts(message.data[1].engineRemoteRegistry);
+            importScripts(message.data[1].engineScriptLocalPath);
+            engineWasmLocalPath = message.data[1].engineWasmLocalPath;
             importScripts(message.data[1].modelRegistry);
             importScripts(message.data[1].sentryScript);
             importScripts(message.data[1].settingsScript);
             if (message.data[1].isMochitest){
                 // running tests. let's setup the proper tests endpoints
-                // eslint-disable-next-line no-global-assign
-                engineRegistryRootURL = engineRegistryRootURLTest;
                 // eslint-disable-next-line no-global-assign
                 modelRegistryRootURL = modelRegistryRootURLTest;
             }
@@ -726,7 +720,6 @@ onmessage = function(message) {
               debug: settings.sentryDebug,
               release: `firefox-translations@${message.data[1].version}`
             });
-            engineRegistry = getBergamotTranslatorWasmEngineRegistry(message.data[1].platformInfo);
             break;
         case "translate":
             Sentry.wrap(() => translationHelper.requestTranslation(message.data[1]));

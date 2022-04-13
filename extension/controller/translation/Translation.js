@@ -15,13 +15,15 @@ class Translation {
         this.translationMessageBuffer = new Queue();
         this.mediator = mediator;
         this.htmlRegex = new RegExp("<(.*)>.*?|<(.*) />", "gi");
-        let engineLocalPath = null;
+        let engineScriptLocalPath = null;
+        let engineWasmLocalPath = null;
         if (this.mediator.platformInfo.arch === "x86-32" || (this.mediator.platformInfo.arch === "x86-64")) {
-            engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
+            engineScriptLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
+            engineWasmLocalPath = browser.runtime.getURL("model/static/translation/bergamot-translator-worker-with-wormhole.wasm");
         } else {
-            engineLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker-without-wormhole.js");
+            engineScriptLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker-without-wormhole.js");
+            engineWasmLocalPath = browser.runtime.getURL("model/static/translation/bergamot-translator-worker-without-wormhole.wasm");
         }
-        const engineRemoteRegistry = browser.runtime.getURL("model/engineRegistry.js");
         const modelRegistry = browser.runtime.getURL("model/modelRegistry.js");
         const sentryScript = browser.runtime.getURL("model/static/errorReporting/sentry.js");
         const settingsScript = browser.runtime.getURL("settings.js");
@@ -35,14 +37,13 @@ class Translation {
             this.translationWorker.postMessage([
                 "configEngine",
                 {
-                    engineLocalPath,
-                    engineRemoteRegistry,
+                    engineScriptLocalPath,
+                    engineWasmLocalPath,
                     modelRegistry,
                     sentryScript,
                     settingsScript,
                     version,
                     isMochitest: this.mediator.isMochitest,
-                    platformInfo: this.mediator.platformInfo,
                 }
             ])
         }
