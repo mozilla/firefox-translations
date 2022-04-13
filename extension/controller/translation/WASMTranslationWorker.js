@@ -5,8 +5,6 @@
 // Global because importScripts is global.
 var Module = {};
 
-console.log("THERE");
-
 importScripts('yaml.js');
 
 class WASMTranslationWorker {

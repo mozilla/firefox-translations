@@ -71,14 +71,19 @@ class PortChannel {
 
         // batch serial to help keep track of batches when debugging
         this.batchSerial = 0;
+
+        // Error handler for all errors that are async, not tied to a specific
+        // call and that are unrecoverable.
+        this.onerror = err => console.error('TranslateLocally error:', err);
     }
 
     async loadNativeClient() {
         return new Promise((resolve, reject) => {
             const port = browser.runtime.connectNative('translatelocally');
 
-            port.onDisconnect.addListener((e) => {
-                console.log('translateLocally disconnected', port.error);
+            port.onDisconnect.addListener(() => {
+                if (port.error)
+                    this.onerror(port.error);
             });
 
             resolve(new PortChannel(port));

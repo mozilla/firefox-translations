@@ -258,11 +258,26 @@ let provider = new class {
             return this.#provider;
 
         if (!(state.provider in providers)) {
-            console.error(`Provider ${state.provider} not in list of supported translation providers. Falling back to 'wasm'`);
+            console.info(`Provider ${state.provider} not in list of supported translation providers. Falling back to 'wasm'`);
             state.provider = 'wasm';
         }
+        
+        this.#provider = new providers[state.provider]();
 
-        return this.#provider = new providers[state.provider]();
+        this.#provider.onerror = err => {
+            console.error('Translation provider error:', err);
+
+            // Try falling back to WASM is the current provider doesn't work
+            // out. Might lose some translations the process but
+            // InPageTranslation should be able to deal with that.
+            if (state.provider !== 'wasm') {
+                console.info(`Provider ${state.provider} encountered irrecoverable errors. Falling back to 'wasm'`);
+                state.provider = 'wasm';
+                this.reset();
+            }
+        };
+
+        return this.#provider;
     }
 
     reset() {
@@ -326,7 +341,8 @@ function connectContentScript(contentScript) {
         _abortSignal = {aborted: false};
     };
 
-    // Make the content-script receive state updates
+    // Make the content-script receive state updates. Also sends the initial
+    // state update.
     connectTab(tab, contentScript);
 
     // If the content-script stops (i.e. user navigates away)
@@ -465,13 +481,13 @@ function connectPopup(popup) {
 }
 
 async function main() {
-    // Init global state
+    // Init global state (which currently is just the name of the backend to use)
     Object.assign(state, await browser.storage.local.get(Array.from(Object.keys(state))));
 
     // Receive incoming connection requests from content-script and popup
     browser.runtime.onConnect.addListener((port) => {
         if (port.name == 'content-script')
-            connectContentScript(port);   
+            connectContentScript(port);
         else if (port.name.startsWith('popup-'))
             connectPopup(port);
     });

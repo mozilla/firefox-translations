@@ -47,7 +47,7 @@ function first(iterable) {
  */
 function intersect(a, b) {
     const bSet = new Set(b);
-    return new Set(a.filter(item => bSet.has(item)));
+    return new Set(Array.from(a).filter(item => bSet.has(item)));
 }
 
 /**

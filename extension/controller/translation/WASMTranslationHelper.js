@@ -79,6 +79,10 @@ class WorkerChannel {
 
         // batch serial to help keep track of batches when debugging
         this.batchSerial = 0;
+
+        // Error handler for all errors that are async, not tied to a specific
+        // call and that are unrecoverable.
+        this.onerror = err => console.error('WASM Translation Worker error:', err);
     }
 
     /**
@@ -91,7 +95,7 @@ class WorkerChannel {
         // TODO is this really not async? Can I just send messages to it from
         // the start and will they be queued or something?
         const worker = new Worker('controller/translation/WASMTranslationWorker.js');
-        worker.onerror = (err) => console.error('Worker:', err);
+        worker.onerror = (err) => this.onerror(err);
 
         // Little wrapper around the message passing api of Worker to make it
         // easy to await a response to a sent message.
@@ -166,8 +170,6 @@ class WorkerChannel {
             throw new Error(`No model for ${from} -> ${to}`);
 
         const entry = first(entries).model;
-
-        console.debug("Downloading model", entry, "of available", entries);
 
         const compressedArchive = await this.getItemFromCacheOrWeb(entry.url, undefined, entry.checksum);
 

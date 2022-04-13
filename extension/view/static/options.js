@@ -1,7 +1,9 @@
 // Defaults. Duplicated in backgroundScript.js :(
-const state = {
-	provider: 'wasm'
-};
+
+const state = new Proxy({
+	provider: 'wasm',
+	translateLocallyAvailable: false
+}, StateHelper);
 
 browser.storage.local.get().then(localState => {
 	Object.assign(state, localState);
@@ -18,3 +20,15 @@ browser.storage.onChanged.addListener(async changes => {
 addBoundElementListeners((key, value) => {
 	browser.storage.local.set({[key]: value});
 });
+
+const port = browser.runtime.connectNative('translatelocally');
+port.onDisconnect.addListener(e => {
+	console.log('onDisconnect', port.error);
+	if (port.error) {
+		state.translateLocallyAvailable = false;
+	} else {
+		state.translateLocallyAvailable = true;
+	}
+	renderBoundElements(state);
+})
+port.disconnect();

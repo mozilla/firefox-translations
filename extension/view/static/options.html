@@ -9,9 +9,10 @@
         <label for="translation-provider">Translation provider</label>
         <select id="translation-provider" data-bind:value="provider">
           <option value="wasm">WASM (embedded)</option>
-          <option value="translatelocally">TranslateLocally</option>
+          <option value="translatelocally" data-bind:disabled="!translateLocallyAvailable">TranslateLocally</option>
         </select>
       </div>
+      <p data-bind:hidden="translateLocallyAvailable">You can <a href="https://translatelocally.com">download TranslateLocally</a> for even faster private translations.</p>
     </div>
     <script src="common.js"></script>
     <script src="options.js"></script>

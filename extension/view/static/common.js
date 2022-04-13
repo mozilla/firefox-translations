@@ -18,6 +18,21 @@ function addEventListeners(handlers) {
 	});
 }
 
+const StateHelper = {
+	get(target, prop, receiver) {
+		if (prop.substr(0, 1) === '!')
+			return !Reflect.get(target, prop.substr(1));
+
+		return Reflect.get(...arguments);
+	},
+	has(target, prop) {
+		if (prop.substr(0, 1) === '!')
+			return Reflect.has(target, prop.substr(1));
+
+		return Reflect.has(target, prop);
+	}
+};
+
 function renderSelect(select, values) {
 	// Todo: we can be smarter about this!
 	while (select.length)
