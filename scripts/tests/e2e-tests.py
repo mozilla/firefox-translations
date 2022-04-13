@@ -35,18 +35,8 @@ with open('gecko/browser/extensions/moz.build', 'a') as fp:
     fp.write('      "translations", \n')
     fp.write('  ] \n')
 
-# let's download bergamot-translator's wasm artifacts
-engineRegistryRootURL = ""
-fileName = ""
-with open('extension/model/engineRegistry.js') as fp:
-        Lines = fp.readlines()
-        for line in Lines:
-            if "engineRegistryRootURL " in line:
-                engineRegistryRootURL = line.split("=")[1].replace("\"","").replace(";","").strip()
-            if "bergamot-translator-worker-with-wormhole.wasm" in line or "bergamot-translator-worker-without-wormhole.wasm" in line:
-                fileName = line.split(":")[1].replace("\"","").replace(",","").strip()
-                print("Downloading:" + fileName)
-                subprocess.call(("curl", "-L", "-o", "gecko/browser/extensions/translations/test/browser/"+fileName, engineRegistryRootURL + fileName), cwd=root)
+# let's copy bergamot-translator's wasm artifacts at right place for tests
+subprocess.call("cp -r gecko/browser/extensions/translations/extension/model/static/translation/ gecko/browser/extensions/translations/test/browser/".split(), cwd=root)
 
 # patching BrowserGlue.jsm to add the extension's version so it could be loaded
 f = open("extension/manifest.json")

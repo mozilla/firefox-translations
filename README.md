@@ -39,7 +39,13 @@ to regenerate JS telemetry schema.
 
 ### Updating bergamot-translator WASM module
 
-After replacing `extension/controller/translation/bergamot-translation-worker.js`, run
+Replace
+- `extension/controller/translation/bergamot-translation-worker.js`
+- `extension/controller/translation/bergamot-translator-worker-without-wormhole.js`
+- `extension/model/static/translation/bergamot-translator-worker-with-wormhole.wasm`
+- `extension/model/static/translation/bergamot-translator-worker-without-wormhole.wasm`
+
+with the new artifacts and then execute:
 
 ```
 bash scripts/update-bergamot-translator.sh
