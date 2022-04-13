@@ -672,6 +672,6 @@ class InPageTranslation {
 
         // we schedule the UI update
         if (!this.updateTimeout)
-            this.updateTimeout = setTimeout(this.updateElements.bind(this), this.UI_UPDATE_INTERVAL);
+            this.updateTimeout = setTimeout(this.updateElements.bind(this), this.submittedNodes.size === 0 ? 0 : this.UI_UPDATE_INTERVAL);
     }
 }
