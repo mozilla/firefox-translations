@@ -9,7 +9,9 @@
 class LanguageDetection {
 
     constructor() {
-        this.navigatorLanguage = navigator.language.substring(0,2);
+        [this.languagesSupportedSet, this.languagePairsSupportedSet] =
+            this.constructLanguageSets();
+        this.navigatorLanguage = this.getNavigatorLanguage();
         this.pageLanguage = null;
         this.wordsToDetect = null;
     }
@@ -23,19 +25,13 @@ class LanguageDetection {
      * or not the translation bar
      */
     shouldDisplayTranslation() {
-        const languageSet = new Set()
-        if (modelRegistry) {
-            for (const languagePair of Object.keys(modelRegistry)){
-                languageSet.add(languagePair);
-            }
-        }
         let from = this.pageLanguage.concat("en");
         let to = "en".concat(this.navigatorLanguage.substring(0,2));
         if (from === "enen") from = to;
         if (to === "enen") to = from;
         return this.isLangMismatch() &&
-            languageSet.has(from) &&
-            languageSet.has(to);
+            this.languagePairsSupportedSet.has(from) &&
+            this.languagePairsSupportedSet.has(to);
 
     }
 
@@ -47,11 +43,33 @@ class LanguageDetection {
     }
 
     isBrowserSupported() {
-        const languageSet = new Set()
+        return this.languagesSupportedSet.has(this.navigatorLanguage);
+    }
+
+    /*
+     * we scan all supported languages by the browser and return on that
+     * matches the models we support, if none is supported, we just return the
+     * default language, which is navigator.languages[0]
+     */
+    getNavigatorLanguage() {
+        for (const langSupported of navigator.languages) {
+            if (this.languagesSupportedSet.has(langSupported.substring(0,2))) {
+                return langSupported.substring(0,2);
+            }
+        }
+        return navigator.language.substring(0,2);
+    }
+
+    constructLanguageSets(){
+        const languagesSupportedSet = new Set();
+        const languagePairsSupportedSet = new Set();
+
         for (const languagePair of Object.keys(modelRegistry)) {
             const secondLang = languagePair.substring(2, 4);
-            languageSet.add(secondLang);
+            languagesSupportedSet.add(secondLang);
+            languagePairsSupportedSet.add(languagePair);
         }
-        return languageSet.has(this.navigatorLanguage);
+
+        return [languagesSupportedSet, languagePairsSupportedSet];
     }
 }
