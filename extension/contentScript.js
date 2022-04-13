@@ -23,12 +23,22 @@ on('Update', diff => {
 on('Update', diff => {
     if ('state' in diff) {
         switch (diff.state) {
+            // Not sure why we have the page-loading event here, like, as soon
+            // as frame 0 connects we know we're in page-loaded territory.
+            case 'page-loading':
+                backgroundScript.postMessage({
+                    command: 'UpdateRequest',
+                    data: {state: 'page-loaded'}
+                });
+                break;
+            
             case 'translation-in-progress':
-            inPageTranslation.start(state.from);
-            break;
-        default:
-            inPageTranslation.stop();
-            break;
+                inPageTranslation.start(state.from);
+                break;
+            
+            default:
+                inPageTranslation.stop();
+                break;
         }
     }
 });
@@ -103,16 +113,10 @@ window.addEventListener('pageshow', e => {
     backgroundScript.onDisconnect.addListener(() => {
         inPageTranslation.stop();
     });
-
-    // Request a state update. If the state is 'translation-in-progress' then
-    // the on() listener will also re-activate the inPageTranslation.
-    backgroundScript.postMessage({
-        command: "UpdateRequest",
-        data: state
-    });
 });
 
 // When this page disappears (either onunload, or through history navigation)
 window.addEventListener('pagehide', e => {
-    backgroundScript.disconnect();
+    if (backgroundScript)
+        backgroundScript.disconnect();
 });
