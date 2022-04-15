@@ -25,6 +25,7 @@
 		[
 			"3rd_party/pako/pako_inflate.js",
 			"3rd_party/js-untar/untar.js",
+			"controller/translation/compat.js",
 			"controller/translation/func.js",
 			"controller/translation/promise.js",
 			"controller/translation/yaml.js",
@@ -42,6 +43,7 @@
 			],
 			"js":
 			[
+				"controller/translation/compat.js",
 				"controller/LanguageDetection.js",
 				"view/js/InPageTranslation.js",
 				"contentScript.js"

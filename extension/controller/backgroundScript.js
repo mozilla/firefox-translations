@@ -1,4 +1,4 @@
-/* global browser */
+/* global compat */
 
 function isSameDomain(url1, url2) {
     return url1 && url2 && new URL(url1).host === new URL(url2).host;
@@ -38,7 +38,7 @@ async function detectLanguage({sample, suggested}, provider) {
         throw new Error('Empty sample');
 
     const [detected, models] = await Promise.all([
-        browser.i18n.detectLanguage(sample),
+        compat.i18n.detectLanguage(sample),
         provider.registry
     ]);
 
@@ -75,7 +75,7 @@ async function detectLanguage({sample, suggested}, provider) {
     });
 
     // {[lang]: 0.0 .. 1.0} map of likeliness the user wants to translate to this language.
-    const preferred = (await browser.i18n.getAcceptLanguages()).reduce((preferred, language, i, languages) => {
+    const preferred = (await compat.i18n.getAcceptLanguages()).reduce((preferred, language, i, languages) => {
         // Todo: right now all our models are just two-letter codes instead of BCP-47 :(
         const code = language.substr(0, 2);
         return code in preferred ? preferred : {...preferred, [code]: 1.0 - (i / languages.length)};
@@ -217,10 +217,10 @@ function showPopup(event) {
     switch (event.target.state.state) {
         case State.TRANSLATION_AVAILABLE:
         case State.TRANSLATION_IN_PROGRESS:
-            browser.pageAction.show(event.target.id);
+            compat.pageAction.show(event.target.id);
             break;
         case State.TRANSLATION_NOT_AVAILABLE:
-            browser.pageAction.hide(event.target.id);
+            compat.pageAction.hide(event.target.id);
             break;
     }
 }
@@ -482,10 +482,19 @@ function connectPopup(popup) {
 
 async function main() {
     // Init global state (which currently is just the name of the backend to use)
-    Object.assign(state, await browser.storage.local.get(Array.from(Object.keys(state))));
+    Object.assign(state, await compat.storage.local.get(Array.from(Object.keys(state))));
+
+    compat.storage.local.onChanged.addListener(changes => {
+        Object.entries(changes).forEach(([key, {newValue}]) => {
+            state[key] = newValue;
+        });
+
+        if ('provider' in changes)
+            provider.reset();
+    });
 
     // Receive incoming connection requests from content-script and popup
-    browser.runtime.onConnect.addListener((port) => {
+    compat.runtime.onConnect.addListener((port) => {
         if (port.name == 'content-script')
             connectContentScript(port);
         else if (port.name.startsWith('popup-'))
@@ -493,7 +502,7 @@ async function main() {
     });
 
     // Initialize or update the state of a tab when navigating
-    browser.webNavigation.onCommitted.addListener(({tabId, frameId, url}) => {
+    compat.webNavigation.onCommitted.addListener(({tabId, frameId, url}) => {
         // Right now we're only interested in top-level navigation changes
         if (frameId !== 0)
             return;
@@ -503,18 +512,9 @@ async function main() {
     });
 
     // Remove the tab state if a tab is removed
-    browser.tabs.onRemoved.addListener(({tabId}) => {
+    compat.tabs.onRemoved.addListener(({tabId}) => {
         tabs.delete(tabId);
-    });
-
-    browser.storage.onChanged.addListener(changes => {
-        Object.entries(changes).forEach(([key, {newValue}]) => {
-            state[key] = newValue;
-        });
-
-        if ('provider' in changes)
-            provider.reset();
-    });
+    });    
 }
 
 main();

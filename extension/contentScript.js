@@ -101,7 +101,7 @@ on('TranslateResponse', data => {
 // When this page shows up (either through onload or through history navigation)
 window.addEventListener('pageshow', e => {
     // Connect to 
-    backgroundScript = browser.runtime.connect({name: 'content-script'});
+    backgroundScript = compat.runtime.connect({name: 'content-script'});
 
     // Connect all message listeners (the "on()" calls above)
     backgroundScript.onMessage.addListener(({command, data}) => {
