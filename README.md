@@ -27,7 +27,7 @@ The extension does not utilize any npm modules, and the only vendored dependenci
 
 - Bergamot Translator
 
-    - A WebAssembly wrapper around the actual Neural Machine Translator, [Marian](github.com/marian-nmt/marian-dev/). The code to build the WASM module can be found on its [repository](https://github.com/mozilla/bergamot-translator#build-wasm)
+    - A WebAssembly wrapper around the actual Neural Machine Translator, [Marian](https://github.com/marian-nmt/marian-dev/). The code to build the WASM module can be found on its [repository](https://github.com/mozilla/bergamot-translator#build-wasm)
 
 - Fasttext
     - We bundle the WebAssembly port of fasttext along its [compressed model](https://fasttext.cc/docs/en/language-identification.html) in order to detect the page's language. Instructions to build the WebAssembly module can be [found here](https://fasttext.cc/docs/en/webassembly-module.html)
