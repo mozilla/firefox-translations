@@ -21,6 +21,20 @@ You can test nightly builds of the extension in Firefox Nightly or Developer Edi
 
 ## Development
 
+### 3rd party dependencies
+
+The extension does not utilize any npm modules, and the only vendored dependencies within are:
+
+- Bergamot Translator
+
+    - A WebAssembly wrapper around the actual Neural Machine Translator, [Marian](github.com/marian-nmt/marian-dev/). The code to build the WASM module can be found on its [repository](https://github.com/mozilla/bergamot-translator#build-wasm)
+
+- Fasttext
+    - We bundle the WebAssembly port of fasttext along its [compressed model](https://fasttext.cc/docs/en/language-identification.html) in order to detect the page's language. Instructions to build the WebAssembly module can be [found here](https://fasttext.cc/docs/en/webassembly-module.html)
+
+- Sentry
+    - We bundle [Sentry Javascript's SDK](https://github.com/getsentry/sentry-javascript) for error reporting.
+  
 ### How to run
 - Install Firefox Nightly
 - Clone this repo and run `npm install`
