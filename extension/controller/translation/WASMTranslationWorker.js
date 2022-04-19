@@ -22,17 +22,19 @@ class WASMTranslationWorker {
     loadModule() {
         return new Promise(async (resolve, reject) => {
             const response = await fetch("bergamot-translator-worker.wasm");
-            const wasmBinary = await response.arrayBuffer();
 
             Object.assign(Module, {
-                wasmBinary,
                 preRun: [
                         () => {
                                 // this.wasmModuleStartTimestamp = Date.now();
                         }
                 ],
+                instantiateWasm: (info, accept) => {
+                    WebAssembly.instantiateStreaming(response, info).then(({instance, module}) => accept(instance, module));
+                    return {};
+                },
                 onRuntimeInitialized: () => {
-                        resolve(Module);
+                    resolve(Module);
                 }
             });
 
