@@ -196,7 +196,7 @@ class Tab extends EventTarget {
         // Delay the update notification to accumulate multiple changes in one
         // notification.
         if (!this._scheduledUpdateEvent) {
-            const callbackId = requestIdleCallback(this._dispatchUpdateEvent.bind(this));
+            const callbackId = setTimeout(this._dispatchUpdateEvent.bind(this));
             this._scheduledUpdateEvent = {diff, callbackId};
         } else {
             Object.assign(this._scheduledUpdateEvent.diff, diff);
