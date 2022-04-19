@@ -4,6 +4,18 @@ class NotImplementedError extends Error {
 	}
 }
 
+function promisify(object, methods) {
+	return new Proxy(object, {
+		get(target, prop, receiver) {
+			// Note: I tried using Reflect.get() here, but Chrome doesn't like that.
+			if (methods.includes(prop))
+				return (...args) => new Promise(accept => target[prop](...args, accept));
+			else
+				return target[prop];
+		}
+	});
+}
+
 const compat = new class {
 	#isFirefox = false;
 	#isChromium = false;
@@ -25,14 +37,7 @@ const compat = new class {
 		if (this.#isChromium)
 			return new Proxy(chrome.storage, {
 				get(target, prop, receiver) {
-					return new Proxy(Reflect.get(chrome.storage, prop, receiver), {
-						get(target, prop, receiver) {
-							if (prop === 'get')
-								return (keys) => new Promise(accept => target.get(keys, accept));
-							else
-								return Reflect.get(target, prop);
-						}
-					});
+					return promisify(Reflect.get(chrome.storage, prop, receiver), ['get']);
 				}
 			});
 		else
@@ -48,11 +53,17 @@ const compat = new class {
 	}
 
 	get tabs() {
-		return this.#runtime.tabs;
+		if (this.#isChromium)
+			return promisify(chrome.tabs, ['query']);
+		else
+			return this.#runtime.tabs;
 	}
 
 	get i18n() {
-		return this.#runtime.i18n;
+		if (this.#isChromium)
+			return promisify(chrome.i18n, ['detectLanguage', 'getAcceptLanguages']);
+		else
+			return this.#runtime.i18n;
 	}
 
 	get pageAction() {
