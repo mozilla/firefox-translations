@@ -40,10 +40,10 @@ function render(state) {
 // Query which tab we represent and then connect to the tab state in the 
 // background-script. Connecting will cause us to receive an "Update" message
 // with the tab's state (and any future updates to it)
-browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
+compat.tabs.query({active: true, currentWindow: true}).then(tabs => {
 	const tabId = tabs[0].id;
 
-	const backgroundScript = browser.runtime.connect({name: `popup-${tabId}`});
+	const backgroundScript = compat.runtime.connect({name: `popup-${tabId}`});
 
 	const state = {};
 
