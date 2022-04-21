@@ -11,7 +11,7 @@ on:
       - main
 
 env:
-  emsdk_version: 2.0.9 # For use in emscripten build
+  emsdk_version: 3.1.8 # For use in emscripten build
   ccache_basedir: ${{ github.workspace }}
   ccache_dir: "${{ github.workspace }}/.ccache"
   ccache_compilercheck: content
