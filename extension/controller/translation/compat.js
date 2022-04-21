@@ -37,7 +37,10 @@ const compat = new class {
 		if (this.#isChromium)
 			return new Proxy(chrome.storage, {
 				get(target, prop, receiver) {
-					return promisify(Reflect.get(chrome.storage, prop, receiver), ['get']);
+					if (['sync', 'local', 'managed'].includes(prop))
+						return promisify(chrome.storage[prop], ['get', 'set']);
+					else
+						return chrome.storage[prop]
 				}
 			});
 		else

@@ -5,12 +5,12 @@ const state = new Proxy({
 	translateLocallyAvailable: false
 }, StateHelper);
 
-browser.storage.local.get().then(localState => {
+compat.storage.local.get().then(localState => {
 	Object.assign(state, localState);
 	renderBoundElements(state);
 });
 
-browser.storage.onChanged.addListener(async changes => {
+compat.storage.onChanged.addListener(async changes => {
 	Object.entries(changes).forEach(([key, {newValue}]) => {
 		state[key] = newValue;
 	});
@@ -18,17 +18,17 @@ browser.storage.onChanged.addListener(async changes => {
 });
 
 addBoundElementListeners((key, value) => {
-	browser.storage.local.set({[key]: value});
+	compat.storage.local.set({[key]: value});
 });
 
-const port = browser.runtime.connectNative('translatelocally');
+const port = compat.runtime.connectNative('translatelocally');
 port.onDisconnect.addListener(e => {
 	console.log('onDisconnect', port.error);
-	if (port.error) {
+	if (port.error || compat.runtime.lastError) {
 		state.translateLocallyAvailable = false;
-	} else {
-		state.translateLocallyAvailable = true;
+		renderBoundElements(state);
 	}
-	renderBoundElements(state);
 })
 port.disconnect();
+state.translateLocallyAvailable = true;
+renderBoundElements(state);
