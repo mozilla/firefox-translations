@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable max-lines */
 
-const modelRegistryVersion = "0.2.16";
+const modelRegistryVersion = "0.2.17";
 let modelRegistryRootURL = `https://storage.googleapis.com/bergamot-models-sandbox/${modelRegistryVersion}`;
 const modelRegistryRootURLTest = "https://example.com/browser/browser/extensions/translations/test/browser";
 
@@ -113,18 +113,18 @@ const modelRegistry = {
       "expectedSha256Hash": "e19c77231bf977988e31ff8db15fe79966b5170564bd3e10613f239e7f461d97",
       "modelType": "prod"
     },
-    "vocab": {
-      "name": "vocab.csen.spm",
-      "size": 769763,
-      "estimatedCompressedSize": 366392,
-      "expectedSha256Hash": "f71cc5d045e479607078e079884f44032f5a0b82547fb96eefa29cd1eb47c6f3",
-      "modelType": "prod"
-    },
     "qualityModel": {
       "name": "qualityModel.encs.bin",
       "size": 68,
       "estimatedCompressedSize": 108,
       "expectedSha256Hash": "d7eba90036a065e4a1e93e889befe09f93a7d9a3417f3edffdb09a0db88fe83a",
+      "modelType": "prod"
+    },
+    "vocab": {
+      "name": "vocab.csen.spm",
+      "size": 769763,
+      "estimatedCompressedSize": 366392,
+      "expectedSha256Hash": "f71cc5d045e479607078e079884f44032f5a0b82547fb96eefa29cd1eb47c6f3",
       "modelType": "prod"
     }
   },
@@ -208,6 +208,29 @@ const modelRegistry = {
       "size": 68,
       "estimatedCompressedSize": 108,
       "expectedSha256Hash": "bb9b9c449c705297fe6b83542d64406201960971f102787b9b6c733416406707",
+      "modelType": "prod"
+    }
+  },
+  "enit": {
+    "model": {
+      "name": "model.enit.intgemm.alphas.bin",
+      "size": 17140899,
+      "estimatedCompressedSize": 13267138,
+      "expectedSha256Hash": "3d7bbc4d7977e10b35f53faa79f5d5de8211f4f04baed9e7cd9dee1dcceda917",
+      "modelType": "prod"
+    },
+    "lex": {
+      "name": "lex.50.50.enit.s2t.bin",
+      "size": 4495004,
+      "estimatedCompressedSize": 2441969,
+      "expectedSha256Hash": "351ea80fb9f366f07533c7c4836248e72d9d4aa4eb7a05b5d74891a7abb4208c",
+      "modelType": "prod"
+    },
+    "vocab": {
+      "name": "vocab.enit.spm",
+      "size": 812781,
+      "estimatedCompressedSize": 408834,
+      "expectedSha256Hash": "603f3349657c3deb9736a0c567452d102a5a03c377dfdf1d32c428608f2cff1b",
       "modelType": "prod"
     }
   },
@@ -369,29 +392,6 @@ const modelRegistry = {
       "size": 794181,
       "estimatedCompressedSize": 372636,
       "expectedSha256Hash": "ecf95b5cf04b86bf68113b3d6fdcf23c2728eb5929cebc0f5aa5c4d8b8330fa4",
-      "modelType": "dev"
-    }
-  },
-  "enit": {
-    "model": {
-      "name": "model.enit.intgemm.alphas.bin",
-      "size": 17140836,
-      "estimatedCompressedSize": 13283223,
-      "expectedSha256Hash": "a5ce3723f62ead92a0e0373b6df0ad8e3e6d22963adb1333984206e33b8b6c61",
-      "modelType": "dev"
-    },
-    "lex": {
-      "name": "lex.50.50.enit.s2t.bin",
-      "size": 4489920,
-      "estimatedCompressedSize": 2409986,
-      "expectedSha256Hash": "bb1fad3b3f6a13ebce1698cf7f39ca736c4dea4525f3dab5e1a78436f07445e6",
-      "modelType": "dev"
-    },
-    "vocab": {
-      "name": "vocab.enit.spm",
-      "size": 814128,
-      "estimatedCompressedSize": 405338,
-      "expectedSha256Hash": "de8cbeb79e0139304bfa47e8559f2447016bf9906225a97d3df1baed4de8f3a3",
       "modelType": "dev"
     }
   },
