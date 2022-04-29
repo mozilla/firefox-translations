@@ -538,7 +538,7 @@ class InPageTranslation {
             // console.groupCollapsed(computePath(node));
             node.setAttribute('x-bergamot-translated', '');
             
-            const scratch = node.cloneNode(false); // shallow clone of parent node
+            const scratch = document.createElement('template');
             scratch.innerHTML = translated;
 
             const originalHTML = node.innerHTML;
@@ -633,7 +633,7 @@ class InPageTranslation {
                     });
             };
 
-            merge(node, scratch);
+            merge(node, scratch.content);
         };
 
         // Pause observing mutations
