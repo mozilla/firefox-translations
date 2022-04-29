@@ -55,7 +55,7 @@
 		}
 	],
 	"incognito": "spanning",
-	"page_action":
+	"browser_action":
 	{
 		"browser_style": true,
 		"default_icon":
