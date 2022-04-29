@@ -78,9 +78,7 @@ class TranslationHelper {
                 wasmBinary: wasmArrayBuffer,
             };
             try {
-                // eslint-disable-next-line no-unused-vars
-                const { addOnPreMain, Module } = loadEmscriptenGlueCode(initialModule);
-                this.WasmEngineModule = Module;
+                this.WasmEngineModule = loadEmscriptenGlueCode(initialModule);
             } catch (e) {
                 console.log("Error loading wasm module:", e);
                 postMessage(["reportError", "engine_load"]);
