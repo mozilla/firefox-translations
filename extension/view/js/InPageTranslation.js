@@ -607,7 +607,18 @@ class InPageTranslation {
                             // Oh this is bad. The original node had text, but
                             // the one that came out of translation doesn't?
                             console.warn(`[InPlaceTranslation] ${computePath(child, scratch)} Child ${child.outerHTML} has no text but counterpart ${counterpart.outerHTML} does`);
-                            removeTextNodes(counterpart); // TODO this should not be necessary
+                            
+                            // TODO: This scenario might be caused by one of two
+                            // causes: 1) element was duplicated by translation
+                            // but then not given text content. This happens on
+                            // Wikipedia articles for example.
+                            if (clonedNodes.has(counterpart.dataset.xBergamotId))
+                                removeTextNodes(counterpart);
+
+                            // Or 2) the translator messed up and could not
+                            // translate the text. This happens on Youtube in the
+                            // language selector. In that case, having the original
+                            // text is much better than no text at all.
                         }
 
                         // Put the live node back in the live branch. But now
