@@ -11,21 +11,12 @@
  this.experiments_translationbar = class extends ExtensionAPI {
     getAPI(context) {
 
-      const { ExtensionUtils } = ChromeUtils.import(
-        "resource://gre/modules/ExtensionUtils.jsm",
-        {},
-      );
+      const { ExtensionUtils } = ChromeUtils.import("resource://gre/modules/ExtensionUtils.jsm");
       const { ExtensionError } = ExtensionUtils;
 
-      const { Services } = ChromeUtils.import(
-        "resource://gre/modules/Services.jsm",
-        {},
-      );
+      const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-      const { ExtensionCommon } = ChromeUtils.import(
-        "resource://gre/modules/ExtensionCommon.jsm",
-        {},
-      );
+      const { ExtensionCommon } = ChromeUtils.import("resource://gre/modules/ExtensionCommon.jsm");
 
       // map responsible holding the TranslationNotificationManager per tabid
       const translationNotificationManagers = new Map();
@@ -126,10 +117,7 @@
               translatonNotificationManager.notificationBox.updateTranslationProgress(progressMessage);
             },
             switchOnPreferences: function switchOnPreferences() {
-               const { Services } = ChromeUtils.import(
-                 "resource://gre/modules/Services.jsm",
-                 {},
-               );
+               const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
                Services.prefs.setBoolPref("browser.translation.ui.show", false);
                Services.prefs.setBoolPref("extensions.translations.disabled", false);
                Services.prefs.setBoolPref("browser.translation.detectLanguage",false,);
