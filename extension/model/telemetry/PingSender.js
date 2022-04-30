@@ -45,19 +45,15 @@ class PingSender {
             const platformInfo = await browser.runtime.getPlatformInfo();
             this._browserEnv = { os: platformInfo.os, arch: platformInfo.arch };
 
-            await this._loadUploadPref();
-            browser.experiments.telemetryPreferences.onUploadEnabledPrefChange.addListener(async () => {
-                await this._loadUploadPref();
-            });
-
             this._isInitialized = true;
             this._log("initialized");
         });
     }
 
+    // disabled for now since the we need a dedicated consent page for AMO addons
     async _loadUploadPref() {
         let uploadEnabled = await browser.experiments.telemetryPreferences.getUploadEnabledPref();
-        await this._setUploadEnabled(uploadEnabled);
+        await this.setUploadEnabled(uploadEnabled);
     }
 
     async _save() {
@@ -70,7 +66,7 @@ class PingSender {
         this._log("state saved", state);
     }
 
-    async _setUploadEnabled(val) {
+    async setUploadEnabled(val) {
         if (!val) {
             await this.submit(DELETION_REQUEST_PING, {})
         }

@@ -169,6 +169,10 @@ const translationNotificationManagers = new Map();
               // eslint-disable-next-line no-undefined
               return Services.intl.getLanguageDisplayNames(undefined, [languageCode,])[0];
             },
+            isMochitest: function isMochitest() {
+              const isMochitest = Services.prefs.getBoolPref("fxtranslations.running.mochitest");
+              return isMochitest;
+            },
            onTranslationRequest: new ExtensionCommon.EventManager({
               context,
               name: "experiments.translationbar.onTranslationRequest",
