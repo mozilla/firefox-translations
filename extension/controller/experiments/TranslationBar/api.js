@@ -21,9 +21,9 @@
       // map responsible holding the TranslationNotificationManager per tabid
       const translationNotificationManagers = new Map();
 
-      Services.scriptloader.loadSubScript(`${context.extension.getURL("/view/js/TranslationNotificationManager.js",)}?cachebuster=${Date.now()}`
+      Services.scriptloader.loadSubScript(`${context.extension.getURL("/view/js/TranslationNotificationManager.js",)}`
       ,);
-      Services.scriptloader.loadSubScript(`${context.extension.getURL("/model/modelRegistry.js",)}?cachebuster=${Date.now()}`
+      Services.scriptloader.loadSubScript(`${context.extension.getURL("/model/modelRegistry.js",)}`
       ,);
 
       /*
@@ -65,19 +65,12 @@
                   return;
                 }
 
-                /*
-                 * as a workaround to be able to load updates for the translation notification on extension reload
-                 * we use the current unix timestamp as part of the element id.
-                 * TODO: Restrict use of Date.now() as cachebuster to development mode only
-                 */
                 chromeWin.now = Date.now();
                 chromeWin.customElements.setElementCreationCallback(
                   `translation-notification-${chromeWin.now}`,
                   () => {
                     Services.scriptloader.loadSubScript(
-                      `${context.extension.getURL("view/js/translation-notification-fxtranslations.js",)
-                        }?cachebuster=${
-                        chromeWin.now}`,
+                      `${context.extension.getURL("view/js/translation-notification-fxtranslations.js",)}`,
                       chromeWin,
                     );
 
