@@ -153,7 +153,7 @@ add_task(async function testTranslationBarDisplayed() {
   });
 
   delete window.MozTranslationNotification;
-  delete window.now;
+  delete window.TRANSLATION_NOTIFICATION_ELEMENT_ID;
   notification.close();
   BrowserTestUtils.removeTab(tab);
 });
