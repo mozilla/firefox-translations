@@ -212,16 +212,6 @@ const messageListener = function(message, sender) {
             );
             break;
         case "recordTelemetry":
-
-          /*
-           * if the event was to close the infobar, we notify the api as well
-           * we don't need another redundant loop by informing the mediator,
-           * to then inform this script again
-           */
-          if (message.name === "closed") {
-            browser.experiments.translationbar.closeInfobar(message.tabId);
-          }
-
           getTelemetry(message.tabId).record(message.type, message.category, message.name, message.value);
           break;
 
@@ -303,9 +293,6 @@ const messageListener = function(message, sender) {
               tabId: message.tabId
             }
           );
-          break;
-        case "reportClosedInfobar":
-          browser.experiments.translationbar.closeInfobar(message.tabId);
           break;
         case "setStorage":
           await browser.storage.local.set(message.payload)
