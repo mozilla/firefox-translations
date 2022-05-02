@@ -176,6 +176,10 @@ class InPageTranslation {
         // Language we expect. If we find elements that do not match, nope out.
         this.language = language;
 
+        // Pre-construct the excluded node selector. Doing it here since it
+        // needs to know `language`. See `containsExcludedNode()`.
+        this.excludedNodeSelector = `[lang]:not([lang|="${this.language}"]),[translate=no],${Array.from(this.excludedTags).join(',')}`;
+
         const pageTitle = document.querySelector("head > title");
         if (pageTitle && this.validateNodeForQueue(pageTitle) === NodeFilter.FILTER_ACCEPT)
             this.enqueueTranslation(pageTitle);
@@ -406,7 +410,7 @@ class InPageTranslation {
     containsExcludedNode(node) {
         // TODO describe this in terms of the function above, but I assume
         // using querySelector is faster for now.
-        return node.querySelector(`[lang]:not([lang|="${this.language}"]),[translate=no],${Array.from(this.excludedTags).join(',')}`);
+        return node.querySelector(this.excludedNodeSelector);
     }
 
     /**
