@@ -7,6 +7,15 @@
 
 /* global ExtensionAPI, ChromeUtils, modelRegistry, TranslationNotificationManager  */
 
+/*
+ * custom elements can only be registered, and not unregistered.
+ * To make sure that the extension is able to register the custom element
+ * even after an extension update/reload, use a generated unique name.
+ */
+const TRANSLATION_NOTIFICATION_ELEMENT_ID = `translation-notification-${Date.now()}`;
+const windowsWithCustomElement = new WeakSet();
+
+
  // eslint-disable-next-line no-invalid-this
  this.experiments_translationbar = class extends ExtensionAPI {
     getAPI(context) {
@@ -65,22 +74,19 @@
                   return;
                 }
 
-                chromeWin.now = Date.now();
-                chromeWin.customElements.setElementCreationCallback(
-                  `translation-notification-${chromeWin.now}`,
-                  () => {
-                    Services.scriptloader.loadSubScript(
-                      `${context.extension.getURL("view/js/translation-notification-fxtranslations.js",)}`,
-                      chromeWin,
-                    );
-
-                  },
-                );
+                if (!windowsWithCustomElement.has(chromeWin)) {
+                  windowsWithCustomElement.add(chromeWin);
+                  chromeWin.TRANSLATION_NOTIFICATION_ELEMENT_ID = TRANSLATION_NOTIFICATION_ELEMENT_ID;
+                  Services.scriptloader.loadSubScript(
+                    context.extension.getURL("view/js/translation-notification-fxtranslations.js"),
+                    chromeWin
+                  );
+                }
 
                 const notificationBox = tab.browser.ownerGlobal.gBrowser.getNotificationBox(tab.browser);
                 let notif = notificationBox.appendNotification("fxtranslation-notification", {
                     priority: notificationBox.PRIORITY_INFO_HIGH,
-                    notificationIs: `translation-notification-${chromeWin.now}`,
+                    notificationIs: TRANSLATION_NOTIFICATION_ELEMENT_ID,
                 });
                 let translationNotificationManager = new TranslationNotificationManager(
                   this,
