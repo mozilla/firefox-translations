@@ -293,20 +293,18 @@ class InPageTranslation {
     /**
      * Test whether the element is visible.
      */
-    isElementHidden(element) {
-        return element.style.display === "none" || element.style.visibility === "hidden" || element.offsetParent === null;
+    isElementVisible(element) {
+        // Based on jQuery (talk about battle-tested...)
+        // https://github.com/jquery/jquery/blob/main/src/css/hiddenVisibleSelectors.js
+        return !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
     }
 
     /**
      * Test whether any of the parent nodes are already in the process of being
-     * translated.
+     * translated. If the parent of the node is already translating we should 
+     * reject it since we already sent it to translation.
      */
     isParentQueued(node){
-        /*
-         * if the parent of the node is already translating we should reject
-         * it since we already sent it to translation
-         */
-
         // if the immediate parent is the body we just allow it
         if (node.parentNode === document.body) {
             return false;
@@ -483,7 +481,7 @@ class InPageTranslation {
         node.setAttribute('x-bergamot-translated', this.translationsCounter);
 
         let priority = 2;
-        if (this.isElementHidden(node))
+        if (!this.isElementVisible(node))
             priority = 3;
         else if (this.isElementInViewport(node))
             priority = 1;
