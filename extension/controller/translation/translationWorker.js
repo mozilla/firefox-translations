@@ -16,7 +16,7 @@ let engineWasmLocalPath;
  */
 class TranslationHelper {
 
-        constructor(postMessage) {
+        constructor() {
             // all variables specific to translation service
             this.translationService = null;
             this.responseOptions = null;
@@ -24,7 +24,6 @@ class TranslationHelper {
             // a map of language-pair to TranslationModel object
             this.translationModels = new Map();
             this.CACHE_NAME = "fxtranslations";
-            this.postMessage = postMessage;
             this.wasmModuleStartTimestamp = null;
             this.WasmEngineModule = null;
             this.engineState = this.ENGINE_STATE.LOAD_PENDING;
@@ -698,7 +697,7 @@ class TranslationHelper {
         }
 }
 
-const translationHelper = new TranslationHelper(postMessage);
+const translationHelper = new TranslationHelper();
 onmessage = function(message) {
     switch (message.data[0]) {
         case "configEngine":
