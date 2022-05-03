@@ -41,8 +41,7 @@ class OutboundTranslation {
       this.otDiv.innerHTML = pageFragment;
       this.otDiv.id = "fxtranslations-ot";
       this.pageStatusLabel = this.otDiv.querySelector(".fxtranslations-status");
-      const localizedString = browser.i18n.getMessage("formtranslationsDescription", [navigatorLanguage, pageLanguage]);
-      const cleanString = DOMPurify.sanitize(localizedString, { USE_PROFILES: { html: true } });
+      const cleanString = DOMPurify.sanitize(browser.i18n.getMessage("formtranslationsDescription", [navigatorLanguage, pageLanguage]), { USE_PROFILES: { html: true } });
       this.otDiv.querySelector(".fxtranslations-header").innerHTML = cleanString;
 
       // it's safe to hardcode the widget to have the highest possible zindex in the page
