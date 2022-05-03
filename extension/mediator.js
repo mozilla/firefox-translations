@@ -112,7 +112,6 @@ class Mediator {
                  * it is recommended to use visibilitychange event for this use case,
                  * but it triggers some errors because of communication with bgScript, so let's use beforeunload for now
                  */
-                browser.runtime.sendMessage({ command: "reportClosedInfobar", tabId: this.tabId });
                 browser.runtime.sendMessage({ command: "submitPing", tabId: this.tabId });
             });
 
