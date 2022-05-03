@@ -26,8 +26,6 @@ let modelFastText = null;
 let modelFastTextReadyPromise = null;
 let platformInfo = null;
 
-// as soon we load, we should turn off the legacy prefs to avoid UI conflicts
-browser.experiments.translationbar.switchOnPreferences();
 let telemetryByTab = new Map();
 let translationRequestsByTab = new Map();
 let outboundRequestsByTab = new Map();

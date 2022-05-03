@@ -95,7 +95,8 @@
             "translationbar"
           ]
         ],
-        "script": "controller/experiments/TranslationBar/api.js"
+        "script": "controller/experiments/TranslationBar/api.js",
+        "events": ["startup"]
       }
     },
     "experiment_telemetryEnvironment": {

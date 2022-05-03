@@ -5,7 +5,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-/* global ExtensionAPI, ChromeUtils, modelRegistry, TranslationNotificationManager  */
+/* global ExtensionCommon, ExtensionAPI, ChromeUtils, Services, modelRegistry, TranslationNotificationManager  */
+
+// the Services object was not available until Firefox 88 - bugzil.la/1698158
+if (typeof Services === "undefined") {
+  // eslint-disable-next-line no-invalid-this
+  this.Services = ChromeUtils.import("resource://gre/modules/Services.jsm").Services;
+}
 
 /*
  * custom elements can only be registered, and not unregistered.
@@ -15,13 +21,44 @@
 const TRANSLATION_NOTIFICATION_ELEMENT_ID = `translation-notification-${Date.now()}`;
 const windowsWithCustomElement = new WeakSet();
 
+// original value of prefs to restore on normal shutdown (won't work if the browser crashes).
+const prefsToRestore = new Map();
 
 // map responsible holding the TranslationNotificationManager per tabid
 const translationNotificationManagers = new Map();
 
  // eslint-disable-next-line no-invalid-this
  this.experiments_translationbar = class extends ExtensionAPI {
+    onStartup() {
+      // as soon we load, we should turn off the legacy prefs to avoid UI conflicts
+
+      // sets a bool pref whose original value is restored on shutdown.
+      const setBoolPref = (prefName, value) => {
+        let oldValue;
+        let prefType = Services.prefs.getPrefType(prefName);
+        if (prefType === Services.prefs.PREF_BOOL) {
+          oldValue = Services.prefs.getBoolPref(prefName);
+        } else if (prefType !== Services.prefs.PREF_INVALID) {
+          // the PREF_INT and PREF_STRING types are not expected, so let's ignore them.
+          console.error(`Ignoring unexpected pref type for ${prefName} (${prefType})`);
+        }
+        prefsToRestore.set(prefName, oldValue);
+        Services.prefs.setBoolPref(prefName, value);
+      };
+      setBoolPref("browser.translation.ui.show", false);
+      setBoolPref("extensions.translations.disabled", false);
+      setBoolPref("browser.translation.detectLanguage", false);
+      setBoolPref("javascript.options.wasm_simd_wormhole", true);
+    }
+
     onShutdown(isAppShutdown) {
+      for (let [prefName, oldValue] of prefsToRestore) {
+        if (typeof oldValue === "boolean") {
+          Services.prefs.setBoolPref(prefName, oldValue);
+        } else {
+          Services.prefs.clearUserPref(prefName);
+        }
+      }
       if (isAppShutdown) {
         // don't bother with cleaning up the UI if the browser is shutting down.
         return;
@@ -37,10 +74,6 @@ const translationNotificationManagers = new Map();
 
       const { ExtensionUtils } = ChromeUtils.import("resource://gre/modules/ExtensionUtils.jsm");
       const { ExtensionError } = ExtensionUtils;
-
-      const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
-
-      const { ExtensionCommon } = ChromeUtils.import("resource://gre/modules/ExtensionCommon.jsm");
 
       Services.scriptloader.loadSubScript(`${context.extension.getURL("/view/js/TranslationNotificationManager.js",)}`
       ,);
@@ -131,13 +164,6 @@ const translationNotificationManagers = new Map();
             updateProgress: function updateProgress(tabId, progressMessage) {
               const translatonNotificationManager = translationNotificationManagers.get(tabId);
               translatonNotificationManager.notificationBox.updateTranslationProgress(progressMessage);
-            },
-            switchOnPreferences: function switchOnPreferences() {
-               const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
-               Services.prefs.setBoolPref("browser.translation.ui.show", false);
-               Services.prefs.setBoolPref("extensions.translations.disabled", false);
-               Services.prefs.setBoolPref("browser.translation.detectLanguage",false,);
-               Services.prefs.setBoolPref("javascript.options.wasm_simd_wormhole",true,);
             },
             getLocalizedLanguageName: function getLocalizedLanguageName(languageCode){
               // eslint-disable-next-line no-undefined
