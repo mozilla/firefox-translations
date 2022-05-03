@@ -48,7 +48,6 @@
       "js": [
         "model/Queue.js",
         "controller/translation/TranslationMessage.js",
-        "controller/translation/translationWorker.js",
         "controller/translation/Translation.js"
       ],
       "all_frames": false,
