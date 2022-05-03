@@ -143,18 +143,14 @@ class Mediator {
     contentScriptsMessageListener(sender, message) {
         switch (message.command) {
             case "translate":
+                message.origin = THIS_ORIGIN;
                 if (this.isMainFrame) {
-                    if (!("origin" in message)) message.origin = THIS_ORIGIN;
                     // eslint-disable-next-line no-case-declarations
                     this.translate(message);
                 } else {
+                    message.tabId = this.tabId;
                     // pass to the worker in top frame through bgScript
-                    browser.runtime.sendMessage({
-                        command: "translate",
-                        tabId: this.tabId,
-                        origin: THIS_ORIGIN,
-                        payload: message.payload
-                    });
+                    browser.runtime.sendMessage(message);
                 }
 
                 if (message.payload.type === "outbound") {
