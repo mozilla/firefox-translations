@@ -19,6 +19,9 @@ window.addEventListener("load", function () {
   });
 });
 
+const THIS_ORIGIN = window.origin !== "null"
+  ? window.origin
+  : location.origin;
 
 class Mediator {
 
@@ -137,16 +140,14 @@ class Mediator {
     contentScriptsMessageListener(sender, message) {
         switch (message.command) {
             case "translate":
+                message.origin = THIS_ORIGIN;
                 if (this.isMainFrame) {
                     // eslint-disable-next-line no-case-declarations
                     this.translate(message);
                 } else {
+                    message.tabId = this.tabId;
                     // pass to the worker in top frame through bgScript
-                    browser.runtime.sendMessage({
-                        command: "translate",
-                        tabId: this.tabId,
-                        payload: message.payload
-                    });
+                    browser.runtime.sendMessage(message);
                 }
 
                 if (message.payload.type === "outbound") {
@@ -266,6 +267,7 @@ class Mediator {
             message.payload.type,
             this.tabId,
             message.frameId,
+            message.origin,
             this.languageDetection.navigatorLanguage,
             this.languageDetection.pageLanguage,
             message.payload.attrId,
@@ -288,6 +290,12 @@ class Mediator {
     }
 
     updateElements(translationMessage) {
+        if (THIS_ORIGIN !== translationMessage.origin) {
+            console.warn(`Message with a different origin is received. Skipping updating. 
+                               Window origin: ${THIS_ORIGIN}, Message origin: ${translationMessage.origin}`)
+            return;
+        }
+
         if (translationMessage.type === "inpage") {
             this.inPageTranslation.mediatorNotification(translationMessage);
         } else if ((translationMessage.type === "outbound") || (translationMessage.type === "backTranslation")) {
