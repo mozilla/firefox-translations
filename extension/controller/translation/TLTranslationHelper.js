@@ -23,18 +23,16 @@ class PortChannel {
         return new PromiseWithProgress((resolve, reject, update) => {
             const id = ++this.serial;
             this.pending.set(id, {resolve, reject, update});
-            console.log('Sending', {id, command, data})
             this.port.postMessage({id, command, data});
         })
     }
 
     onMessage(message) {
-        console.log('Received', message);
-        
         if (message.id === undefined) {
             console.warn('Ignoring message from translateLocally that was missing the id', message);
+            return;
         }
-
+        
         const {resolve, reject, update} = this.pending.get(message.id);
 
         if (!message.update)
