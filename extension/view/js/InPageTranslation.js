@@ -219,13 +219,6 @@ class InPageTranslation {
                 el.classList.toggle("bad",true);
             }
         });
-
-        // add tooltips to each (sub)word with sentence and word score.
-        document.querySelectorAll("[x-bergamot-sentence-score] > [x-bergamot-word-score]").forEach(el => {
-          const sentenceScore = parseFloat(el.parentNode.getAttribute("x-bergamot-sentence-score"));
-          const wordScore = parseFloat(el.getAttribute("x-bergamot-word-score"));
-          el.title = `Sentence: ${sentenceScore}  Word: ${wordScore}`;
-        });
       }
 
     startTreeWalker(root) {
