@@ -24,7 +24,6 @@ let cachedEnvInfo = null;
 let pingSender = new PingSender();
 let modelFastText = null;
 let modelFastTextReadyPromise = null;
-let languageDetection = null;
 let platformInfo = null;
 
 // as soon we load, we should turn off the legacy prefs to avoid UI conflicts
@@ -74,16 +73,14 @@ const messageListener = function(message, sender) {
   // eslint-disable-next-line complexity,max-lines-per-function
     Sentry.wrap(async() => {
       switch (message.command) {
-        case "detectPageLanguage":
+        case "detectPageLanguage": {
           await modelFastTextReadyPromise;
 
-          languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
-
           /*
-           * if we don't support this browser's language, we nede to hide the
+           * if we don't support this browser's language, we need to hide the
            * page action and bail right away
            */
-          if (!languageDetection.isBrowserSupported()) {
+          if (!message.languageDetection.supported) {
             browser.pageAction.hide(sender.tab.id);
             break;
           }
@@ -92,8 +89,8 @@ const messageListener = function(message, sender) {
            * call the cld experiment to detect the language of the snippet
            * extracted from the page
            */
-          languageDetection.pageLanguage = modelFastText
-            .predict(languageDetection.wordsToDetect.trim().replace(/(\r\n|\n|\r)/gm, ""), 1, 0.0)
+          let pageLanguage = modelFastText
+            .predict(message.languageDetection.wordsToDetect.trim().replace(/(\r\n|\n|\r)/gm, ""), 1, 0.0)
             .get(0)[1]
             .replace("__label__", "");
 
@@ -102,12 +99,13 @@ const messageListener = function(message, sender) {
            * so we need to default it to "nb", since that's what FF
            * localization mechanisms has set
            */
-          if (languageDetection.pageLanguage === "no") languageDetection.pageLanguage = "nb"
+          if (pageLanguage === "no") pageLanguage = "nb"
           browser.tabs.sendMessage(sender.tab.id, {
             command: "responseDetectPageLanguage",
-            languageDetection
+            pageLanguage,
           })
           break;
+        }
         case "monitorTabLoad":
           if (!await isFrameLoaded(sender.tab.id, sender.frameId)) return;
             browser.tabs.sendMessage(
@@ -337,6 +335,7 @@ browser.pageAction.onClicked.addListener(tab => {
          * doesn't have a language detected, so for that reason we set the language
          * parameter as 'userrequest', in order to override the preferences.
          */
+          let languageDetection = new LanguageDetection();
           if (languageDetection.isBrowserSupported()) {
             browser.experiments.translationbar.show(
                 tab.id,
