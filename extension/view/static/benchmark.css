@@ -1,0 +1,17 @@
+html, body {
+	font: 14px/18px sans-serif;
+}
+
+.activity-indicator {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background: #933;
+	color: white;
+	padding: 0 1em;
+}
+
+.activity-indicator progress {
+/*	margin: 1em 0;*/
+}

@@ -1,9 +1,9 @@
 // Defaults. Duplicated in backgroundScript.js :(
 
-const state = new Proxy({
+const state = {
 	provider: 'wasm',
 	translateLocallyAvailable: false
-}, StateHelper);
+};
 
 browser.storage.local.get().then(localState => {
 	Object.assign(state, localState);

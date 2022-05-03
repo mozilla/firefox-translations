@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Bergamot Browser Benchmark</title>
+		<link rel="stylesheet" href="benchmark.css">
+	</head>
+	<body>
+		<div class="activity-indicator" data-bind:hidden="!busy">
+			<p><progress></progress> Doing things…</p>
+		</div>
+
+		<table id="results">
+			<thead>
+				<tr>
+					<th>Implementation</th>
+					<th>Time</th>
+					<th>WPS</th>
+				</tr>
+			</thead>
+			<tbody>
+				<template id="results-row">
+					<tr>
+						<td data-bind:text-content="name"></td>
+						<td>
+							<progress data-bind:hidden="time" data-bind:value="done" data-bind:max="total"></progress>
+							<span data-bind:hidden="!time" data-bind:text-content="time"></span>
+						</td>
+						<td data-bind:text-content="wps"></td>
+					</tr>
+				</template>
+			</tbody>
+		</table>
+
+		<p>Test set: <input type="file" id="test-set-selector" accept="application/xml"></p>
+		<p>Total number of words in test set: <span data-bind:text-content="words">???</span></p>
+
+		<p><button id="run-test" data-bind:disabled="!texts">Run tests</button></p>
+
+		<script src="../../3rd_party/pako/pako_inflate.js"></script>
+		<script src="../../3rd_party/js-untar/untar.js"></script>
+		<script src="../../controller/translation/func.js"></script>
+		<script src="../../controller/translation/promise.js"></script>
+		<script src="../../controller/translation/yaml.js"></script>
+		<script src="../../controller/translation/TLTranslationHelper.js"></script>
+		<script src="../../controller/translation/WASMTranslationHelper.js"></script>
+		<script src="common.js"></script>
+		<script src="benchmark.js"></script>
+	</body>
+</html>

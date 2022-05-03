@@ -25,8 +25,8 @@ function render(state) {
 		'lang-from-options': new Map(state.page.models.map(({from}) => [from, name(from)])),
 		'lang-to-options': new Map(state.page.models.filter(model => from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
 		'needs-download': needsDownload,
-		'!needs-download': !needsDownload, // data-bind has no operators, so ! goes in the name :P
-		'completedTranslationRequests': state.totalTranslationRequests - state.pendingTranslationRequests || undefined
+		'completedTranslationRequests': state.totalTranslationRequests - state.pendingTranslationRequests || undefined,
+		'benchmarkURL': browser.runtime.getURL('view/static/benchmark.html')
 	};
 
 	// Toggle "hidden" state of all <div data-state=""> elements

@@ -52,8 +52,10 @@ function queryXPathAll(query, callback) {
 }
 
 function renderBoundElements(state) {
+	const stateProxy = new Proxy(state, StateHelper);
+
 	// Assign values to each element that has <div data-bind:something=""> attributes
-	queryXPathAll('//*[@*[starts-with(name(), "data-bind:")]]').forEach(el => {
+	queryXPathAll.call(this, './/*[@*[starts-with(name(), "data-bind:")]]').forEach(el => {
 		Object.entries(el.dataset).forEach(([key, value]) => {
 			let match = key.match(/^bind:(.+)$/);
 			if (!match) return;
@@ -61,16 +63,16 @@ function renderBoundElements(state) {
 			try {
 				switch (match[1]) {
 					case 'options':
-						renderSelect(el, state[value]);
+						renderSelect(el, stateProxy[value]);
 						break;
 					default:
 						// Special case for <progress value=undefined> to get an indeterminate progress bar
-						if (match[1] === 'value' && el instanceof HTMLProgressElement && typeof state[value] !== 'number') {
+						if (match[1] === 'value' && el instanceof HTMLProgressElement && typeof stateProxy[value] !== 'number') {
 							el.removeAttribute('value');
 						} else {
-							if (!(value in state))
+							if (!(value in stateProxy))
 								console.warn('render state has no key', value);
-							el[match[1]] = state[value];
+							el[match[1]] = stateProxy[value];
 						}
 						break;
 				}
@@ -90,4 +92,19 @@ function addBoundElementListeners(callback) {
 			callback(e.target.dataset['bind:checked'], e.target.checked, e);
 		}
 	});
+}
+
+function debounce(callable) {
+	let scheduled = null;
+	return (...args) => {
+		if (scheduled) {
+			scheduled.args = args;
+		} else {
+			scheduled = {args};
+			requestIdleCallback(() => {
+				callable(...scheduled.args);
+				scheduled = null;
+			}, {timeout: 500});
+		}
+	};
 }
