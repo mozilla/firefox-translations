@@ -23,6 +23,7 @@ window.addEventListener("load", function () {
 let cachedEnvInfo = null;
 let pingSender = new PingSender();
 let modelFastText = null;
+let modelFastTextReadyPromise = null;
 let languageDetection = null;
 let platformInfo = null;
 
@@ -74,7 +75,7 @@ const messageListener = function(message, sender) {
     Sentry.wrap(async() => {
       switch (message.command) {
         case "detectPageLanguage":
-          if (!modelFastText) break;
+          await modelFastTextReadyPromise;
 
           languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
 
@@ -212,16 +213,6 @@ const messageListener = function(message, sender) {
             );
             break;
         case "recordTelemetry":
-
-          /*
-           * if the event was to close the infobar, we notify the api as well
-           * we don't need another redundant loop by informing the mediator,
-           * to then inform this script again
-           */
-          if (message.name === "closed") {
-            browser.experiments.translationbar.closeInfobar(message.tabId);
-          }
-
           getTelemetry(message.tabId).record(message.type, message.category, message.name, message.value);
           break;
 
@@ -274,23 +265,6 @@ const messageListener = function(message, sender) {
             message.progressMessage
           );
           break;
-        case "outBoundtranslationRequested":
-
-          /*
-           * requested for outbound translation received.
-           * since we know the direction of translation,
-           * let's switch it and inform the mediator
-           */
-          browser.tabs.sendMessage(
-            message.tabId,
-            {
-              command: "outboundTranslationRequested",
-              tabId: message.tabId,
-              from: message.to, // we switch the requests directions here
-              to: message.from
-            }
-          );
-          break;
         case "displayStatistics":
 
           /*
@@ -303,9 +277,6 @@ const messageListener = function(message, sender) {
               tabId: message.tabId
             }
           );
-          break;
-        case "reportClosedInfobar":
-          browser.experiments.translationbar.closeInfobar(message.tabId);
           break;
         case "setStorage":
           await browser.storage.local.set(message.payload)
@@ -334,25 +305,28 @@ browser.experiments.translationbar.onTranslationRequest.addListener(messageListe
 init();
 
 // loads fasttext (language detection) wasm module and model
-fetch(browser
+modelFastTextReadyPromise =
+  fetch(browser
     .runtime.getURL("model/static/languageDetection/fasttext_wasm.wasm"), { mode: "no-cors" })
     .then(function(response) {
         return response.arrayBuffer();
     })
     .then(function(wasmArrayBuffer) {
+      return new Promise(resolve => {
+        const modelUrl = browser.runtime.getURL("model/static/languageDetection/lid.176.ftz");
         const initialModule = {
             onRuntimeInitialized() {
                 const ft = new FastText(initialModule);
-                ft.loadModel(browser
-                    .runtime.getURL("model/static/languageDetection/lid.176.ftz"))
-                    .then(model => {
-                    modelFastText = model;
-                });
+                resolve(ft.loadModel(modelUrl));
             },
             wasmBinary: wasmArrayBuffer,
         };
-    loadFastText(initialModule);
-});
+        loadFastText(initialModule);
+      });
+    })
+    .then(model => {
+      modelFastText = model;
+    });
 
 browser.pageAction.onClicked.addListener(tab => {
     Sentry.wrap(async () => {

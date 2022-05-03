@@ -27,6 +27,10 @@ class InPageTranslation {
         this.withOutboundTranslation = null;
         this.withQualityEstimation = null;
         this.QE_THRESHOLD = Math.log(0.5);
+        this.qeAttributes = new Set([
+            "x-bergamot-sentence-index", "x-bergamot-sentence-score",
+            "x-bergamot-word-index", "x-bergamot-word-score",
+        ]);
 
         /*
          * reference for all tags:
@@ -167,6 +171,7 @@ class InPageTranslation {
 
     addDebugStylesheet() {
         const element = document.createElement("style");
+        element.textContent = "";
         document.head.appendChild(element);
         if (!element.sheet) return;
         const sheet = element.sheet;
@@ -179,6 +184,7 @@ class InPageTranslation {
 
     addQEStylesheet() {
         const element = document.createElement("style");
+        element.textContent = "";
         document.head.appendChild(element);
         if (!element.sheet) return;
         const sheet = element.sheet;
@@ -216,13 +222,6 @@ class InPageTranslation {
             if (wordScore < this.QE_THRESHOLD) {
                 el.classList.toggle("bad",true);
             }
-        });
-
-        // add tooltips to each (sub)word with sentence and word score.
-        document.querySelectorAll("[x-bergamot-sentence-score] > [x-bergamot-word-score]").forEach(el => {
-          const sentenceScore = parseFloat(el.parentNode.getAttribute("x-bergamot-sentence-score"));
-          const wordScore = parseFloat(el.getAttribute("x-bergamot-word-score"));
-          el.title = `Sentence: ${sentenceScore}  Word: ${wordScore}`;
         });
       }
 
@@ -290,7 +289,10 @@ class InPageTranslation {
     }
 
     isElementHidden(element) {
-        return element.style.display === "none" || element.style.visibility === "hidden" || element.offsetParent === null;
+        const computedStyle = window.getComputedStyle(element);
+        return computedStyle.display === "none" ||
+                computedStyle.visibility === "hidden" ||
+                element.offsetParent === null;
     }
 
     isParentTranslating(node){
@@ -532,8 +534,13 @@ class InPageTranslation {
             // console.groupCollapsed(computePath(node));
             node.setAttribute("x-bergamot-translated", "");
 
-            const scratch = node.cloneNode(false); // shallow clone of parent node
-            scratch.innerHTML = translatedHTML;
+            /*
+             * create a scratch (a DocumentFragment) from translated html that will be
+             * used to populate the live tree with the translated content
+             */
+            const nonLiveDomContainer = document.createElement("template");
+            nonLiveDomContainer.innerHTML = translatedHTML;
+            const scratch = nonLiveDomContainer.content;
 
             const originalHTML = node.innerHTML;
 
@@ -558,6 +565,18 @@ class InPageTranslation {
                             break;
                     }
                 });
+            };
+
+            // check (recursively) if a given node and all its children have only QE specific attributes
+            const hasOnlyQEAttributes = node => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    if (node.nodeName.toUpperCase() !== "FONT") return false;
+
+                    if (!node.getAttributeNames().every(attribute => this.qeAttributes.has(attribute))) return false;
+
+                    for (let child of node.children) if (!hasOnlyQEAttributes(child)) return false;
+                }
+                return true;
             };
 
             /*
@@ -591,11 +610,11 @@ class InPageTranslation {
 
                             /*
                              * if translated element child doesn't have data-x-bergamot-id attribute and
-                             * has quality score specific attributes (that are set by translation engine
+                             * has only quality score specific attributes (that are set by translation engine
                              * when QE is on) then just add the translated element child to the live
                              * element node.
                              */
-                            if (!child.hasAttribute("data-x-bergamot-id") && (child.hasAttribute("x-bergamot-sentence-index") || child.hasAttribute("x-bergamot-word-index"))) {
+                            if (!child.hasAttribute("data-x-bergamot-id") && hasOnlyQEAttributes(child)) {
                                 dst.appendChild(child);
                             } else {
                                 console.warn(`[InPlaceTranslation] ${this.computePath(child, scratch)} Could not find counterpart for`, child.dataset.xBergamotId, dstChildNodes, child);

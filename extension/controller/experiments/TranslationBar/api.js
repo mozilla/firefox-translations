@@ -16,8 +16,23 @@ const TRANSLATION_NOTIFICATION_ELEMENT_ID = `translation-notification-${Date.now
 const windowsWithCustomElement = new WeakSet();
 
 
+// map responsible holding the TranslationNotificationManager per tabid
+const translationNotificationManagers = new Map();
+
  // eslint-disable-next-line no-invalid-this
  this.experiments_translationbar = class extends ExtensionAPI {
+    onShutdown(isAppShutdown) {
+      if (isAppShutdown) {
+        // don't bother with cleaning up the UI if the browser is shutting down.
+        return;
+      }
+
+      // the bars aren't automatically removed upon extension shutdown, do that here.
+      for (let translationNotificationManager of translationNotificationManagers.values()) {
+        translationNotificationManager.notificationBox.close();
+      }
+    }
+
     getAPI(context) {
 
       const { ExtensionUtils } = ChromeUtils.import("resource://gre/modules/ExtensionUtils.jsm");
@@ -26,9 +41,6 @@ const windowsWithCustomElement = new WeakSet();
       const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
       const { ExtensionCommon } = ChromeUtils.import("resource://gre/modules/ExtensionCommon.jsm");
-
-      // map responsible holding the TranslationNotificationManager per tabid
-      const translationNotificationManagers = new Map();
 
       Services.scriptloader.loadSubScript(`${context.extension.getURL("/view/js/TranslationNotificationManager.js",)}`
       ,);
@@ -86,6 +98,11 @@ const windowsWithCustomElement = new WeakSet();
                 const notificationBox = tab.browser.ownerGlobal.gBrowser.getNotificationBox(tab.browser);
                 let notif = notificationBox.appendNotification("fxtranslation-notification", {
                     priority: notificationBox.PRIORITY_INFO_HIGH,
+                    eventCallback() {
+                      // removed / dismissed / disconnected in any way.
+                      translationNotificationManagers.delete(tabId);
+                      // ^ may also happen when the tab is navigated.
+                    },
                     notificationIs: TRANSLATION_NOTIFICATION_ELEMENT_ID,
                 });
                 let translationNotificationManager = new TranslationNotificationManager(
@@ -126,10 +143,7 @@ const windowsWithCustomElement = new WeakSet();
               // eslint-disable-next-line no-undefined
               return Services.intl.getLanguageDisplayNames(undefined, [languageCode,])[0];
             },
-            closeInfobar: function closeInfobar(tabId) {
-              translationNotificationManagers.delete(tabId);
-            },
-             onTranslationRequest: new ExtensionCommon.EventManager({
+           onTranslationRequest: new ExtensionCommon.EventManager({
               context,
               name: "experiments.translationbar.onTranslationRequest",
               register: fire => {
