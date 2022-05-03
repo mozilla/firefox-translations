@@ -23,6 +23,7 @@ window.addEventListener("load", function () {
 let cachedEnvInfo = null;
 let pingSender = new PingSender();
 let modelFastText = null;
+let modelFastTextReadyPromise = null;
 let languageDetection = null;
 let platformInfo = null;
 
@@ -74,7 +75,7 @@ const messageListener = function(message, sender) {
     Sentry.wrap(async() => {
       switch (message.command) {
         case "detectPageLanguage":
-          if (!modelFastText) break;
+          await modelFastTextReadyPromise;
 
           languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
 
@@ -334,25 +335,28 @@ browser.experiments.translationbar.onTranslationRequest.addListener(messageListe
 init();
 
 // loads fasttext (language detection) wasm module and model
-fetch(browser
+modelFastTextReadyPromise =
+  fetch(browser
     .runtime.getURL("model/static/languageDetection/fasttext_wasm.wasm"), { mode: "no-cors" })
     .then(function(response) {
         return response.arrayBuffer();
     })
     .then(function(wasmArrayBuffer) {
+      return new Promise(resolve => {
+        const modelUrl = browser.runtime.getURL("model/static/languageDetection/lid.176.ftz");
         const initialModule = {
             onRuntimeInitialized() {
                 const ft = new FastText(initialModule);
-                ft.loadModel(browser
-                    .runtime.getURL("model/static/languageDetection/lid.176.ftz"))
-                    .then(model => {
-                    modelFastText = model;
-                });
+                resolve(ft.loadModel(modelUrl));
             },
             wasmBinary: wasmArrayBuffer,
         };
-    loadFastText(initialModule);
-});
+        loadFastText(initialModule);
+      });
+    })
+    .then(model => {
+      modelFastText = model;
+    });
 
 browser.pageAction.onClicked.addListener(tab => {
     Sentry.wrap(async () => {
