@@ -233,7 +233,11 @@ const providers = {
 
 // Global state (and defaults)
 const state = {
-    provider: 'wasm'
+    provider: 'wasm',
+    options: {
+        workers: 1,
+        useNativeIntGemm: true
+    }
 };
 
 // State per tab
@@ -262,7 +266,7 @@ let provider = new class {
             state.provider = 'wasm';
         }
         
-        this.#provider = new providers[state.provider]();
+        this.#provider = new providers[state.provider](state.options);
 
         this.#provider.onerror = err => {
             console.error('Translation provider error:', err);
