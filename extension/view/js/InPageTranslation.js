@@ -27,6 +27,10 @@ class InPageTranslation {
         this.withOutboundTranslation = null;
         this.withQualityEstimation = null;
         this.QE_THRESHOLD = Math.log(0.5);
+        this.qeAttributes = new Set([
+            "x-bergamot-sentence-index", "x-bergamot-sentence-score",
+            "x-bergamot-word-index", "x-bergamot-word-score",
+        ]);
 
         /*
          * reference for all tags:
@@ -560,6 +564,18 @@ class InPageTranslation {
                 });
             };
 
+            // check (recursively) if a given node and all its children have only QE specific attributes
+            const hasOnlyQEAttributes = node => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    if (node.nodeName.toUpperCase() !== "FONT") return false;
+
+                    if (!node.getAttributeNames().every(attribute => this.qeAttributes.has(attribute))) return false;
+
+                    for (let child of node.children) if (!hasOnlyQEAttributes(child)) return false;
+                }
+                return true;
+            };
+
             /*
              * merge the live tree (dst) with the translated tree (src) by
              * re-using elements from the live tree.
@@ -588,22 +604,6 @@ class InPageTranslation {
                         let counterpart = dstChildNodes[child.dataset.xBergamotId];
 
                         if (!counterpart) {
-
-                            const hasOnlyQEAttributes = node => {
-                                const allowed = new Set([
-                                    "x-bergamot-sentence-index", "x-bergamot-sentence-score",
-                                    "x-bergamot-word-index", "x-bergamot-word-score",
-                                ]);
-
-                                if (node.nodeType === Node.ELEMENT_NODE) {
-                                    if (node.nodeName !== "FONT") return false;
-
-                                    if (!node.getAttributeNames().every(attribute => allowed.has(attribute))) return false;
-
-                                    for (let child of node.childNodes) if (!hasOnlyQEAttributes(child)) return false;
-                                }
-                                return true;
-                            };
 
                             /*
                              * if translated element child doesn't have data-x-bergamot-id attribute and
