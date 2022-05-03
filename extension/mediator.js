@@ -19,11 +19,9 @@ window.addEventListener("load", function () {
   });
 });
 
-const getOrigin = () => {
-    return window.origin !== null
-      ? window.origin
-      : location.origin;
-}
+const THIS_ORIGIN = window.origin !== "null"
+  ? window.origin
+  : location.origin;
 
 class Mediator {
 
@@ -146,6 +144,7 @@ class Mediator {
         switch (message.command) {
             case "translate":
                 if (this.isMainFrame) {
+                    if (!("origin" in message)) message.origin = THIS_ORIGIN;
                     // eslint-disable-next-line no-case-declarations
                     this.translate(message);
                 } else {
@@ -153,7 +152,7 @@ class Mediator {
                     browser.runtime.sendMessage({
                         command: "translate",
                         tabId: this.tabId,
-                        origin: getOrigin(),
+                        origin: THIS_ORIGIN,
                         payload: message.payload
                     });
                 }
@@ -298,6 +297,12 @@ class Mediator {
     }
 
     updateElements(translationMessage) {
+        if (THIS_ORIGIN !== translationMessage.origin) {
+            console.warn(`Message with a different origin is received. Skipping updating. 
+                               Window origin: ${THIS_ORIGIN}, Message origin: ${translationMessage.origin}`)
+            return;
+        }
+
         if (translationMessage.type === "inpage") {
             this.inPageTranslation.mediatorNotification(translationMessage);
         } else if ((translationMessage.type === "outbound") || (translationMessage.type === "backTranslation")) {
@@ -345,12 +350,7 @@ class Mediator {
                     this.translate(message)
                     break
                 case "translationComplete":
-                    if (getOrigin() === message.translationMessage.origin) {
-                        this.updateElements(message.translationMessage);
-                    } else {
-                        console.warn(`Message with a different origin is recieved by a frame. 
-                                           Frame origin: ${getOrigin()}, Message origin: ${message.translationMessage.origin}`)
-                    }
+                    this.updateElements(message.translationMessage);
                     break;
                 case "displayOutboundTranslation":
                     this.startOutbound();
