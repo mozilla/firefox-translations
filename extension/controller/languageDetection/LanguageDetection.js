@@ -13,11 +13,23 @@ class LanguageDetection {
             this.constructLanguageSets();
         this.navigatorLanguage = this.getNavigatorLanguage();
         this.pageLanguage = null;
-        this.wordsToDetect = null;
     }
 
     extractPageContent() {
-        this.wordsToDetect = document.body.innerText;
+        let supported = this.isBrowserSupported();
+        // skip (expensive) page content extraction if not supported
+        let wordsToDetect =
+            supported
+            ? document.body.innerText
+            : "";
+        return { supported, wordsToDetect };
+    }
+
+    /*
+     * update the page language used for detection.
+     */
+    setPageLanguage(pageLanguage) {
+        this.pageLanguage = pageLanguage;
     }
 
     /*

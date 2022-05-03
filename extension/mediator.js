@@ -53,8 +53,6 @@ class Mediator {
 
         if (!this.isStarted && this.isMainFrame) {
             this.isStarted = true;
-            // request the language detection class to extract a page's snippet
-            this.languageDetection.extractPageContent();
 
             /*
              * request the background script to detect the page's language and
@@ -62,7 +60,7 @@ class Mediator {
              */
             browser.runtime.sendMessage({
                 command: "detectPageLanguage",
-                languageDetection: this.languageDetection
+                languageDetection: this.languageDetection.extractPageContent(),
             })
         }
     }
@@ -313,7 +311,7 @@ class Mediator {
                     this.start(message.tabId, message.platformInfo);
                     break;
                 case "responseDetectPageLanguage":
-                    this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
+                    this.languageDetection.setPageLanguage(message.pageLanguage);
                     if (this.isMainFrame) this.determineIfTranslationisRequired();
                     break;
                 case "translationRequested":
@@ -326,7 +324,7 @@ class Mediator {
                      */
 
                     // the user might have changed the page language, so we just accept it
-                    this.languageDetection.pageLanguage = message.from;
+                    this.languageDetection.setPageLanguage(message.from);
                     if (!this.inPageTranslation.started) {
                         this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
                         this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
