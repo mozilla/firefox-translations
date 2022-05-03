@@ -72,7 +72,8 @@ function renderBoundElements(state) {
 						} else {
 							if (!(value in stateProxy))
 								console.warn('render state has no key', value);
-							el[match[1]] = stateProxy[value];
+							else if (typeof stateProxy[value] !== 'undefined')
+								el[match[1]] = stateProxy[value];
 						}
 						break;
 				}

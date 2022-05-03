@@ -15,30 +15,14 @@ const implementations = [
 		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: false})
 	},
 	{
+		name: "WASM, 4 workers, native intgemm",
+		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: true})
+	},
+	{
 		name: "Native Messaging",
 		factory: () => new TLTranslationHelper()
 	},
 ];
-
-async function run({implementation, texts, from , to, update}) {
-	performance.mark('start-scenario');
-	const translator = implementation.factory();
-	await translator.translate({from, to, text: 'This is a warm-up sentence.', html: false});
-	performance.measure('scenario-loaded', 'start-scenario');
-
-	const start = performance.now();
-
-	let total = 0;
-	let done = 0;
-
-	await Promise.all(texts.map(async text => {
-		update(done, ++total);
-		await translator.translate({from, to, text, html: false});
-		update(++done, total);
-	}));
-
-	return performance.now() - start;
-}
 
 function readFileAsText(file) {
 	return new Promise((accept, reject) => {
@@ -96,7 +80,7 @@ function observe(obj, callback) {
 const state = observe({
 	busy: false,
 	texts: [],
-	words: null,
+	words: undefined,
 }, renderBoundElements.bind(document.body));
 
 renderBoundElements(state);
@@ -105,12 +89,13 @@ addEventListeners({
 	'input #test-set-selector': e => {
 		Array.from(e.target.files).forEach(async file => {
 			state.busy = true;
-			state.texts = (await readTestSet(file)).slice(0, 250);
+			state.texts = (await readTestSet(file)).slice(0, 1500);
 			state.words = state.texts.reduce((words, text) => words + text.split(/\b\W+\b/).length, 0);
 			state.busy = false;
 		});
 	},
 	'click #run-test': async e => {
+		state.busy = true;
 		for (let implementation of implementations) {
 			const row = document.querySelector('#results-row').content.firstElementChild.cloneNode(true);
 			document.querySelector('#results tbody').appendChild(row);
@@ -119,26 +104,36 @@ addEventListeners({
 
 			const data = observe({
 				name: implementation.name,
-				time: null,
-				wps: null,
+				startup: undefined,
+				time: undefined,
+				wps: undefined,
 				done: 0,
 				total: 0
 			}, debounce(render));
 
 			render(data);
 
-			data.time = await run({
-				implementation,
-				texts: state.texts,
-				from: 'de',
-				to: 'en',
-				update: (done, total) => {
-					data.done = done;
-					data.total = total;
-				}
-			});
+			const from = 'de', to = 'en';
 
-			data.wps = state.words / (data.time / 1000);
+			const init = performance.now();
+
+			const translator = implementation.factory();
+			await translator.translate({from, to, text: 'This is a warm-up sentence.', html: false});
+			
+			const start = performance.now();
+
+			data.startup = start - init;
+
+			await Promise.all(state.texts.map(async text => {
+				data.total = data.total + 1;
+				await translator.translate({from, to, text, html: false});
+				data.done = data.done + 1; // sorry necessary for observe()
+			}));
+
+			data.time = performance.now() - start;
+
+			data.wps = Math.round(state.words / (data.time / 1000));
 		}
+		state.busy = false;
 	}
 });

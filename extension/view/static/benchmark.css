@@ -15,3 +15,22 @@ html, body {
 .activity-indicator progress {
 /*	margin: 1em 0;*/
 }
+
+#results th, #results td {
+	padding: 0.25em 0.5em;
+}
+
+#results .name-col {
+	width: 20em;
+}
+
+#results .startup-col,
+#results .time-col,
+#results .wps-col {
+	width: 12em;
+	text-align: right;
+}
+
+#results .time-col progress {
+	width: 12em;
+}

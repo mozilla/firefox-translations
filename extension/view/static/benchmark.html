@@ -13,29 +13,35 @@
 		<table id="results">
 			<thead>
 				<tr>
-					<th>Implementation</th>
-					<th>Time</th>
-					<th>WPS</th>
+					<th class="name-col">Implementation</th>
+					<th class="startup-col">Startup</th>
+					<th class="time-col">Time</th>
+					<th class="wps-col">WPS</th>
 				</tr>
 			</thead>
 			<tbody>
 				<template id="results-row">
 					<tr>
-						<td data-bind:text-content="name"></td>
-						<td>
-							<progress data-bind:hidden="time" data-bind:value="done" data-bind:max="total"></progress>
-							<span data-bind:hidden="!time" data-bind:text-content="time"></span>
+						<td class="name-col" data-bind:text-content="name"></td>
+						<td class="startup-col">
+							<span data-bind:hidden="!startup"><span data-bind:text-content="startup"></span><abbr title="miliseconds">ms</abbr></span>
 						</td>
-						<td data-bind:text-content="wps"></td>
+						<td class="time-col">
+							<progress data-bind:hidden="time" data-bind:value="done" data-bind:max="total"></progress>
+							<span data-bind:hidden="!time"><span data-bind:text-content="time"></span><abbr title="miliseconds">ms</abbr></span>
+						</td>
+						<td class="wps-col" data-bind:text-content="wps"></td>
 					</tr>
 				</template>
 			</tbody>
 		</table>
 
-		<p>Test set: <input type="file" id="test-set-selector" accept="application/xml"></p>
-		<p>Total number of words in test set: <span data-bind:text-content="words">???</span></p>
-
-		<p><button id="run-test" data-bind:disabled="!texts">Run tests</button></p>
+		<ol>
+			<li>Test set: <input type="file" id="test-set-selector" accept="application/xml"><br>
+			    E.g. newstest2021.src.de-en.xml from <a href="http://data.statmt.org/wmt21/translation-task/test-src.tgz">WMT21</a>.</li>
+			<li>Total number of words in test set: <em data-bind:text-content="words">to be determined</em></li>
+			<li><button id="run-test" data-bind:disabled="!texts">Benchmark!</button></li>
+		</ol>
 
 		<script src="../../3rd_party/pako/pako_inflate.js"></script>
 		<script src="../../3rd_party/js-untar/untar.js"></script>
