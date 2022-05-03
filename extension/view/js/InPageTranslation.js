@@ -289,7 +289,10 @@ class InPageTranslation {
     }
 
     isElementHidden(element) {
-        return element.style.display === "none" || element.style.visibility === "hidden" || element.offsetParent === null;
+        const computedStyle = window.getComputedStyle(element);
+        return computedStyle.display === "none" ||
+                computedStyle.visibility === "hidden" ||
+                element.offsetParent === null;
     }
 
     isParentTranslating(node){
