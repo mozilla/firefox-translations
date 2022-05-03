@@ -167,6 +167,7 @@ class InPageTranslation {
 
     addDebugStylesheet() {
         const element = document.createElement("style");
+        element.textContent = "";
         document.head.appendChild(element);
         if (!element.sheet) return;
         const sheet = element.sheet;
@@ -179,6 +180,7 @@ class InPageTranslation {
 
     addQEStylesheet() {
         const element = document.createElement("style");
+        element.textContent = "";
         document.head.appendChild(element);
         if (!element.sheet) return;
         const sheet = element.sheet;
