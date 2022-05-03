@@ -345,7 +345,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
 };
 
 customElements.define(
-  `translation-notification-${window.now}`,
+  window.TRANSLATION_NOTIFICATION_ELEMENT_ID,
   window.MozTranslationNotification,
   {
     extends: "notification",

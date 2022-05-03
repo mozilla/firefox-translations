@@ -19,6 +19,9 @@ window.addEventListener("load", function () {
   });
 });
 
+const THIS_ORIGIN = window.origin !== "null"
+  ? window.origin
+  : location.origin;
 
 class Mediator {
 
@@ -53,8 +56,6 @@ class Mediator {
 
         if (!this.isStarted && this.isMainFrame) {
             this.isStarted = true;
-            // request the language detection class to extract a page's snippet
-            this.languageDetection.extractPageContent();
 
             /*
              * request the background script to detect the page's language and
@@ -62,7 +63,7 @@ class Mediator {
              */
             browser.runtime.sendMessage({
                 command: "detectPageLanguage",
-                languageDetection: this.languageDetection
+                languageDetection: this.languageDetection.extractPageContent(),
             })
         }
     }
@@ -112,7 +113,6 @@ class Mediator {
                  * it is recommended to use visibilitychange event for this use case,
                  * but it triggers some errors because of communication with bgScript, so let's use beforeunload for now
                  */
-                browser.runtime.sendMessage({ command: "reportClosedInfobar", tabId: this.tabId });
                 browser.runtime.sendMessage({ command: "submitPing", tabId: this.tabId });
             });
 
@@ -140,16 +140,14 @@ class Mediator {
     contentScriptsMessageListener(sender, message) {
         switch (message.command) {
             case "translate":
+                message.origin = THIS_ORIGIN;
                 if (this.isMainFrame) {
                     // eslint-disable-next-line no-case-declarations
                     this.translate(message);
                 } else {
+                    message.tabId = this.tabId;
                     // pass to the worker in top frame through bgScript
-                    browser.runtime.sendMessage({
-                        command: "translate",
-                        tabId: this.tabId,
-                        payload: message.payload
-                    });
+                    browser.runtime.sendMessage(message);
                 }
 
                 if (message.payload.type === "outbound") {
@@ -269,6 +267,7 @@ class Mediator {
             message.payload.type,
             this.tabId,
             message.frameId,
+            message.origin,
             this.languageDetection.navigatorLanguage,
             this.languageDetection.pageLanguage,
             message.payload.attrId,
@@ -291,6 +290,12 @@ class Mediator {
     }
 
     updateElements(translationMessage) {
+        if (THIS_ORIGIN !== translationMessage.origin) {
+            console.warn(`Message with a different origin is received. Skipping updating. 
+                               Window origin: ${THIS_ORIGIN}, Message origin: ${translationMessage.origin}`)
+            return;
+        }
+
         if (translationMessage.type === "inpage") {
             this.inPageTranslation.mediatorNotification(translationMessage);
         } else if ((translationMessage.type === "outbound") || (translationMessage.type === "backTranslation")) {
@@ -314,7 +319,7 @@ class Mediator {
                     this.start(message.tabId, message.platformInfo);
                     break;
                 case "responseDetectPageLanguage":
-                    this.languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
+                    this.languageDetection.setPageLanguage(message.pageLanguage);
                     if (this.isMainFrame) this.determineIfTranslationisRequired();
                     break;
                 case "translationRequested":
@@ -327,7 +332,7 @@ class Mediator {
                      */
 
                     // the user might have changed the page language, so we just accept it
-                    this.languageDetection.pageLanguage = message.from;
+                    this.languageDetection.setPageLanguage(message.from);
                     if (!this.inPageTranslation.started) {
                         this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
                         this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;

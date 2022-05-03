@@ -5,34 +5,79 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-/* global ExtensionAPI, ChromeUtils, modelRegistry, TranslationNotificationManager  */
+/* global ExtensionCommon, ExtensionAPI, ChromeUtils, Services, modelRegistry, TranslationNotificationManager  */
+
+// the Services object was not available until Firefox 88 - bugzil.la/1698158
+if (typeof Services === "undefined") {
+  // eslint-disable-next-line no-invalid-this
+  this.Services = ChromeUtils.import("resource://gre/modules/Services.jsm").Services;
+}
+
+/*
+ * custom elements can only be registered, and not unregistered.
+ * To make sure that the extension is able to register the custom element
+ * even after an extension update/reload, use a generated unique name.
+ */
+const TRANSLATION_NOTIFICATION_ELEMENT_ID = `translation-notification-${Date.now()}`;
+const windowsWithCustomElement = new WeakSet();
+
+// original value of prefs to restore on normal shutdown (won't work if the browser crashes).
+const prefsToRestore = new Map();
+
+// map responsible holding the TranslationNotificationManager per tabid
+const translationNotificationManagers = new Map();
 
  // eslint-disable-next-line no-invalid-this
  this.experiments_translationbar = class extends ExtensionAPI {
+    onStartup() {
+      // as soon we load, we should turn off the legacy prefs to avoid UI conflicts
+
+      // sets a bool pref whose original value is restored on shutdown.
+      const setBoolPref = (prefName, value) => {
+        let oldValue;
+        let prefType = Services.prefs.getPrefType(prefName);
+        if (prefType === Services.prefs.PREF_BOOL) {
+          oldValue = Services.prefs.getBoolPref(prefName);
+        } else if (prefType !== Services.prefs.PREF_INVALID) {
+          // the PREF_INT and PREF_STRING types are not expected, so let's ignore them.
+          console.error(`Ignoring unexpected pref type for ${prefName} (${prefType})`);
+        }
+        prefsToRestore.set(prefName, oldValue);
+        Services.prefs.setBoolPref(prefName, value);
+      };
+      setBoolPref("browser.translation.ui.show", false);
+      setBoolPref("extensions.translations.disabled", false);
+      setBoolPref("browser.translation.detectLanguage", false);
+      setBoolPref("javascript.options.wasm_simd_wormhole", true);
+    }
+
+    onShutdown(isAppShutdown) {
+      for (let [prefName, oldValue] of prefsToRestore) {
+        if (typeof oldValue === "boolean") {
+          Services.prefs.setBoolPref(prefName, oldValue);
+        } else {
+          Services.prefs.clearUserPref(prefName);
+        }
+      }
+      if (isAppShutdown) {
+        // don't bother with cleaning up the UI if the browser is shutting down.
+        return;
+      }
+
+      // the bars aren't automatically removed upon extension shutdown, do that here.
+      for (let translationNotificationManager of translationNotificationManagers.values()) {
+        translationNotificationManager.notificationBox.close();
+      }
+    }
+
     getAPI(context) {
 
-      const { ExtensionUtils } = ChromeUtils.import(
-        "resource://gre/modules/ExtensionUtils.jsm",
-        {},
-      );
+      const { ExtensionUtils } = ChromeUtils.import("resource://gre/modules/ExtensionUtils.jsm");
       const { ExtensionError } = ExtensionUtils;
 
-      const { Services } = ChromeUtils.import(
-        "resource://gre/modules/Services.jsm",
-        {},
-      );
-
-      const { ExtensionCommon } = ChromeUtils.import(
-        "resource://gre/modules/ExtensionCommon.jsm",
-        {},
-      );
-
-      // map responsible holding the TranslationNotificationManager per tabid
-      const translationNotificationManagers = new Map();
-
-      Services.scriptloader.loadSubScript(`${context.extension.getURL("/view/js/TranslationNotificationManager.js",)}?cachebuster=${Date.now()}`
+      Services.scriptloader.loadSubScript(`${context.extension.getURL("/view/js/TranslationNotificationManager.js",)}`
       ,);
-      Services.scriptloader.loadSubScript(`${context.extension.getURL("/model/modelRegistry.js",)}?cachebuster=${Date.now()}`
+      Services.scriptloader.loadSubScript(`${context.extension.getURL("/model/modelRegistry.js",)}`
       ,);
 
       /*
@@ -74,29 +119,24 @@
                   return;
                 }
 
-                /*
-                 * as a workaround to be able to load updates for the translation notification on extension reload
-                 * we use the current unix timestamp as part of the element id.
-                 * TODO: Restrict use of Date.now() as cachebuster to development mode only
-                 */
-                chromeWin.now = Date.now();
-                chromeWin.customElements.setElementCreationCallback(
-                  `translation-notification-${chromeWin.now}`,
-                  () => {
-                    Services.scriptloader.loadSubScript(
-                      `${context.extension.getURL("view/js/translation-notification-fxtranslations.js",)
-                        }?cachebuster=${
-                        chromeWin.now}`,
-                      chromeWin,
-                    );
-
-                  },
-                );
+                if (!windowsWithCustomElement.has(chromeWin)) {
+                  windowsWithCustomElement.add(chromeWin);
+                  chromeWin.TRANSLATION_NOTIFICATION_ELEMENT_ID = TRANSLATION_NOTIFICATION_ELEMENT_ID;
+                  Services.scriptloader.loadSubScript(
+                    context.extension.getURL("view/js/translation-notification-fxtranslations.js"),
+                    chromeWin
+                  );
+                }
 
                 const notificationBox = tab.browser.ownerGlobal.gBrowser.getNotificationBox(tab.browser);
                 let notif = notificationBox.appendNotification("fxtranslation-notification", {
                     priority: notificationBox.PRIORITY_INFO_HIGH,
-                    notificationIs: `translation-notification-${chromeWin.now}`,
+                    eventCallback() {
+                      // removed / dismissed / disconnected in any way.
+                      translationNotificationManagers.delete(tabId);
+                      // ^ may also happen when the tab is navigated.
+                    },
+                    notificationIs: TRANSLATION_NOTIFICATION_ELEMENT_ID,
                 });
                 let translationNotificationManager = new TranslationNotificationManager(
                   this,
@@ -125,24 +165,11 @@
               const translatonNotificationManager = translationNotificationManagers.get(tabId);
               translatonNotificationManager.notificationBox.updateTranslationProgress(progressMessage);
             },
-            switchOnPreferences: function switchOnPreferences() {
-               const { Services } = ChromeUtils.import(
-                 "resource://gre/modules/Services.jsm",
-                 {},
-               );
-               Services.prefs.setBoolPref("browser.translation.ui.show", false);
-               Services.prefs.setBoolPref("extensions.translations.disabled", false);
-               Services.prefs.setBoolPref("browser.translation.detectLanguage",false,);
-               Services.prefs.setBoolPref("javascript.options.wasm_simd_wormhole",true,);
-            },
             getLocalizedLanguageName: function getLocalizedLanguageName(languageCode){
               // eslint-disable-next-line no-undefined
               return Services.intl.getLanguageDisplayNames(undefined, [languageCode,])[0];
             },
-            closeInfobar: function closeInfobar(tabId) {
-              translationNotificationManagers.delete(tabId);
-            },
-             onTranslationRequest: new ExtensionCommon.EventManager({
+           onTranslationRequest: new ExtensionCommon.EventManager({
               context,
               name: "experiments.translationbar.onTranslationRequest",
               register: fire => {

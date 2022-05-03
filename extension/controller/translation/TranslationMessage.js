@@ -8,6 +8,7 @@ class TranslationMessage {
         this.targetLanguage = null;
         this.tabId = null;
         this.frameId = null;
+        this.origin = null;
         this.type = null;
     }
 }

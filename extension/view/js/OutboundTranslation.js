@@ -1,5 +1,5 @@
 
-/* global browser, Sentry */
+/* global browser, Sentry, DOMPurify */
 
 // eslint-disable-next-line no-unused-vars
 class OutboundTranslation {
@@ -41,8 +41,8 @@ class OutboundTranslation {
       this.otDiv.innerHTML = pageFragment;
       this.otDiv.id = "fxtranslations-ot";
       this.pageStatusLabel = this.otDiv.querySelector(".fxtranslations-status");
-      this.otDiv.querySelector(".fxtranslations-header").innerHTML =
-        browser.i18n.getMessage("formtranslationsDescription", [navigatorLanguage, pageLanguage]);
+      const cleanString = DOMPurify.sanitize(browser.i18n.getMessage("formtranslationsDescription", [navigatorLanguage, pageLanguage]), { USE_PROFILES: { html: true } });
+      this.otDiv.querySelector(".fxtranslations-header").innerHTML = cleanString;
 
       // it's safe to hardcode the widget to have the highest possible zindex in the page
       this.otDiv.style.zIndex = 2147483647;
@@ -290,7 +290,7 @@ class OutboundTranslation {
 
   updateStatusLabel(status) {
     // update the status in the widget
-    this.pageStatusLabel.innerHTML = status;
+    this.pageStatusLabel.textContent = status;
   }
 
   scrollTextAreas(scrollTop) {

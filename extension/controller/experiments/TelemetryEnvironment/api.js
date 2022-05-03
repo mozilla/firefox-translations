@@ -11,14 +11,8 @@
 // eslint-disable-next-line no-invalid-this
 this.experiment_telemetryEnvironment = class extends ExtensionAPI {
   getAPI() {
-    const { TelemetryController } = ChromeUtils.import(
-      "resource://gre/modules/TelemetryController.jsm",
-      {},
-    );
-    const { TelemetryEnvironment } = ChromeUtils.import(
-      "resource://gre/modules/TelemetryEnvironment.jsm",
-      {},
-    );
+    const { TelemetryController } = ChromeUtils.import("resource://gre/modules/TelemetryController.jsm");
+    const { TelemetryEnvironment } = ChromeUtils.import("resource://gre/modules/TelemetryEnvironment.jsm");
 
     const collectTelemetryEnvironment = () => {
       const environment = TelemetryEnvironment.currentEnvironment;

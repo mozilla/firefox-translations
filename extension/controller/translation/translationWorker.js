@@ -302,7 +302,8 @@ class TranslationHelper {
         // instantiate the Translation Service
         constructTranslationService() {
             if (!this.translationService) {
-                let translationServiceConfig = { cacheSize: 10 };
+                // caching is disabled (see https://github.com/mozilla/firefox-translations/issues/288)
+                let translationServiceConfig = { cacheSize: 0 };
                 console.log(`Creating Translation Service with config: ${translationServiceConfig}`);
                 this.translationService = new this.WasmEngineModule.BlockingService(translationServiceConfig);
                 console.log("Translation Service created successfully");

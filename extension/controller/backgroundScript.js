@@ -23,11 +23,9 @@ window.addEventListener("load", function () {
 let cachedEnvInfo = null;
 let pingSender = new PingSender();
 let modelFastText = null;
-let languageDetection = null;
+let modelFastTextReadyPromise = null;
 let platformInfo = null;
 
-// as soon we load, we should turn off the legacy prefs to avoid UI conflicts
-browser.experiments.translationbar.switchOnPreferences();
 let telemetryByTab = new Map();
 let translationRequestsByTab = new Map();
 let outboundRequestsByTab = new Map();
@@ -73,16 +71,14 @@ const messageListener = function(message, sender) {
   // eslint-disable-next-line complexity,max-lines-per-function
     Sentry.wrap(async() => {
       switch (message.command) {
-        case "detectPageLanguage":
-          if (!modelFastText) break;
-
-          languageDetection = Object.assign(new LanguageDetection(), message.languageDetection);
+        case "detectPageLanguage": {
+          await modelFastTextReadyPromise;
 
           /*
-           * if we don't support this browser's language, we nede to hide the
+           * if we don't support this browser's language, we need to hide the
            * page action and bail right away
            */
-          if (!languageDetection.isBrowserSupported()) {
+          if (!message.languageDetection.supported) {
             browser.pageAction.hide(sender.tab.id);
             break;
           }
@@ -91,8 +87,8 @@ const messageListener = function(message, sender) {
            * call the cld experiment to detect the language of the snippet
            * extracted from the page
            */
-          languageDetection.pageLanguage = modelFastText
-            .predict(languageDetection.wordsToDetect.trim().replace(/(\r\n|\n|\r)/gm, ""), 1, 0.0)
+          let pageLanguage = modelFastText
+            .predict(message.languageDetection.wordsToDetect.trim().replace(/(\r\n|\n|\r)/gm, ""), 1, 0.0)
             .get(0)[1]
             .replace("__label__", "");
 
@@ -101,12 +97,13 @@ const messageListener = function(message, sender) {
            * so we need to default it to "nb", since that's what FF
            * localization mechanisms has set
            */
-          if (languageDetection.pageLanguage === "no") languageDetection.pageLanguage = "nb"
+          if (pageLanguage === "no") pageLanguage = "nb"
           browser.tabs.sendMessage(sender.tab.id, {
             command: "responseDetectPageLanguage",
-            languageDetection
+            pageLanguage,
           })
           break;
+        }
         case "monitorTabLoad":
           if (!await isFrameLoaded(sender.tab.id, sender.frameId)) return;
             browser.tabs.sendMessage(
@@ -134,10 +131,10 @@ const messageListener = function(message, sender) {
               }
               if (outboundRequestsByTab.has(sender.tab.id)) {
                 if (!await isFrameLoaded(sender.tab.id, sender.frameId)) return;
-                   browser.tabs.sendMessage(
+                browser.tabs.sendMessage(
                     sender.tab.id,
                     outboundRequestsByTab.get(sender.tab.id),
-                  { frameId: sender.frameId }
+                    { frameId: sender.frameId }
                   ).catch(onError);
               }
             }
@@ -212,16 +209,6 @@ const messageListener = function(message, sender) {
             );
             break;
         case "recordTelemetry":
-
-          /*
-           * if the event was to close the infobar, we notify the api as well
-           * we don't need another redundant loop by informing the mediator,
-           * to then inform this script again
-           */
-          if (message.name === "closed") {
-            browser.experiments.translationbar.closeInfobar(message.tabId);
-          }
-
           getTelemetry(message.tabId).record(message.type, message.category, message.name, message.value);
           break;
 
@@ -274,23 +261,6 @@ const messageListener = function(message, sender) {
             message.progressMessage
           );
           break;
-        case "outBoundtranslationRequested":
-
-          /*
-           * requested for outbound translation received.
-           * since we know the direction of translation,
-           * let's switch it and inform the mediator
-           */
-          browser.tabs.sendMessage(
-            message.tabId,
-            {
-              command: "outboundTranslationRequested",
-              tabId: message.tabId,
-              from: message.to, // we switch the requests directions here
-              to: message.from
-            }
-          );
-          break;
         case "displayStatistics":
 
           /*
@@ -303,9 +273,6 @@ const messageListener = function(message, sender) {
               tabId: message.tabId
             }
           );
-          break;
-        case "reportClosedInfobar":
-          browser.experiments.translationbar.closeInfobar(message.tabId);
           break;
         case "setStorage":
           await browser.storage.local.set(message.payload)
@@ -334,25 +301,28 @@ browser.experiments.translationbar.onTranslationRequest.addListener(messageListe
 init();
 
 // loads fasttext (language detection) wasm module and model
-fetch(browser
+modelFastTextReadyPromise =
+  fetch(browser
     .runtime.getURL("model/static/languageDetection/fasttext_wasm.wasm"), { mode: "no-cors" })
     .then(function(response) {
         return response.arrayBuffer();
     })
     .then(function(wasmArrayBuffer) {
+      return new Promise(resolve => {
+        const modelUrl = browser.runtime.getURL("model/static/languageDetection/lid.176.ftz");
         const initialModule = {
             onRuntimeInitialized() {
                 const ft = new FastText(initialModule);
-                ft.loadModel(browser
-                    .runtime.getURL("model/static/languageDetection/lid.176.ftz"))
-                    .then(model => {
-                    modelFastText = model;
-                });
+                resolve(ft.loadModel(modelUrl));
             },
             wasmBinary: wasmArrayBuffer,
         };
-    loadFastText(initialModule);
-});
+        loadFastText(initialModule);
+      });
+    })
+    .then(model => {
+      modelFastText = model;
+    });
 
 browser.pageAction.onClicked.addListener(tab => {
     Sentry.wrap(async () => {
@@ -363,6 +333,7 @@ browser.pageAction.onClicked.addListener(tab => {
          * doesn't have a language detected, so for that reason we set the language
          * parameter as 'userrequest', in order to override the preferences.
          */
+          let languageDetection = new LanguageDetection();
           if (languageDetection.isBrowserSupported()) {
             browser.experiments.translationbar.show(
                 tab.id,

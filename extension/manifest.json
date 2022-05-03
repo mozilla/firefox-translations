@@ -59,6 +59,7 @@
         "<all_urls>"
       ],
       "js": [
+        "model/static/DOMPurify/purify.min.js",
         "model/static/errorReporting/sentry.js",
         "settings.js",
         "model/modelRegistry.js",
@@ -94,7 +95,8 @@
             "translationbar"
           ]
         ],
-        "script": "controller/experiments/TranslationBar/api.js"
+        "script": "controller/experiments/TranslationBar/api.js",
+        "events": ["startup"]
       }
     },
     "experiment_telemetryEnvironment": {
