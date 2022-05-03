@@ -19,6 +19,11 @@ window.addEventListener("load", function () {
   });
 });
 
+const getOrigin = () => {
+    return window.origin !== null
+      ? window.origin
+      : location.origin;
+}
 
 class Mediator {
 
@@ -148,6 +153,7 @@ class Mediator {
                     browser.runtime.sendMessage({
                         command: "translate",
                         tabId: this.tabId,
+                        origin: getOrigin(),
                         payload: message.payload
                     });
                 }
@@ -269,6 +275,7 @@ class Mediator {
             message.payload.type,
             this.tabId,
             message.frameId,
+            message.origin,
             this.languageDetection.navigatorLanguage,
             this.languageDetection.pageLanguage,
             message.payload.attrId,
@@ -338,7 +345,12 @@ class Mediator {
                     this.translate(message)
                     break
                 case "translationComplete":
-                    this.updateElements(message.translationMessage);
+                    if (getOrigin() === message.translationMessage.origin) {
+                        this.updateElements(message.translationMessage);
+                    } else {
+                        console.warn(`Message with a different origin is recieved by a frame. 
+                                           Frame origin: ${getOrigin()}, Message origin: ${message.translationMessage.origin}`)
+                    }
                     break;
                 case "displayOutboundTranslation":
                     this.startOutbound();

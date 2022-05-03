@@ -154,12 +154,13 @@ class Translation {
         });
     }
 
-    // eslint-disable-next-line max-params
+    // eslint-disable-next-line max-params,max-lines-per-function
     constructTranslationMessage(
         sourceParagraph,
         type,
         tabId,
         frameId,
+        origin,
         navigatorLanguage,
         pageLanguage,
         attrId,
@@ -199,6 +200,7 @@ class Translation {
         }
         translationMessage.tabId = tabId;
         translationMessage.frameId = frameId;
+        translationMessage.origin = origin;
         translationMessage.type = type;
         translationMessage.attrId = attrId;
         translationMessage.withOutboundTranslation = withOutboundTranslation;

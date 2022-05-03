@@ -134,10 +134,10 @@ const messageListener = function(message, sender) {
               }
               if (outboundRequestsByTab.has(sender.tab.id)) {
                 if (!await isFrameLoaded(sender.tab.id, sender.frameId)) return;
-                   browser.tabs.sendMessage(
+                browser.tabs.sendMessage(
                     sender.tab.id,
                     outboundRequestsByTab.get(sender.tab.id),
-                  { frameId: sender.frameId }
+                    { frameId: sender.frameId }
                   ).catch(onError);
               }
             }
