@@ -16,7 +16,7 @@ let engineWasmLocalPath;
  */
 class TranslationHelper {
 
-        constructor(postMessage) {
+        constructor() {
             // all variables specific to translation service
             this.translationService = null;
             this.responseOptions = null;
@@ -24,7 +24,6 @@ class TranslationHelper {
             // a map of language-pair to TranslationModel object
             this.translationModels = new Map();
             this.CACHE_NAME = "fxtranslations";
-            this.postMessage = postMessage;
             this.wasmModuleStartTimestamp = null;
             this.WasmEngineModule = null;
             this.engineState = this.ENGINE_STATE.LOAD_PENDING;
@@ -139,14 +138,21 @@ class TranslationHelper {
                              * messages. Therefore, always encode and pass source messages as HTML to the
                              * engine and restore them afterwards to their original form.
                              */
+                            const escapeHtml = text => {
+                                return String(text)
+                                    .replace(/&/g, "&amp;")
+                                    .replace(/"/g, "&quot;")
+                                    .replace(/'/g, "&#039;")
+                                    .replace(/</g, "&lt;")
+                                    .replace(/>/g, "&gt;");
+                            };
+
                             const non_html_qe_messages = new Map();
                             translationMessagesBatch.forEach((message, index) => {
                                 if (message.withQualityEstimation && !message.isHTML) {
                                     console.log(`Plain text received to translate with QE: "${message.sourceParagraph}"`);
                                     non_html_qe_messages.set(index, message.sourceParagraph);
-                                    const div = document.createElement("div");
-                                    div.appendChild(document.createTextNode(message.sourceParagraph));
-                                    message.sourceParagraph = div.innerHTML;
+                                    message.sourceParagraph = escapeHtml(message.sourceParagraph);
                                     message.isHTML = true;
                                 }
                             });
@@ -698,7 +704,7 @@ class TranslationHelper {
         }
 }
 
-const translationHelper = new TranslationHelper(postMessage);
+const translationHelper = new TranslationHelper();
 onmessage = function(message) {
     switch (message.data[0]) {
         case "configEngine":
