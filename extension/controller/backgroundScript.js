@@ -10,13 +10,47 @@ Telemetry, loadFastText, FastText, Sentry, settings, deserializeError */
  * extension's background process.
  */
 
+const scrubSentryEvent = ev => {
+
+  /*
+   * scrub extension installation id
+   * urls are also stripped on backend based on global PII rule for Mozilla org
+   */
+  const removeMozId = s => s.replace(/moz-extension:\/\/[^/?#]*(.*)/gm, "$1");
+  try {
+    ev.request.url = removeMozId(ev.request.url);
+    for (let ex of ev.exception.values) {
+      for (let frame of ex.stacktrace.frames) {
+        frame.filename = removeMozId(frame.filename);
+      }
+    }
+    for (let bc of ev.breadcrumbs) {
+      if (bc.category === "console") {
+        for (let i = 0; i < bc.data.arguments.length; i += 1) {
+          // eslint-disable-next-line max-depth
+          if (typeof bc.data.arguments[i] === "string") {
+            bc.data.arguments[i] = removeMozId(bc.data.arguments[i]);
+          }
+        }
+      } else if (bc.category === "fetch") {
+        bc.data.url = removeMozId(bc.data.url);
+      }
+    }
+  } catch (ex) {
+    console.error(ex)
+    throw ex;
+  }
+  if (settings.sentryDebug) console.info("Sentry event: ", ev);
+  return ev;
+}
+
 window.addEventListener("load", function () {
   Sentry.init({
-    dsn:
-      settings.sentryDsn,
-      tracesSampleRate: 1.0,
-      debug: settings.sentryDebug,
-      release: `firefox-translations@${browser.runtime.getManifest().version}`
+    dsn: settings.sentryDsn,
+    tracesSampleRate: 1.0,
+    debug: settings.sentryDebug,
+    release: `firefox-translations@${browser.runtime.getManifest().version}`,
+    beforeSend: scrubSentryEvent
   });
 });
 
