@@ -52,6 +52,14 @@ async function readTestSet(file) {
 	return texts;
 }
 
+function countWords(text, html) {
+	if (html) {
+		text = text.replace(/<(script|style|code|svg|textarea)[^>]*>.+?<\/\1>/ig, ' ');
+		text = text.replace(/<\/?[^>]+>/g, ' ');
+	}
+	return text.split(/\b\W+\b/).length;
+}
+
 function observe(obj, callback) {
 	return new Proxy(obj, {
 		get(target, prop, receiver) {
@@ -78,6 +86,9 @@ function observe(obj, callback) {
 }
 
 const state = observe({
+	from: 'de',
+	to: 'en',
+	html: true,
 	busy: false,
 	texts: [],
 	words: undefined,
@@ -85,12 +96,16 @@ const state = observe({
 
 renderBoundElements(state);
 
+addBoundElementListeners((name, value) => {
+	state[name] = value;
+});
+
 addEventListeners({
 	'input #test-set-selector': e => {
 		Array.from(e.target.files).forEach(async file => {
 			state.busy = true;
-			state.texts = (await readTestSet(file)).slice(0, 1500);
-			state.words = state.texts.reduce((words, text) => words + text.split(/\b\W+\b/).length, 0);
+			state.texts = await readTestSet(file);
+			state.words = state.texts.reduce((words, text) => words + countWords(text, state.html), 0);
 			state.busy = false;
 		});
 	},
@@ -105,6 +120,7 @@ addEventListeners({
 			const data = observe({
 				name: implementation.name,
 				startup: undefined,
+				first: undefined,
 				time: undefined,
 				wps: undefined,
 				done: 0,
@@ -113,23 +129,35 @@ addEventListeners({
 
 			render(data);
 
-			const from = 'de', to = 'en';
-
 			const init = performance.now();
 
 			const translator = implementation.factory();
-			await translator.translate({from, to, text: 'This is a warm-up sentence.', html: false});
+			await translator.translate({
+				from: state.from,
+				to: state.to,
+				text: 'This is a warm-up sentence.',
+				html: false
+			});
 			
 			const start = performance.now();
 
 			data.startup = start - init;
 
-			await Promise.all(state.texts.map(async text => {
+			const promises = state.texts.map(async text => {
 				data.total = data.total + 1;
-				await translator.translate({from, to, text, html: false});
+				await translator.translate({
+					from: state.from,
+					to: state.to,
+					text,
+					html: state.html
+				});
 				data.done = data.done + 1; // sorry necessary for observe()
-			}));
+			});
 
+			await Promise.any(promises); // any() instead of race() because I want a response, not an error
+			data.first = performance.now() - start;
+
+			await Promise.all(promises);
 			data.time = performance.now() - start;
 
 			data.wps = Math.round(state.words / (data.time / 1000));

@@ -14,8 +14,9 @@
 			<thead>
 				<tr>
 					<th class="name-col">Implementation</th>
-					<th class="startup-col">Startup</th>
-					<th class="time-col">Time</th>
+					<th class="startup-col">Start-up</th>
+					<th class="first-col">First (excl. Start-up)</th>
+					<th class="time-col">Time (excl. Start-up)</th>
 					<th class="wps-col">WPS</th>
 				</tr>
 			</thead>
@@ -25,6 +26,9 @@
 						<td class="name-col" data-bind:text-content="name"></td>
 						<td class="startup-col">
 							<span data-bind:hidden="!startup"><span data-bind:text-content="startup"></span><abbr title="miliseconds">ms</abbr></span>
+						</td>
+						<td class="first-col">
+							<span data-bind:hidden="!first"><span data-bind:text-content="first"></span><abbr title="miliseconds">ms</abbr></span>
 						</td>
 						<td class="time-col">
 							<progress data-bind:hidden="time" data-bind:value="done" data-bind:max="total"></progress>
@@ -39,6 +43,11 @@
 		<ol>
 			<li>Test set: <input type="file" id="test-set-selector" accept="application/xml"><br>
 			    E.g. newstest2021.src.de-en.xml from <a href="http://data.statmt.org/wmt21/translation-task/test-src.tgz">WMT21</a>.</li>
+			<li>
+				<label>From: <input type="text" data-bind:value="from"></label><br>
+				<label>To: <input type="text" data-bind:value="to"></label><br>
+				<label><input type="checkbox" data-bind:checked="html"> input is HTML</label>
+			</li>
 			<li>Total number of words in test set: <em data-bind:text-content="words">to be determined</em></li>
 			<li><button id="run-test" data-bind:disabled="!texts">Benchmark!</button></li>
 		</ol>

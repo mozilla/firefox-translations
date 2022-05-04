@@ -25,6 +25,7 @@ html, body {
 }
 
 #results .startup-col,
+#results .first-col,
 #results .time-col,
 #results .wps-col {
 	width: 12em;
