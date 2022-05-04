@@ -4,20 +4,10 @@
  */
 
 /* global LanguageDetection, OutboundTranslation, Translation , browser,
-InPageTranslation, browser, modelRegistryVersion, Sentry, settings */
+InPageTranslation, browser, modelRegistryVersion, reportErrorsWrap */
 
 /* eslint-disable max-lines */
 
-
-window.addEventListener("load", function () {
-  Sentry.init({
-    dsn:
-      settings.sentryDsn,
-      tracesSampleRate: 1.0,
-      debug: settings.sentryDebug,
-      release: `firefox-translations@${browser.runtime.getManifest().version}`
-  });
-});
 
 const THIS_ORIGIN = window.origin !== "null"
   ? window.origin
@@ -138,124 +128,127 @@ class Mediator {
 
     // eslint-disable-next-line max-lines-per-function
     contentScriptsMessageListener(sender, message) {
-        switch (message.command) {
-            case "translate":
-                message.origin = THIS_ORIGIN;
-                if (this.isMainFrame) {
-                    // eslint-disable-next-line no-case-declarations
-                    this.translate(message);
-                } else {
-                    message.tabId = this.tabId;
-                    // pass to the worker in top frame through bgScript
-                    browser.runtime.sendMessage(message);
-                }
-
-                if (message.payload.type === "outbound") {
-                    if (!sender.selectedTextArea.id) sender.selectedTextArea.id = self.crypto.randomUUID();
-                    browser.runtime.sendMessage({
-                        command: "reportOutboundStats",
-                        tabId: this.tabId,
-                        textAreaId: sender.selectedTextArea.id,
-                        text: message.payload.text
-                    });
-                }
-                break;
-            case "translationComplete":
-
-                /*
-                 * received the translation complete signal
-                 * from the translation object. so we lookup the sender
-                 * in order to route the response back, which can be
-                 * OutbountTranslation, InPageTranslation etc....
-                 */
-
-                message.payload[1].forEach(translationMessage => {
-                    // if this message is originated from another frame, pass it back through bgScript
-                    if (this.isMainFrame && (typeof translationMessage.frameId !== "undefined")) {
-                        browser.runtime.sendMessage({
-                            command: "translationComplete",
-                            tabId: this.tabId,
-                            translationMessage
-                        });
+        // eslint-disable-next-line max-lines-per-function
+        reportErrorsWrap(() => {
+            switch (message.command) {
+                case "translate":
+                    message.origin = THIS_ORIGIN;
+                    if (this.isMainFrame) {
+                        // eslint-disable-next-line no-case-declarations
+                        this.translate(message);
                     } else {
-                        this.updateElements(translationMessage);
+                        message.tabId = this.tabId;
+                        // pass to the worker in top frame through bgScript
+                        browser.runtime.sendMessage(message);
                     }
-                });
 
-                browser.runtime.sendMessage({
-                    command: "reportTranslationStats",
-                    tabId: this.tabId,
-                    numWords: message.payload[2][0],
-                    engineTimeElapsed: message.payload[2][1]
-                });
-                // console.log("translation complete rcvd:", message, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
-                break;
-            case "updateProgress":
+                    if (message.payload.type === "outbound") {
+                        if (!sender.selectedTextArea.id) sender.selectedTextArea.id = self.crypto.randomUUID();
+                        browser.runtime.sendMessage({
+                            command: "reportOutboundStats",
+                            tabId: this.tabId,
+                            textAreaId: sender.selectedTextArea.id,
+                            text: message.payload.text
+                        });
+                    }
+                    break;
+                case "translationComplete":
 
-                /*
-                 * let's invoke the experiment api in order to update the
-                 * model/engine download progress in the appropiate infobar
-                 */
-                // first we localize the message.
-                // eslint-disable-next-line no-case-declarations
-                let localizedMessage;
-                if (typeof message.payload[1] === "string") {
-                    localizedMessage = browser.i18n.getMessage(message.payload[1]);
-                } else if (typeof message.payload[1] === "object") {
-                    // we have a downloading message, which contains placeholders, hence this special treatment
-                    localizedMessage = browser.i18n.getMessage(message.payload[1][0], message.payload[1][1]);
-                }
+                    /*
+                     * received the translation complete signal
+                     * from the translation object. so we lookup the sender
+                     * in order to route the response back, which can be
+                     * OutbountTranslation, InPageTranslation etc....
+                     */
 
-                if (message.payload[1][0] === "translationProgress") {
-                    localizedMessage = `${browser.i18n.getMessage("translationEnabled")} ${localizedMessage}`;
-                }
+                    message.payload[1].forEach(translationMessage => {
+                        // if this message is originated from another frame, pass it back through bgScript
+                        if (this.isMainFrame && (typeof translationMessage.frameId !== "undefined")) {
+                            browser.runtime.sendMessage({
+                                command: "translationComplete",
+                                tabId: this.tabId,
+                                translationMessage
+                            });
+                        } else {
+                            this.updateElements(translationMessage);
+                        }
+                    });
 
-                browser.runtime.sendMessage({
-                    command: "updateProgress",
-                    progressMessage: localizedMessage,
-                    tabId: this.tabId
-                });
-                break;
-            case "displayOutboundTranslation":
-                this.startOutbound();
-                // broadcast to all frames through bgScript
-                browser.runtime.sendMessage({
-                    command: "displayOutboundTranslation",
-                    tabId: this.tabId
-                });
-                break;
-            case "reportError":
-                // payload is a metric name from metrics.yaml
-                this.recordTelemetry("counter", "errors", message.payload);
-                break;
-            case "reportViewPortWordsNum":
-                this.recordTelemetry("quantity", "performance", "word_count_visible_in_viewport", message.payload);
-                break;
-            case "reportPerformanceTimespan":
-                this.recordTelemetry("timespan", "performance", message.payload.metric, message.payload.timeMs);
-                break;
-            case "reportFormsEvent":
-                // payload is a metric name from metrics.yaml
-                this.recordTelemetry("event", "forms", message.payload);
-                break;
-            case "reportQeIsSupervised":
-                this.recordTelemetry("boolean", "quality", "is_supervised", message.payload.is_supervised);
-                break;
-            case "reportQeMetrics":
-                browser.runtime.sendMessage({
-                    command: "reportQeStats",
-                    tabId: this.tabId,
-                    wordScores: message.payload.wordScores,
-                    sentScores: message.payload.sentScores
-                });
-                break;
-            case "domMutation":
-                if (this.outboundTranslation) {
-                    this.outboundTranslation.updateZIndex(message.payload);
-                }
-                break;
-            default:
-        }
+                    browser.runtime.sendMessage({
+                        command: "reportTranslationStats",
+                        tabId: this.tabId,
+                        numWords: message.payload[2][0],
+                        engineTimeElapsed: message.payload[2][1]
+                    });
+                    // console.log("translation complete rcvd:", message, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
+                    break;
+                case "updateProgress":
+
+                    /*
+                     * let's invoke the experiment api in order to update the
+                     * model/engine download progress in the appropiate infobar
+                     */
+                    // first we localize the message.
+                    // eslint-disable-next-line no-case-declarations
+                    let localizedMessage;
+                    if (typeof message.payload[1] === "string") {
+                        localizedMessage = browser.i18n.getMessage(message.payload[1]);
+                    } else if (typeof message.payload[1] === "object") {
+                        // we have a downloading message, which contains placeholders, hence this special treatment
+                        localizedMessage = browser.i18n.getMessage(message.payload[1][0], message.payload[1][1]);
+                    }
+
+                    if (message.payload[1][0] === "translationProgress") {
+                        localizedMessage = `${browser.i18n.getMessage("translationEnabled")} ${localizedMessage}`;
+                    }
+
+                    browser.runtime.sendMessage({
+                        command: "updateProgress",
+                        progressMessage: localizedMessage,
+                        tabId: this.tabId
+                    });
+                    break;
+                case "displayOutboundTranslation":
+                    this.startOutbound();
+                    // broadcast to all frames through bgScript
+                    browser.runtime.sendMessage({
+                        command: "displayOutboundTranslation",
+                        tabId: this.tabId
+                    });
+                    break;
+                case "reportError":
+                    // payload is a metric name from metrics.yaml
+                    this.recordTelemetry("counter", "errors", message.payload);
+                    break;
+                case "reportViewPortWordsNum":
+                    this.recordTelemetry("quantity", "performance", "word_count_visible_in_viewport", message.payload);
+                    break;
+                case "reportPerformanceTimespan":
+                    this.recordTelemetry("timespan", "performance", message.payload.metric, message.payload.timeMs);
+                    break;
+                case "reportFormsEvent":
+                    // payload is a metric name from metrics.yaml
+                    this.recordTelemetry("event", "forms", message.payload);
+                    break;
+                case "reportQeIsSupervised":
+                    this.recordTelemetry("boolean", "quality", "is_supervised", message.payload.is_supervised);
+                    break;
+                case "reportQeMetrics":
+                    browser.runtime.sendMessage({
+                        command: "reportQeStats",
+                        tabId: this.tabId,
+                        wordScores: message.payload.wordScores,
+                        sentScores: message.payload.sentScores
+                    });
+                    break;
+                case "domMutation":
+                    if (this.outboundTranslation) {
+                        this.outboundTranslation.updateZIndex(message.payload);
+                    }
+                    break;
+                default:
+            }
+        });
     }
 
     translate(message) {
@@ -313,66 +306,68 @@ class Mediator {
     // eslint-disable-next-line max-lines-per-function
     bgScriptsMessageListener(message) {
         // eslint-disable-next-line max-lines-per-function
-        Sentry.wrap(() => {
-            switch (message.command) {
-                case "responseMonitorTabLoad":
-                    this.start(message.tabId, message.platformInfo);
-                    break;
-                case "responseDetectPageLanguage":
-                    this.languageDetection.setPageLanguage(message.pageLanguage);
-                    if (this.isMainFrame) this.determineIfTranslationisRequired();
-                    break;
-                case "translationRequested":
-                    // not started yet
-                    if (!this.tabId) return;
+        switch (message.command) {
+            case "responseMonitorTabLoad":
+                this.start(message.tabId, message.platformInfo);
+                break;
+            case "responseDetectPageLanguage":
+                this.languageDetection.setPageLanguage(message.pageLanguage);
+                if (this.isMainFrame) this.determineIfTranslationisRequired();
+                break;
+            case "translationRequested":
+                // not started yet
+                if (!this.tabId) return;
 
-                    /*
-                     * here we handle when the user's translation request in the infobar
-                     * let's start the in-page translation widget
-                     */
+                /*
+                 * here we handle when the user's translation request in the infobar
+                 * let's start the in-page translation widget
+                 */
 
-                    // the user might have changed the page language, so we just accept it
-                    this.languageDetection.setPageLanguage(message.from);
-                    if (!this.inPageTranslation.started) {
-                        this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
-                        this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
-                        this.inPageTranslation.start(this.languageDetection.pageLanguage);
-                    }
-                    break;
-                case "translate":
-                    this.translate(message)
-                    break
-                case "translationComplete":
-                    this.updateElements(message.translationMessage);
-                    break;
-                case "displayOutboundTranslation":
-                    this.startOutbound();
-                    break;
-                case "displayStatistics":
-                    this.statsMode = true;
-                    document.querySelector("html").setAttribute("x-bergamot-debug", true);
-                    break;
-                case "updateStats":
-                    if (this.statsMode) {
-                        // if the user chose to see stats in the infobar, we display them
-                        browser.runtime.sendMessage({
-                            command: "updateProgress",
-                            progressMessage: browser.i18n.getMessage("statsMessage", message.wps),
-                            tabId: this.tabId
-                        });
-                    }
-                    break;
-                case "localizedLanguages":
-                    this.localizedPageLanguage = message.localizedPageLanguage;
-                    this.localizedNavigatorLanguage = message.localizedNavigatorLanguage;
-                    break;
-                default:
-              // ignore
-            }
-        });
+                // the user might have changed the page language, so we just accept it
+                this.languageDetection.setPageLanguage(message.from);
+                if (!this.inPageTranslation.started) {
+                    this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
+                    this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
+                    this.inPageTranslation.start(this.languageDetection.pageLanguage);
+                }
+                break;
+            case "translate":
+                this.translate(message)
+                break
+            case "translationComplete":
+                this.updateElements(message.translationMessage);
+                break;
+            case "displayOutboundTranslation":
+                this.startOutbound();
+                break;
+            case "displayStatistics":
+                this.statsMode = true;
+                document.querySelector("html").setAttribute("x-bergamot-debug", true);
+                break;
+            case "updateStats":
+                if (this.statsMode) {
+                    // if the user chose to see stats in the infobar, we display them
+                    browser.runtime.sendMessage({
+                        command: "updateProgress",
+                        progressMessage: browser.i18n.getMessage("statsMessage", message.wps),
+                        tabId: this.tabId
+                    });
+                }
+                break;
+            case "localizedLanguages":
+                this.localizedPageLanguage = message.localizedPageLanguage;
+                this.localizedNavigatorLanguage = message.localizedNavigatorLanguage;
+                break;
+            default:
+          // ignore
+        }
+
     }
 }
 
 
-const mediator = new Mediator();
-mediator.init();
+let mediator = null;
+reportErrorsWrap(() => {
+    mediator = new Mediator();
+    mediator.init();
+});

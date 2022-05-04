@@ -1,6 +1,7 @@
 
-/* global browser, Sentry, DOMPurify */
+/* global browser, DOMPurify, reportErrorsWrapAsync, reportErrorsWrap */
 
+/* eslint-disable max-lines */
 // eslint-disable-next-line no-unused-vars
 class OutboundTranslation {
 
@@ -17,9 +18,9 @@ class OutboundTranslation {
   }
 
   // eslint-disable-next-line max-lines-per-function
-  start(navigatorLanguage, pageLanguage) {
+  async start(navigatorLanguage, pageLanguage) {
     // eslint-disable-next-line max-lines-per-function
-    Sentry.wrap(async () => {
+    await reportErrorsWrapAsync(async () => {
       let pageFragment = null;
       try {
         // first we load the pageFragment (UI)
@@ -58,7 +59,7 @@ class OutboundTranslation {
        * textarea in order to capture what's input and push it to the
        * translatinon queue
        */
-      this.otDiv.querySelector("textarea").addEventListener("keydown", () => Sentry.wrap(() => {
+      this.otDiv.querySelector("textarea").addEventListener("keydown", () => reportErrorsWrap(() => {
         if (!this.isUserTyping) {
           this.isUserTyping = true;
           this.updateStatusLabel(browser.i18n.getMessage("formtranslationsTyping"));
@@ -76,7 +77,7 @@ class OutboundTranslation {
        * we need to list to then scroll in the main textarea in order to scroll
        * all other at same time.
        */
-      this.otDiv.querySelector("textarea").addEventListener("scroll", e => Sentry.wrap(() => {
+      this.otDiv.querySelector("textarea").addEventListener("scroll", e => reportErrorsWrap(() => {
         window.requestAnimationFrame(() => {
           this.scrollTextAreas(e.target.scrollTop);
         });
@@ -89,7 +90,7 @@ class OutboundTranslation {
 
   addFormListeners(formElements) {
     for (const formElement of formElements) {
-      formElement.addEventListener("focus", () => Sentry.wrap(() => {
+      formElement.addEventListener("focus", () => reportErrorsWrap(() => {
         this.attachOtToTextAreaListener(formElement);
       }));
     }
@@ -110,7 +111,7 @@ class OutboundTranslation {
     .querySelectorAll("textarea")[1];
 
     // listen to when the textarea loses focus in order to remove the div
-    this.otTextArea.addEventListener("blur", () => Sentry.wrap(() => {
+    this.otTextArea.addEventListener("blur", () => reportErrorsWrap(() => {
         // if the widget is still in the dom
         if (document.body.contains(this.otDiv)) {
           // first we save the content of the widget
@@ -250,16 +251,18 @@ class OutboundTranslation {
     const config = { attributes: true, childList: true, subtree: true };
     // callback function to execute when mutations are observed
     const callback = function(mutationsList) {
+      reportErrorsWrap(() => {
         for (const mutation of mutationsList) {
-            if (mutation.type === "childList" &&
-                mutation.addedNodes[0] &&
-                mutation.addedNodes[0].id !== "fxtranslations-ot") {
-              // and then add listeners to occasional new form elements
-              mutation.addedNodes.forEach(node => {
-                if (node.nodeType === 1) this.startTreeWalker(node)
-              });
-            }
+          if (mutation.type === "childList" &&
+            mutation.addedNodes[0] &&
+            mutation.addedNodes[0].id !== "fxtranslations-ot") {
+            // and then add listeners to occasional new form elements
+            mutation.addedNodes.forEach(node => {
+              if (node.nodeType === 1) this.startTreeWalker(node)
+            });
+          }
         }
+      });
     }.bind(this);
 
     // create an observer instance linked to the callback function

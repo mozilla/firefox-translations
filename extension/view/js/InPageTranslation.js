@@ -4,6 +4,8 @@
  * authors: @andrenatal, @jelmervdl
  */
 
+/* global reportErrorsWrap */
+
 /* eslint-disable max-lines-per-function */
 /* eslint-disable max-lines */
 // eslint-disable-next-line no-unused-vars
@@ -130,18 +132,20 @@ class InPageTranslation {
         ])
 
         this.observer = new MutationObserver(mutationsList => {
-            for (const mutation of mutationsList) {
-                switch (mutation.type) {
-                    case "childList":
-                        mutation.addedNodes.forEach(node => this.startTreeWalker(node));
-                        break;
-                    case "characterData":
-                        this.startTreeWalker(mutation.target);
-                        break;
-                    default:
-                        break;
+            reportErrorsWrap(() => {
+                for (const mutation of mutationsList) {
+                    switch (mutation.type) {
+                        case "childList":
+                            mutation.addedNodes.forEach(node => this.startTreeWalker(node));
+                            break;
+                        case "characterData":
+                            this.startTreeWalker(mutation.target);
+                            break;
+                        default:
+                            break;
+                    }
                 }
-            }
+            });
         });
 
     }

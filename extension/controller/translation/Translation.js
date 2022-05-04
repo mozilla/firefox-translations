@@ -3,7 +3,7 @@
  * interacting with the web worker, handle the language models, and communicate with the
  * mediator
  */
-/* global browser, TranslationMessage, Queue, Sentry */
+/* global browser, TranslationMessage, Queue, reportErrorsWrap, reportExceptionSerialized */
 
 // eslint-disable-next-line no-unused-vars
 class Translation {
@@ -25,8 +25,7 @@ class Translation {
             engineWasmLocalPath = browser.runtime.getURL("model/static/translation/bergamot-translator-worker-without-wormhole.wasm");
         }
         const modelRegistry = browser.runtime.getURL("model/modelRegistry.js");
-        const sentryScript = browser.runtime.getURL("model/static/errorReporting/sentry.js");
-        const settingsScript = browser.runtime.getURL("settings.js");
+        const serializeErrorScript = browser.runtime.getURL("model/static/errorReporting/serializeError.js");
         const version = browser.runtime.getManifest().version;
         if (window.Worker) {
             this.translationWorker = new Worker(browser.runtime.getURL("controller/translation/translationWorker.js"));
@@ -40,8 +39,7 @@ class Translation {
                     engineScriptLocalPath,
                     engineWasmLocalPath,
                     modelRegistry,
-                    sentryScript,
-                    settingsScript,
+                    serializeErrorScript,
                     version,
                     isMochitest: this.mediator.isMochitest,
                 }
@@ -52,8 +50,9 @@ class Translation {
     /*
      * handles all communication received from the translation webworker
      */
+    // eslint-disable-next-line max-lines-per-function
     translationWorkerMessageListener(translationMessage) {
-        Sentry.wrap(() => {
+        reportErrorsWrap(() => {
             switch (translationMessage.data[0]) {
                 case "translationComplete":
                     this.mediator.contentScriptsMessageListener(this, {
@@ -79,7 +78,9 @@ class Translation {
                         payload: translationMessage.data[1]
                     });
                     break;
-
+                case "reportException":
+                    reportExceptionSerialized(translationMessage.data[1]);
+                    break;
                 case "reportPerformanceTimespan":
                     this.mediator.contentScriptsMessageListener(this, {
                         command: "reportPerformanceTimespan",
@@ -129,7 +130,7 @@ class Translation {
     }
 
     submitMessages() {
-        Sentry.wrap(() => {
+        reportErrorsWrap(() => {
             // timeout invoked. let's submit the messages
             const messagesToGo = [];
 

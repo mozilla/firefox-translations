@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
-/* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL, Telemetry, loadFastText, FastText, Sentry, settings */
+/* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL,
+Telemetry, loadFastText, FastText, Sentry, settings, deserializeError */
 
 /*
  * we need the background script in order to have full access to the
@@ -9,13 +10,43 @@
  * extension's background process.
  */
 
+const scrubSentryEvent = ev => {
+
+  /*
+   * scrub extension installation id or any other url host
+   * urls are also stripped on backend based on global PII rule for Mozilla org
+   */
+  const removeUrlHost = s => s.replace(/(moz-extension|http|https):\/\/[^/?#]*(.*)/gm, "$2");
+  try {
+    if (ev.request) Reflect.deleteProperty(ev.request, "url");
+    for (let ex of ev.exception.values) {
+      for (let frame of ex.stacktrace.frames) {
+        frame.filename = removeUrlHost(frame.filename);
+      }
+    }
+  } catch (ex) {
+    console.error(ex)
+    console.error("Error in scrubbing Sentry data. " +
+      "Skipping to not propagate to global onerror and avoid sending sensitive data")
+    return null;
+  }
+  if (settings.sentryDebug) console.info("Sentry event: ", ev);
+  return ev;
+}
+
 window.addEventListener("load", function () {
   Sentry.init({
-    dsn:
-      settings.sentryDsn,
-      tracesSampleRate: 1.0,
-      debug: settings.sentryDebug,
-      release: `firefox-translations@${browser.runtime.getManifest().version}`
+    dsn: settings.sentryDsn,
+    tracesSampleRate: 1.0,
+    debug: settings.sentryDebug,
+    release: `firefox-translations@${browser.runtime.getManifest().version}`,
+    beforeSend: scrubSentryEvent,
+    integrations(integrations) {
+    // integrations will be all default integrations
+    return integrations.filter(function(integration) {
+      return integration.name !== "Breadcrumbs";
+    });
+  },
   });
 });
 
@@ -231,6 +262,12 @@ const messageListener = function(message, sender) {
 
         case "reportQeStats":
           getTelemetry(message.tabId).addQualityEstimation(message.wordScores, message.sentScores);
+          break;
+
+        case "reportException":
+          // eslint-disable-next-line no-case-declarations
+          console.warn("Reporting content script error to Sentry");
+          Sentry.captureException(deserializeError(message.exception));
           break;
 
         case "submitPing":

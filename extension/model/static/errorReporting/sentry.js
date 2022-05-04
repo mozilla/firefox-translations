@@ -3763,32 +3763,6 @@ var Sentry = (function (exports) {
     function getEnvelopeEndpointWithUrlEncodedAuth(dsn, tunnel) {
         return tunnel ? tunnel : _getEnvelopeEndpoint(dsn) + "?" + _encodedAuth(dsn);
     }
-    /** Returns the url to the report dialog endpoint. */
-    function getReportDialogEndpoint(dsnLike, dialogOptions) {
-        var dsn = makeDsn(dsnLike);
-        var endpoint = getBaseApiEndpoint(dsn) + "embed/error-page/";
-        var encodedOptions = "dsn=" + dsnToString(dsn);
-        for (var key in dialogOptions) {
-            if (key === 'dsn') {
-                continue;
-            }
-            if (key === 'user') {
-                if (!dialogOptions.user) {
-                    continue;
-                }
-                if (dialogOptions.user.name) {
-                    encodedOptions += "&name=" + encodeURIComponent(dialogOptions.user.name);
-                }
-                if (dialogOptions.user.email) {
-                    encodedOptions += "&email=" + encodeURIComponent(dialogOptions.user.email);
-                }
-            }
-            else {
-                encodedOptions += "&" + encodeURIComponent(key) + "=" + encodeURIComponent(dialogOptions[key]);
-            }
-        }
-        return endpoint + "?" + encodedOptions;
-    }
 
     var installedIntegrations = [];
     /**
@@ -5694,35 +5668,6 @@ var Sentry = (function (exports) {
         catch (_oO) { }
         return sentryWrapped;
     }
-    /**
-     * Injects the Report Dialog script
-     * @hidden
-     */
-    function injectReportDialog(options) {
-        if (options === void 0) { options = {}; }
-        if (!global$2.document) {
-            return;
-        }
-        if (!options.eventId) {
-            logger.error('Missing eventId option in showReportDialog call');
-            return;
-        }
-        if (!options.dsn) {
-            logger.error('Missing dsn option in showReportDialog call');
-            return;
-        }
-        var script = global$2.document.createElement('script');
-        script.async = true;
-        script.src = getReportDialogEndpoint(options.dsn, options);
-        if (options.onLoad) {
-            // eslint-disable-next-line @typescript-eslint/unbound-method
-            script.onload = options.onLoad;
-        }
-        var injectionPoint = global$2.document.head || global$2.document.body;
-        if (injectionPoint) {
-            injectionPoint.appendChild(script);
-        }
-    }
 
     /** Global handlers */
     var GlobalHandlers = /** @class */ (function () {
@@ -6669,24 +6614,6 @@ var Sentry = (function (exports) {
             return _this;
         }
         /**
-         * Show a report dialog to the user to send feedback to a specific event.
-         *
-         * @param options Set individual options for the dialog
-         */
-        BrowserClient.prototype.showReportDialog = function (options) {
-            if (options === void 0) { options = {}; }
-            // doesn't work without a document (React Native)
-            var document = getGlobalObject().document;
-            if (!document) {
-                return;
-            }
-            if (!this._isEnabled()) {
-                logger.error('Trying to call showReportDialog with Sentry Client disabled');
-                return;
-            }
-            injectReportDialog(__assign(__assign({}, options), { dsn: options.dsn || this.getDsn() }));
-        };
-        /**
          * @inheritDoc
          */
         BrowserClient.prototype._prepareEvent = function (event, scope, hint) {
@@ -6794,26 +6721,6 @@ var Sentry = (function (exports) {
         initAndBind(BrowserClient, options);
         if (options.autoSessionTracking) {
             startSessionTracking();
-        }
-    }
-    /**
-     * Present the user with a report dialog.
-     *
-     * @param options Everything is optional, we try to fetch all info need from the global scope.
-     */
-    function showReportDialog(options) {
-        if (options === void 0) { options = {}; }
-        var hub = getCurrentHub();
-        var scope = hub.getScope();
-        if (scope) {
-            options.user = __assign(__assign({}, scope.getUser()), options.user);
-        }
-        if (!options.eventId) {
-            options.eventId = hub.lastEventId();
-        }
-        var client = hub.getClient();
-        if (client) {
-            client.showReportDialog(options);
         }
     }
     /**
@@ -6954,7 +6861,6 @@ var Sentry = (function (exports) {
     exports.getCurrentHub = getCurrentHub;
     exports.getHubFromCarrier = getHubFromCarrier;
     exports.init = init;
-    exports.injectReportDialog = injectReportDialog;
     exports.lastEventId = lastEventId;
     exports.makeMain = makeMain;
     exports.onLoad = onLoad;
@@ -6964,7 +6870,6 @@ var Sentry = (function (exports) {
     exports.setTag = setTag;
     exports.setTags = setTags;
     exports.setUser = setUser;
-    exports.showReportDialog = showReportDialog;
     exports.startTransaction = startTransaction;
     exports.withScope = withScope;
     exports.wrap = wrap;
