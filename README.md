@@ -35,6 +35,9 @@ The extension does not utilize any npm modules, and the only vendored dependenci
 - Sentry
     - We bundle [Sentry Javascript's SDK](https://github.com/getsentry/sentry-javascript) for error reporting.
   
+- serialize-error
+  - code of [serialize-error npm package](https://github.com/sindresorhus/serialize-error) is bundled for serialization of exceptions to
+    report errors from content scripts to background script
 ### How to run
 - Install Firefox Nightly
 - Clone this repo and run `npm install`
