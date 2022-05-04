@@ -13,12 +13,12 @@ Telemetry, loadFastText, FastText, Sentry, settings, deserializeError */
 const scrubSentryEvent = ev => {
 
   /*
-   * scrub extension installation id
+   * scrub extension installation id or any other url host
    * urls are also stripped on backend based on global PII rule for Mozilla org
    */
   const removeUrlHost = s => s.replace(/(moz-extension|http|https):\/\/[^/?#]*(.*)/gm, "$2");
   try {
-    ev.request.url = removeUrlHost(ev.request.url);
+    ev.request.url = "";
     for (let ex of ev.exception.values) {
       for (let frame of ex.stacktrace.frames) {
         frame.filename = removeUrlHost(frame.filename);
