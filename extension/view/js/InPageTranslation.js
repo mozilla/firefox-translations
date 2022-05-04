@@ -17,6 +17,19 @@ function *ancestors(node) {
         yield parent;
 }
 
+function removeTextNodes(node) {
+    Array.from(node.childNodes).forEach(child => {
+        switch (child.nodeType) {
+            case Node.TEXT_NODE:
+                node.removeChild(child);
+                break;
+            case Node.ELEMENT_NODE:
+                removeTextNodes(child);
+                break;
+        }
+    });
+``};
+
 // eslint-disable-next-line no-unused-vars
 class InPageTranslation {
 
@@ -550,19 +563,6 @@ class InPageTranslation {
             // console.log(`Original:   ${originalHTML}`);
 
             const clonedNodes = new Set();
-
-            const removeTextNodes = (node) => {
-                Array.from(node.childNodes).forEach(child => {
-                    switch (child.nodeType) {
-                        case Node.TEXT_NODE:
-                            node.removeChild(child);
-                            break;
-                        case Node.ELEMENT_NODE:
-                            removeTextNodes(child);
-                            break;
-                    }
-                });
-            };
 
             // Merge the live tree (dst) with the translated tree (src) by
             // re-using elements from the live tree.
