@@ -18,7 +18,7 @@ const scrubSentryEvent = ev => {
    */
   const removeUrlHost = s => s.replace(/(moz-extension|http|https):\/\/[^/?#]*(.*)/gm, "$2");
   try {
-    ev.request.url = "";
+    if (ev.request) Reflect.deleteProperty(ev.request, "url");
     for (let ex of ev.exception.values) {
       for (let frame of ex.stacktrace.frames) {
         frame.filename = removeUrlHost(frame.filename);
@@ -26,7 +26,9 @@ const scrubSentryEvent = ev => {
     }
   } catch (ex) {
     console.error(ex)
-    throw ex;
+    console.error("Error in scrubbing Sentry data. " +
+      "Skipping to not propagate to global onerror and avoid sending sensitive data")
+    return null;
   }
   if (settings.sentryDebug) console.info("Sentry event: ", ev);
   return ev;
