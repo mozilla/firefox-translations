@@ -138,14 +138,17 @@ class TranslationHelper {
                              * messages. Therefore, always encode and pass source messages as HTML to the
                              * engine and restore them afterwards to their original form.
                              */
+                            const escapeHtml = text => {
+                                return String(text).replace(/&/g, '&amp;')
+                                .replace(/"/g, '&quot;').replace(/'/g, '&#039;')
+                                .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            };
                             const non_html_qe_messages = new Map();
                             translationMessagesBatch.forEach((message, index) => {
                                 if (message.withQualityEstimation && !message.isHTML) {
                                     console.log(`Plain text received to translate with QE: "${message.sourceParagraph}"`);
                                     non_html_qe_messages.set(index, message.sourceParagraph);
-                                    const div = document.createElement("div");
-                                    div.appendChild(document.createTextNode(message.sourceParagraph));
-                                    message.sourceParagraph = div.innerHTML;
+                                    message.sourceParagraph = escapeHtml(message.sourceParagraph);
                                     message.isHTML = true;
                                 }
                             });
