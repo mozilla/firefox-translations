@@ -7,15 +7,19 @@ const defaults = {
 
 const implementations = [
 	{
-		name: "WASM, 1 worker",
-		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: false})
+		name: "WASM, 1 worker, batch-size: 8",
+		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: false, batchSize: 8})
 	},
 	{
-		name: "WASM, 1 worker, native intgemm",
+		name: "WASM, 1 worker, batch-size: 16",
+		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: false, batchSize: 16})
+	},
+	{
+		name: "WASM, 1 worker, native intgemm, batch-size: 8",
 		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: true})
 	},
 	{
-		name: "WASM, 4 workers",
+		name: "WASM, 4 workers, batch-size: 8",
 		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: false})
 	},
 	{
@@ -46,6 +50,11 @@ const implementations = [
 		name: "Native Messaging, 4 workers",
 		factory: () => new TLTranslationHelper({...defaults, workers: 4})
 	},
+	{
+		name: "WASM, 1 worker, batch-size: 16, cache-size: 20000",
+		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: false, batchSize: 16, cacheSize: 20000})
+	},
+	
 ];
 
 function readFileAsText(file) {
