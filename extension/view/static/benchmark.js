@@ -15,8 +15,24 @@ const implementations = [
 		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: false})
 	},
 	{
-		name: "WASM, 4 workers, native intgemm",
-		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: true})
+		name: "WASM, 4 workers, native intgemm, batch-size: 8",
+		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: true, batchSize: 8})
+	},
+	{
+		name: "WASM, 4 workers, native intgemm, batch-size 16",
+		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: true, batchSize: 16})
+	},
+	{
+		name: "WASM, 4 workers, native intgemm, batch-size 32",
+		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: true, batchSize: 32})
+	},
+	{
+		name: "WASM, 4 workers, native intgemm, batch-size 128",
+		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: true, batchSize: 128})
+	},
+	{
+		name: "WASM, 4 workers, native intgemm, batch-size 256",
+		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: true, batchSize: 256})
 	},
 	{
 		name: "Native Messaging",
@@ -91,13 +107,41 @@ const state = observe({
 	html: true,
 	busy: false,
 	texts: [],
+	chunks: undefined,
 	words: undefined,
-}, renderBoundElements.bind(document.body));
+}, renderBoundElements.bind(document.querySelector('#controls')));
 
-renderBoundElements(state);
-
-addBoundElementListeners((name, value) => {
+addBoundElementListeners.call(document.querySelector('#controls'), (name, value) => {
 	state[name] = value;
+});
+
+renderBoundElements.call(document.querySelector('#controls'), state);
+
+const results = implementations.map(implementation => {
+	const row = document.querySelector('#results-row').content.firstElementChild.cloneNode(true);
+	document.querySelector('#results tbody').appendChild(row);
+
+	const render = renderBoundElements.bind(row);
+
+	const data = observe({
+		enabled: true,
+		busy: false,
+		name: implementation.name,
+		startup: undefined,
+		first: undefined,
+		time: undefined,
+		wps: undefined,
+		done: 0,
+		total: 0
+	}, debounce(render));
+
+	// Initial render of row
+	render(data);
+
+	// Connect checkboxes to `data`
+	addBoundElementListeners.call(row, (name, value) => data[name] = value);
+
+	return {row, data, implementation};
 });
 
 addEventListeners({
@@ -105,29 +149,17 @@ addEventListeners({
 		Array.from(e.target.files).forEach(async file => {
 			state.busy = true;
 			state.texts = await readTestSet(file);
+			state.chunks = state.texts.length;
 			state.words = state.texts.reduce((words, text) => words + countWords(text, state.html), 0);
 			state.busy = false;
 		});
 	},
 	'click #run-test': async e => {
 		state.busy = true;
-		for (let implementation of implementations) {
-			const row = document.querySelector('#results-row').content.firstElementChild.cloneNode(true);
-			document.querySelector('#results tbody').appendChild(row);
+		for (let {data, implementation} of results) {
+			if (!data.enabled) continue;
 
-			const render = renderBoundElements.bind(row);
-
-			const data = observe({
-				name: implementation.name,
-				startup: undefined,
-				first: undefined,
-				time: undefined,
-				wps: undefined,
-				done: 0,
-				total: 0
-			}, debounce(render));
-
-			render(data);
+			data.busy = true;
 
 			const init = performance.now();
 
@@ -161,6 +193,8 @@ addEventListeners({
 			data.time = performance.now() - start;
 
 			data.wps = Math.round(state.words / (data.time / 1000));
+
+			data.busy = false;
 		}
 		state.busy = false;
 	}

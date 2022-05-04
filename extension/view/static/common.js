@@ -1,6 +1,8 @@
 function addEventListeners(handlers) {
 	const handlersPerEventType = {};
 
+	const root = this instanceof Element ? this : document.body;
+
 	Object.entries(handlers).forEach(([name, callback]) => {
 		const [event, selector] = name.split(' ', 2);
 		if (!(event in handlersPerEventType))
@@ -9,7 +11,7 @@ function addEventListeners(handlers) {
 	});
 
 	Object.entries(handlersPerEventType).forEach(([event, handlers]) => {
-		document.body.addEventListener(event, e => {
+		root.addEventListener(event, e => {
 			handlers.forEach(({selector, callback}) => {
 				if (e.target.matches(selector))
 					callback(e);
@@ -85,7 +87,7 @@ function renderBoundElements(state) {
 }
 
 function addBoundElementListeners(callback) {
-	addEventListeners({
+	addEventListeners.call(this, {
 		'change *[data-bind\\:value]': e => {
 			callback(e.target.dataset['bind:value'], e.target.value, e);
 		},
