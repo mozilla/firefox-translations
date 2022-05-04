@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
-/* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL, Telemetry, loadFastText, FastText, Sentry, settings */
+/* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL,
+Telemetry, loadFastText, FastText, Sentry, settings, deserializeError */
 
 /*
  * we need the background script in order to have full access to the
@@ -231,6 +232,12 @@ const messageListener = function(message, sender) {
 
         case "reportQeStats":
           getTelemetry(message.tabId).addQualityEstimation(message.wordScores, message.sentScores);
+          break;
+
+        case "reportException":
+          // eslint-disable-next-line no-case-declarations
+          console.warn("Reporting content script error to Sentry");
+          Sentry.captureException(deserializeError(message.exception));
           break;
 
         case "submitPing":

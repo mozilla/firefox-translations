@@ -25,6 +25,7 @@
   "background": {
     "persistent": true,
     "scripts": [
+      "model/static/errorReporting/serializeError.js",
       "model/modelRegistry.js",
       "model/static/errorReporting/sentry.js",
       "settings.js",
@@ -60,7 +61,8 @@
       ],
       "js": [
         "model/static/DOMPurify/purify.min.js",
-        "model/static/errorReporting/sentry.js",
+        "model/static/errorReporting/serializeError.js",
+        "model/contentErrors.js",
         "settings.js",
         "model/modelRegistry.js",
         "controller/languageDetection/LanguageDetection.js",
