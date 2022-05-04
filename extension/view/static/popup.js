@@ -96,6 +96,11 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 			backgroundScript.postMessage({
 				command: 'TranslateAbort'
 			});
+		},
+		'click #export-recorded-pages-btn': e => {
+			backgroundScript.postMessage({
+				command: 'ExportRecordedPages'
+			});
 		}
 	});
 });

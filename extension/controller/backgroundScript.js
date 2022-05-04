@@ -128,6 +128,8 @@ class Tab extends EventTarget {
             totalTranslationRequests: 0,
             modelDownloadRead: undefined,
             modelDownloadSize: undefined,
+            recordedPagesCount: undefined,
+            recordedPagesURL: undefined
         };
         this.frames = new Map();
 
@@ -225,6 +227,72 @@ function showPopup(event) {
     }
 }
 
+class Recorder {
+    constructor(backing) {
+        this.pages = new Map();
+        this.backing = backing;
+    }
+
+    get registry() {
+        return this.backing.registry;
+    }
+
+    remove(filter) {
+        this.backing.remove(filter);
+    }
+
+    async translate(request) {
+        const {from, text, html} = request;
+
+        // Unique per page url
+        if (!this.pages.has(request.session.url))
+            this.pages.set(request.session.url, {
+                url: request.session.url,
+                texts: [],
+                from,
+            });
+
+        this.pages.get(request.session.url).texts.push(text);
+
+        return await this.backing.translate(request);
+    }
+
+    exportAXML() {
+        const root = document.implementation.createDocument('', '', null);
+        const dataset = root.createElement('dataset');
+
+        this.pages.forEach(page => {
+            const doc = root.createElement('doc');
+            doc.setAttribute('origlang', page.from);
+            doc.setAttribute('href', page.url);
+
+            const src = root.createElement('src');
+            src.setAttribute('lang', page.from);
+
+            page.texts.forEach((text, i) => {
+                const p = root.createElement('p');
+                
+                const seg = root.createElement('seg');
+                seg.setAttribute('id', i + 1);
+
+                seg.appendChild(root.createTextNode(text));
+                p.appendChild(seg);
+
+                src.appendChild(p);
+            });
+
+            doc.appendChild(src);
+            dataset.appendChild(doc);
+        });
+
+        root.appendChild(dataset);
+
+        const serializer = new XMLSerializer();
+        const xml = serializer.serializeToString(root);
+        return new Blob([xml], {type: 'application/xml'});
+    }
+}
+
 // Supported translation providers
 const providers = {
     'translatelocally': TLTranslationHelper,
@@ -266,9 +334,9 @@ let provider = new class {
             state.provider = 'wasm';
         }
         
-        this.#provider = new providers[state.provider](state.options);
+        const provider = new providers[state.provider](state.options);
 
-        this.#provider.onerror = err => {
+        provider.onerror = err => {
             console.error('Translation provider error:', err);
 
             // Try falling back to WASM is the current provider doesn't work
@@ -280,6 +348,8 @@ let provider = new class {
                 this.reset();
             }
         };
+
+        this.#provider = new Recorder(provider);
 
         return this.#provider;
     }
@@ -479,6 +549,16 @@ function connectPopup(popup) {
             
             case 'TranslateAbort':
                 tab.abort();
+                break;
+
+            case 'ExportRecordedPages':
+                const recordedPagesCount = provider.get().pages.size;
+                const recordedPagesURL = URL.createObjectURL(provider.get().exportAXML());
+                tab.update(state => ({
+                    recordedPagesURL,
+                    recordedPagesCount
+                }));
+                provider.get().pages.clear();
                 break;
         }
     });

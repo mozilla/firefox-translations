@@ -76,6 +76,10 @@
 		<label>
 			<a data-bind:href="benchmarkURL" target="blank_">Benchmark</a>
 		</label>
+		<label>
+			<button id="export-recorded-pages-btn">Export recorded pages</button>
+			<a data-bind:hidden="!recordedPagesURL" data-bind:href="recordedPagesURL" download="recored-pages.xml">Download <span data-bind:text-content="recordedPagesCount"></span> recorded pages as xml</a>
+		</label>
 		<script src="common.js"></script>
 		<script src="popup.js"></script>
 	</body>
