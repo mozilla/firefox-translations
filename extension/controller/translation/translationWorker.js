@@ -139,10 +139,14 @@ class TranslationHelper {
                              * engine and restore them afterwards to their original form.
                              */
                             const escapeHtml = text => {
-                                return String(text).replace(/&/g, '&amp;')
-                                .replace(/"/g, '&quot;').replace(/'/g, '&#039;')
-                                .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                return String(text)
+                                    .replace(/&/g, "&amp;")
+                                    .replace(/"/g, "&quot;")
+                                    .replace(/'/g, "&#039;")
+                                    .replace(/</g, "&lt;")
+                                    .replace(/>/g, "&gt;");
                             };
+
                             const non_html_qe_messages = new Map();
                             translationMessagesBatch.forEach((message, index) => {
                                 if (message.withQualityEstimation && !message.isHTML) {
