@@ -213,6 +213,27 @@ addEventListeners({
 
 			data.busy = false;
 		}
+
+		// Let's draw a bar because I can!
+		for (let column of ['startup', 'first', 'time']) {
+			const max = results.filter(({data: {enabled}}) => enabled).reduce((acc, {data}) => Math.max(acc, data[column]), 0);
+
+			for (let {row, data} of results) {
+				const cell = row.querySelector(`.${column}-col`);
+
+				if (!data.enabled) {
+					cell.style.backgroundImage = '';
+					continue;
+				}
+				const percentage = (100 * data[column] / max).toFixed(0);
+				cell.style.backgroundImage = `linear-gradient(90deg,
+					rgba(  0,  0,255,0.1) 0%,
+					rgba(  0,  0,255,0.1) ${percentage}%,
+					rgba(255,255,255,0.0) ${percentage}%,
+					rgba(255,255,255,0.0) 100%)`;
+			}
+		}
+
 		state.busy = false;
 	}
 });
