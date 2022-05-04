@@ -6,8 +6,6 @@
 /* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts */
 
 
-const BATCH_SIZE = 8; // number of requested translations
-
 const CACHE_NAME = "bergamot-translations";
 
 const MAX_DOWNLOAD_TIME = 60000; // TODO move this
@@ -77,6 +75,12 @@ class WorkerChannel {
 
         // batch serial to help keep track of batches when debugging
         this.batchSerial = 0;
+
+        // Number of requests in a batch before it is ready to be translated in
+        // a single call. Bigger is better for throughput (better matrix packing)
+        // but worse for latency since you'll have to wait for the entire batch
+        // to be translated.
+        this.batchSize = Math.max(this.options.batchSize || 8, 1);
 
         // Error handler for all errors that are async, not tied to a specific
         // call and that are unrecoverable.
@@ -452,7 +456,7 @@ class WorkerChannel {
         let batch = this.queue.find(batch => {
             return batch.key === key
                 && batch.priority === priority
-                && batch.requests.length < BATCH_SIZE
+                && batch.requests.length < this.batchSize
         });
 
         // No batch or full batch? Queue up a new one
