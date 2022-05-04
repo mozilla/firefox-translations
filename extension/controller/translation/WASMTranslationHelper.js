@@ -52,6 +52,13 @@ class WorkerChannel {
  */
  class WASMTranslationHelper {
     
+    /**
+     * options:
+     *   cacheSize: 0
+     *   useNativeIntGemm: false
+     *   workers: 1
+     *   batchSize: 8
+     */
     constructor(options) {
         this.options = options || {};
 

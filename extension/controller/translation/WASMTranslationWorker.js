@@ -24,6 +24,9 @@ class WASMTranslationWorker {
 
     static NATIVE_INT_GEMM = 'mozIntGemm';
 
+    /**
+     * options: {useNativeIntGemm: false, cacheSize: 0}
+     */
     constructor(options) {
         this.options = options || {};
 
@@ -97,7 +100,7 @@ class WASMTranslationWorker {
      */
     async loadTranslationService() {
         const Module = await this.module;
-        return new Module.BlockingService({cacheSize: 20000});
+        return new Module.BlockingService({cacheSize: Math.max(this.options.cacheSize || 0, 0)});
     }
 
     /**

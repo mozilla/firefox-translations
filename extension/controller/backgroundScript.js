@@ -303,8 +303,9 @@ const providers = {
 const state = {
     provider: 'wasm',
     options: {
-        workers: 1,
-        useNativeIntGemm: true
+        workers: 1, // be kind to the user's pc
+        cacheSize: 20000, // remember website boilerplate
+        useNativeIntGemm: true // faster is better (unless it is buggy: https://github.com/browsermt/marian-dev/issues/81)
     }
 };
 

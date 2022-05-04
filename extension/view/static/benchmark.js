@@ -1,42 +1,50 @@
 // For untar.js
 workerScriptUri = browser.runtime.getURL('3rd_party/js-untar/untar-worker.js');
 
+const defaults = {
+	cacheSize: 0
+};
+
 const implementations = [
 	{
 		name: "WASM, 1 worker",
-		factory: () => new WASMTranslationHelper({workers: 1, useNativeIntGemm: false})
+		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: false})
 	},
 	{
 		name: "WASM, 1 worker, native intgemm",
-		factory: () => new WASMTranslationHelper({workers: 1, useNativeIntGemm: true})
+		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: true})
 	},
 	{
 		name: "WASM, 4 workers",
-		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: false})
+		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: false})
 	},
 	{
 		name: "WASM, 4 workers, native intgemm, batch-size: 8",
-		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: true, batchSize: 8})
+		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: true, batchSize: 8})
 	},
 	{
 		name: "WASM, 4 workers, native intgemm, batch-size 16",
-		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: true, batchSize: 16})
+		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: true, batchSize: 16})
 	},
 	{
 		name: "WASM, 4 workers, native intgemm, batch-size 32",
-		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: true, batchSize: 32})
+		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: true, batchSize: 32})
 	},
 	{
 		name: "WASM, 4 workers, native intgemm, batch-size 128",
-		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: true, batchSize: 128})
+		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: true, batchSize: 128})
 	},
 	{
 		name: "WASM, 4 workers, native intgemm, batch-size 256",
-		factory: () => new WASMTranslationHelper({workers: 4, useNativeIntGemm: true, batchSize: 256})
+		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: true, batchSize: 256})
 	},
 	{
-		name: "Native Messaging",
-		factory: () => new TLTranslationHelper()
+		name: "Native Messaging, 1 worker",
+		factory: () => new TLTranslationHelper({...defaults, workers: 1})
+	},
+	{
+		name: "Native Messaging, 4 workers",
+		factory: () => new TLTranslationHelper({...defaults, workers: 4})
 	},
 ];
 
