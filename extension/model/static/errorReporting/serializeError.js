@@ -28,10 +28,10 @@ const errorConstructors = new Map(list);
 
 
 class NonError extends Error {
-	name = 'NonError';
 
 	constructor(message) {
 		super(NonError._prepareSuperMessage(message));
+		this.name = 'NonError';
 	}
 
 	static _prepareSuperMessage(message) {
