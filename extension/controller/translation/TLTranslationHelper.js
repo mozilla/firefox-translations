@@ -52,7 +52,11 @@ class PortChannel {
  */
  class TLTranslationHelper {
     
-    constructor() {
+    constructor(options) {
+        this.threads = Math.max(options?.workers || 1, 1);
+
+        this.cacheSize = Math.max(options?.cacheSize || 0, 0);
+
         this.client = lazy(this.loadNativeClient.bind(this));
 
         // registry of all available models and their urls: Promise<List<Model>>
@@ -76,16 +80,21 @@ class PortChannel {
     }
 
     async loadNativeClient() {
-        return new Promise((resolve, reject) => {
-            const port = browser.runtime.connectNative('translatelocally');
+        const port = browser.runtime.connectNative('translatelocally');
 
-            port.onDisconnect.addListener(() => {
-                if (port.error)
-                    this.onerror(port.error);
-            });
-
-            resolve(new PortChannel(port));
+        port.onDisconnect.addListener(() => {
+            if (port.error)
+                this.onerror(port.error);
         });
+
+        const channel = new PortChannel(port);
+
+        await channel.request('Configure', {
+            threads: this.threads,
+            cacheSize: this.cacheSize
+        });
+
+        return channel;
     }
 
     /**
