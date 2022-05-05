@@ -115,6 +115,8 @@ function observe(obj, callback) {
 	});
 }
 
+const renderer = new BoundElementRenderer(document.querySelector('#controls'));
+
 const state = observe({
 	from: 'de',
 	to: 'en',
@@ -123,22 +125,36 @@ const state = observe({
 	texts: [],
 	chunks: undefined,
 	words: undefined,
-}, renderBoundElements.bind(document.querySelector('#controls')));
+	runs: 5,
+}, renderer.render.bind(renderer));
 
-addBoundElementListeners.call(document.querySelector('#controls'), (name, value) => {
+addBoundElementListeners(document.querySelector('#controls'), (name, value) => {
 	state[name] = value;
 });
 
-renderBoundElements.call(document.querySelector('#controls'), state);
+renderer.render(state);
 
-const results = implementations.map(implementation => {
-	const row = document.querySelector('#results-row').content.firstElementChild.cloneNode(true);
-	document.querySelector('#results tbody').appendChild(row);
+const scenarios = implementations.map(implementation => {
+	const section = document.querySelector('#results-row').content.cloneNode(true);
+	console.assert(section.children.length == 2);
 
-	const render = renderBoundElements.bind(row);
+	const row = section.querySelector('thead > tr');
+	console.assert(row instanceof Element);
+
+	const tbody = section.querySelector('tbody');
+	console.assert(tbody instanceof Element);
+
+	const renderer = new BoundElementRenderer(section);
+	const render = debounce(renderer.render.bind(renderer));
+
+	// Done after selecting row and tbody because the section will be empty
+	// after this step (section is a fragment, not an element, so the document
+	// adopts the elements from the fragment!)
+	document.querySelector('#results').appendChild(section);
 
 	const data = observe({
 		enabled: true,
+		expanded: false,
 		busy: false,
 		name: implementation.name,
 		startup: undefined,
@@ -146,19 +162,112 @@ const results = implementations.map(implementation => {
 		time: undefined,
 		wps: undefined,
 		done: 0,
-		total: 0
-	}, debounce(render));
+		total: 0,
+		get hideRuns() { return !this.expanded && !this.busy; }
+	}, render);
 
-	// Initial render of row
+	// Initial render of row (necessary for hidden attributes I guess)
 	render(data);
 
 	// Connect checkboxes to `data`
-	addBoundElementListeners.call(row, (name, value) => data[name] = value);
+	addBoundElementListeners(row, (name, value) => data[name] = value);
 
-	return {row, data, implementation};
+	return {tbody, row, data, runs:[], implementation};
 });
 
-addEventListeners({
+async function execute(scenario, run) {
+	const row = document.querySelector('#run-row').content.firstElementChild.cloneNode(true);
+	scenario.tbody.appendChild(row);
+
+	const renderer = new BoundElementRenderer(row);
+	const render = debounce(renderer.render.bind(renderer));
+
+	const data = observe({
+		run,
+		busy: false,
+		startup: undefined,
+		first: undefined,
+		time: undefined,
+		wps: undefined,
+		done: 0,
+		total: 0
+	}, render);
+
+	data.busy = true;
+
+	const init = performance.now();
+
+	const translator = scenario.implementation.factory();
+	// await translator.translate({
+	// 	from: state.from,
+	// 	to: state.to,
+	// 	text: 'This is a warm-up sentence.',
+	// 	html: false
+	// });
+	
+	const start = performance.now();
+
+	data.startup = start - init;
+
+	data.total = state.texts.length;
+
+	const promises = state.texts.map(async text => {
+		await translator.translate({
+			from: state.from,
+			to: state.to,
+			text,
+			html: state.html
+		});
+		data.done = data.done + 1; // sorry necessary for observe()
+	});
+
+	await Promise.any(promises); // any() instead of race() because I want a response, not an error
+	data.first = performance.now() - start;
+
+	await Promise.all(promises);
+	data.time = performance.now() - start;
+
+	data.wps = Math.round(state.words / (data.time / 1000));
+
+	data.busy = false;
+
+	return {row, data};
+}
+
+function updateAverages(scenario) {
+	for (let column of ['startup', 'first', 'time']) {
+		scenario.data[column] = Math.round(scenario.runs.reduce((acc, {data}) => acc + data[column], 0) / scenario.runs.length);
+	}
+}
+
+function updateBarChart() {
+	for (let column of ['startup', 'first', 'time']) {
+		const max = scenarios.filter(({data: {enabled}}) => enabled).reduce((acc, {data}) => Math.max(acc, data[column]), 0);
+
+		for (let {row, data} of scenarios) {
+			const cell = row.querySelector(`.${column}-col`);
+
+			if (!data.enabled) {
+				cell.style.backgroundImage = '';
+				continue;
+			}
+			const percentage = (100 * data[column] / max).toFixed(0);
+			cell.style.backgroundImage = `linear-gradient(90deg,
+				rgba(  0,  0,255,0.1) 0%,
+				rgba(  0,  0,255,0.1) ${percentage}%,
+				rgba(255,255,255,0.0) ${percentage}%,
+				rgba(255,255,255,0.0) 100%)`;
+		}
+	}
+}
+
+addEventListeners(document.body, {
+	'input #enable-all': e => {
+		scenarios.forEach(scenario => scenario.data.enabled = e.target.checked);
+	},
+	'input #expand-all': e => {
+		scenarios.forEach(scenario => scenario.data.expanded = e.target.checked);
+	},
 	'input #test-set-selector': e => {
 		Array.from(e.target.files).forEach(async file => {
 			state.busy = true;
@@ -170,67 +279,16 @@ addEventListeners({
 	},
 	'click #run-test': async e => {
 		state.busy = true;
-		for (let {data, implementation} of results) {
-			if (!data.enabled) continue;
-
-			data.busy = true;
-
-			const init = performance.now();
-
-			const translator = implementation.factory();
-			await translator.translate({
-				from: state.from,
-				to: state.to,
-				text: 'This is a warm-up sentence.',
-				html: false
-			});
-			
-			const start = performance.now();
-
-			data.startup = start - init;
-
-			const promises = state.texts.map(async text => {
-				data.total = data.total + 1;
-				await translator.translate({
-					from: state.from,
-					to: state.to,
-					text,
-					html: state.html
-				});
-				data.done = data.done + 1; // sorry necessary for observe()
-			});
-
-			await Promise.any(promises); // any() instead of race() because I want a response, not an error
-			data.first = performance.now() - start;
-
-			await Promise.all(promises);
-			data.time = performance.now() - start;
-
-			data.wps = Math.round(state.words / (data.time / 1000));
-
-			data.busy = false;
-		}
-
-		// Let's draw a bar because I can!
-		for (let column of ['startup', 'first', 'time']) {
-			const max = results.filter(({data: {enabled}}) => enabled).reduce((acc, {data}) => Math.max(acc, data[column]), 0);
-
-			for (let {row, data} of results) {
-				const cell = row.querySelector(`.${column}-col`);
-
-				if (!data.enabled) {
-					cell.style.backgroundImage = '';
-					continue;
-				}
-				const percentage = (100 * data[column] / max).toFixed(0);
-				cell.style.backgroundImage = `linear-gradient(90deg,
-					rgba(  0,  0,255,0.1) 0%,
-					rgba(  0,  0,255,0.1) ${percentage}%,
-					rgba(255,255,255,0.0) ${percentage}%,
-					rgba(255,255,255,0.0) 100%)`;
+		for (let scenario of scenarios) {
+			if (!scenario.data.enabled) continue;
+			scenario.data.busy = true;
+			for (let i = 0; i < state.runs; ++i) {
+				scenario.runs.push(await execute(scenario, scenario.runs.length + 1));
+				updateAverages(scenario);
 			}
+			scenario.data.busy = false;
 		}
-
+		updateBarChart();
 		state.busy = false;
 	}
 });

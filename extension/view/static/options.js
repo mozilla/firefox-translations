@@ -17,7 +17,7 @@ browser.storage.onChanged.addListener(async changes => {
 	renderBoundElements(state);
 });
 
-addBoundElementListeners((key, value) => {
+addBoundElementListeners(document.body, (key, value) => {
 	browser.storage.local.set({[key]: value});
 });
 
@@ -29,6 +29,6 @@ port.onDisconnect.addListener(e => {
 	} else {
 		state.translateLocallyAvailable = true;
 	}
-	renderBoundElements(state);
+	renderBoundElements(document.body, state);
 })
 port.disconnect();

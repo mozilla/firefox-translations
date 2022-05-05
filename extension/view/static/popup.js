@@ -34,7 +34,7 @@ function render(state) {
 		el.hidden = el.dataset.state != renderState.state;
 	});
 
-	renderBoundElements(renderState);
+	renderBoundElements(document.body, renderState);
 }
 
 // Query which tab we represent and then connect to the tab state in the 
@@ -56,14 +56,14 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 		}
 	});
 
-	addBoundElementListeners((key, value) => {
+	addBoundElementListeners(document.body, (key, value) => {
 		backgroundScript.postMessage({
 			command: 'UpdateRequest',
 			data: {[key]: value}
 		});
 	});
 
-	addEventListeners({
+	addEventListeners(document.body, {
 		'click #translate-btn': e => {
 			backgroundScript.postMessage({
 				command: 'TranslateStart',

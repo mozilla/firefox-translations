@@ -9,7 +9,12 @@
 		<table id="results">
 			<thead>
 				<tr>
-					<th class="name-col">Implementation</th>
+					<th class="collapse-col">
+						<input type="checkbox" class="details-toggle" id="expand-all">
+					</th>
+					<th class="name-col">
+						<label><input type="checkbox" id="enable-all" checked> Scenario</label>
+					</th>
 					<th class="startup-col">Start-up</th>
 					<th class="first-col">First (excl. Start-up)</th>
 					<th class="time-col">Time (excl. Start-up)</th>
@@ -18,12 +23,38 @@
 			</thead>
 			<tbody>
 				<template id="results-row">
-					<tr>
+					<thead>
+						<tr class="summary">
+							<td class="collapse-col">
+								<input type="checkbox" class="details-toggle" data-bind:checked="expanded">
+							</td>
+							<td class="name-col">
+								<label>
+									<input type="checkbox" data-bind:checked="enabled">
+									<span data-bind:text-content="name"></span>
+								</label>
+							</td>
+							<td class="startup-col">
+								<span data-bind:hidden="!startup"><span data-bind:text-content="startup"></span><abbr title="miliseconds">ms</abbr></span>
+							</td>
+							<td class="first-col">
+								<span data-bind:hidden="!first"><span data-bind:text-content="first"></span><abbr title="miliseconds">ms</abbr></span>
+							</td>
+							<td class="time-col">
+								<span data-bind:hidden="!time"><span data-bind:text-content="time"></span><abbr title="miliseconds">ms</abbr></span>
+							</td>
+							<td class="wps-col" data-bind:text-content="wps"></td>
+						</tr>
+					</thead>
+					<tbody data-bind:hidden="hideRuns">
+						<!-- room for runs -->
+					</tbody>
+				</template>
+				<template id="run-row">
+					<tr class="run">
+						<td></td>
 						<td class="name-col">
-							<label>
-								<input type="checkbox" data-bind:checked="enabled">
-								<span data-bind:text-content="name"></span>
-							</label>
+							Run <span data-bind:text-content="run"></span>
 						</td>
 						<td class="startup-col">
 							<span data-bind:hidden="!startup"><span data-bind:text-content="startup"></span><abbr title="miliseconds">ms</abbr></span>
@@ -62,6 +93,7 @@
 						<em>A chunk is a fragment of one or more sentences that is submitted as a single "chunk" to the trranslator.</em>
 					</li>
 				</ul>
+				<li><label>Runs per scenario: <input type="number" data-bind:value="runs" min="1"></label></li>
 				<li><button id="run-test" data-bind:disabled="!texts">Benchmark!</button></li>
 			</ol>
 		</div>
