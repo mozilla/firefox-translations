@@ -34,22 +34,26 @@ const scrubSentryEvent = ev => {
   return ev;
 }
 
+const initializeSentry = () => {
+  Sentry.init({
+    dsn: settings.sentryDsn,
+    tracesSampleRate: 1.0,
+    debug: settings.sentryDebug,
+    release: `firefox-translations@${browser.runtime.getManifest().version}`,
+    beforeSend: scrubSentryEvent,
+    integrations(integrations) {
+      // integrations will be all default integrations
+      return integrations.filter(function(integration) {
+        return integration.name !== "Breadcrumbs";
+      });
+    },
+  });
+}
+
 window.addEventListener("load", function () {
   browser.storage.local.get({ errorCollectionConsent: true }).then(item => {
     if (item.errorCollectionConsent) {
-      Sentry.init({
-        dsn: settings.sentryDsn,
-        tracesSampleRate: 1.0,
-        debug: settings.sentryDebug,
-        release: `firefox-translations@${browser.runtime.getManifest().version}`,
-        beforeSend: scrubSentryEvent,
-        integrations(integrations) {
-          // integrations will be all default integrations
-          return integrations.filter(function(integration) {
-            return integration.name !== "Breadcrumbs";
-          });
-        },
-      });
+      initializeSentry();
       console.log("Initializing Sentry");
     }
   });
@@ -339,19 +343,7 @@ const messageListener = function(message, sender) {
           browser.storage.local.set({ errorCollectionConsent: message.consent });
           if (message.consent) {
             if (!Sentry.getCurrentHub().getClient()) {
-              Sentry.init({
-                dsn: settings.sentryDsn,
-                tracesSampleRate: 1.0,
-                debug: settings.sentryDebug,
-                release: `firefox-translations@${browser.runtime.getManifest().version}`,
-                beforeSend: scrubSentryEvent,
-                integrations(integrations) {
-                  // integrations will be all default integrations
-                  return integrations.filter(function(integration) {
-                    return integration.name !== "Breadcrumbs";
-                  });
-                },
-              });
+              initializeSentry();
             } else {
               Sentry.getCurrentHub().getClient()
               .getOptions().enabled = true;
