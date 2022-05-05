@@ -198,12 +198,14 @@ async function execute(scenario, run) {
 	const init = performance.now();
 
 	const translator = scenario.implementation.factory();
-	// await translator.translate({
-	// 	from: state.from,
-	// 	to: state.to,
-	// 	text: 'This is a warm-up sentence.',
-	// 	html: false
-	// });
+
+	// Warm-up sentence
+	await translator.translate({
+		from: state.from,
+		to: state.to,
+		text: 'Hallo welt!',
+		html: false
+	});
 	
 	const start = performance.now();
 
@@ -224,7 +226,7 @@ async function execute(scenario, run) {
 	await Promise.any(promises); // any() instead of race() because I want a response, not an error
 	data.first = performance.now() - start;
 
-	await Promise.all(promises);
+	await Promise.allSettled(promises);
 	data.time = performance.now() - start;
 
 	data.wps = Math.round(state.words / (data.time / 1000));
@@ -235,13 +237,13 @@ async function execute(scenario, run) {
 }
 
 function updateAverages(scenario) {
-	for (let column of ['startup', 'first', 'time']) {
+	for (let column of ['startup', 'first', 'time', 'wps']) {
 		scenario.data[column] = Math.round(scenario.runs.reduce((acc, {data}) => acc + data[column], 0) / scenario.runs.length);
 	}
 }
 
 function updateBarChart() {
-	for (let column of ['startup', 'first', 'time']) {
+	for (let column of ['startup', 'first', 'time', 'wps']) {
 		const max = scenarios.filter(({data: {enabled}}) => enabled).reduce((acc, {data}) => Math.max(acc, data[column]), 0);
 
 		for (let {row, data} of scenarios) {

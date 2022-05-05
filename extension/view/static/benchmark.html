@@ -15,8 +15,8 @@
 					<th class="name-col">
 						<label><input type="checkbox" id="enable-all" checked> Scenario</label>
 					</th>
-					<th class="startup-col">Start-up</th>
-					<th class="first-col">First (excl. Start-up)</th>
+					<th class="startup-col">Start-up*</th>
+					<th class="first-col">Hot First**</th>
 					<th class="time-col">Time (excl. Start-up)</th>
 					<th class="wps-col">WPS</th>
 				</tr>
@@ -97,6 +97,11 @@
 				<li><button id="run-test" data-bind:disabled="!texts">Benchmark!</button></li>
 			</ol>
 		</div>
+
+		<p>* Start-up is time from instantiation up to the first translated single sentence. We used a single sentence input batch to trigger all the delayed initialisation.</p>
+		<p>** Hot First is time for the first sentence to return after submitting a large batch of sentences. This is a more common scenario for this plugin, since the translation model remains loaded between page loads.</p>
+		<p>Time (excl. start-up) is the total time it takes to translate the test-set, given that the translation model is already loaded and primed.</p>
+		<p>WPS is word count (HTML tags are stripped, excluded elements are stripped as well) divided by the Time column</p>
 
 		<script src="../../3rd_party/pako/pako_inflate.js"></script>
 		<script src="../../3rd_party/js-untar/untar.js"></script>
