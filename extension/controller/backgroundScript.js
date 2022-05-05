@@ -305,7 +305,8 @@ const state = {
         workers: 1, // be kind to the user's pc
         cacheSize: 20000, // remember website boilerplate
         useNativeIntGemm: true // faster is better (unless it is buggy: https://github.com/browsermt/marian-dev/issues/81)
-    }
+    },
+    developer: false // should we show the option to record page translation requests?
 };
 
 // State per tab
@@ -460,8 +461,9 @@ function connectContentScript(contentScript) {
                 }));
 
                 // If we're recording requests from this tab, add the translation
-                // request.
-                if (tab.state.record) {
+                // request. Also disabled when developer setting is false since
+                // then there are no controls to turn it on/off.
+                if (state.developer && tab.state.record) {
                     recorder.record(message.data);
                     tab.update(state => ({
                         recordedPagesCount: recorder.size

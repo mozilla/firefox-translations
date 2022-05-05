@@ -2,7 +2,11 @@
 
 const state = {
 	provider: 'wasm',
-	translateLocallyAvailable: false
+	translateLocallyAvailable: false,
+	recorder: false,
+	get benchmarkURL() {
+		return browser.runtime.getURL('view/static/benchmark.html');
+	}
 };
 
 browser.storage.local.get().then(localState => {
