@@ -82,9 +82,6 @@
 
   ],
   "web_accessible_resources": [
-    "view/static/outboundTranslation.html",
-    "view/static/dataConsent.html",
-    "model/Queue.js",
     "controller/translation/translationWorker.js"
   ],
   "incognito": "spanning",
