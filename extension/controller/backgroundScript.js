@@ -34,7 +34,7 @@ const scrubSentryEvent = ev => {
   return ev;
 }
 
-window.addEventListener("load", function () {
+const initializeSentry = () => {
   Sentry.init({
     dsn: settings.sentryDsn,
     tracesSampleRate: 1.0,
@@ -42,14 +42,22 @@ window.addEventListener("load", function () {
     release: `firefox-translations@${browser.runtime.getManifest().version}`,
     beforeSend: scrubSentryEvent,
     integrations(integrations) {
-    // integrations will be all default integrations
-    return integrations.filter(function(integration) {
-      return integration.name !== "Breadcrumbs";
-    });
-  },
+      // integrations will be all default integrations
+      return integrations.filter(function(integration) {
+        return integration.name !== "Breadcrumbs";
+      });
+    },
+  });
+}
+
+window.addEventListener("load", function () {
+  browser.storage.local.get({ errorCollectionConsent: true }).then(item => {
+    if (item.errorCollectionConsent) {
+      initializeSentry();
+      console.log("Initializing Sentry");
+    }
   });
 });
-
 
 let cachedEnvInfo = null;
 let pingSender = new PingSender();
@@ -61,12 +69,16 @@ let telemetryByTab = new Map();
 let translationRequestsByTab = new Map();
 let outboundRequestsByTab = new Map();
 const translateAsBrowseMap = new Map();
+let isMochitest = false;
 
 const init = () => {
   Sentry.wrap(async () => {
     platformInfo = await browser.runtime.getPlatformInfo();
     cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
     telemetryByTab.forEach(t => t.environment(cachedEnvInfo));
+  });
+  browser.storage.local.get({ telemetryCollectionConsent: true }).then(item => {
+    pingSender.setUploadEnabled(item.telemetryCollectionConsent);
   });
 }
 
@@ -132,6 +144,7 @@ const messageListener = function(message, sender) {
           browser.tabs.sendMessage(sender.tab.id, {
             command: "responseDetectPageLanguage",
             pageLanguage,
+            isMochitest
           })
           break;
         }
@@ -326,6 +339,26 @@ const messageListener = function(message, sender) {
             translatingAsBrowse: message.translatingAsBrowse
           });
           break;
+        case "errorCollectionConsent":
+          browser.storage.local.set({ errorCollectionConsent: message.consent });
+          if (message.consent) {
+            if (!Sentry.getCurrentHub().getClient()) {
+              initializeSentry();
+            } else {
+              Sentry.getCurrentHub().getClient()
+              .getOptions().enabled = true;
+              console.log("Sentry enabled");
+            }
+          } else {
+            Sentry.getCurrentHub().getClient()
+            .getOptions().enabled = false;
+            console.log("Sentry disabled");
+          }
+          break;
+        case "telemetryCollectionConsent":
+          browser.storage.local.set({ telemetryCollectionConsent: message.consent });
+          pingSender.setUploadEnabled(message.consent);
+          break;
         default:
           // ignore
           break;
@@ -406,4 +439,18 @@ browser.pageAction.onClicked.addListener(tab => {
 // here we remove the closed tabs from translateAsBrowseMap
 browser.tabs.onRemoved.addListener(tabId => {
   translateAsBrowseMap.delete(tabId);
+});
+
+
+const displayedConsentPromise = browser.storage.local.get("displayedConsent");
+const isMochitestPromise = browser.experiments.translationbar.isMochitest();
+
+Promise.allSettled([displayedConsentPromise, isMochitestPromise]).then(values => {
+  const displayedConsent = values[0].value?.displayedConsent;
+  isMochitest = values[1].value;
+
+  if (!displayedConsent && !isMochitest) {
+    browser.tabs.create({ url: browser.runtime.getURL("view/static/dataConsent.html") });
+    browser.storage.local.set({ displayedConsent: true });
+  }
 });

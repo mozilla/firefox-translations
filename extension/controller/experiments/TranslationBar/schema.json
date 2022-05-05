@@ -75,6 +75,13 @@
                 "description": "language code"
             }
           ]
+        },
+        {
+          "name": "isMochitest",
+          "type": "function",
+          "description": "Returns if we are running a mochitest.",
+          "async": true,
+          "parameters": []
         }
       ],
       "events": [

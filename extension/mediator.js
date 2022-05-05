@@ -25,13 +25,6 @@ class Mediator {
         this.translationBarDisplayed = false;
         this.platformInfo = null;
         this.statsMode = false;
-        // if we are in the protected mochitest page, we flag it.
-        if ((window.location.href ===
-            "https://example.com/browser/browser/extensions/translations/test/browser/browser_translation_test.html") ||
-            (window.location.href ===
-            "https://example.com/browser/browser/extensions/translations/test/browser/frame.html")) {
-            this.isMochitest = true;
-        }
         this.isMainFrame = window.self === window.top;
     }
 
@@ -70,7 +63,7 @@ class Mediator {
     }
 
     // eslint-disable-next-line max-lines-per-function
-    determineIfTranslationisRequired() {
+    determineIfTranslationisRequired(isMochitest) {
 
         /*
          * here we:
@@ -114,7 +107,7 @@ class Mediator {
                 });
                 this.translationBarDisplayed = true;
                 // create the translation object
-                this.translation = new Translation(this);
+                this.translation = new Translation(this, isMochitest);
             } else {
                 this.recordTelemetry("counter", "service", "not_supported");
             }
@@ -312,7 +305,7 @@ class Mediator {
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection.setPageLanguage(message.pageLanguage);
-                if (this.isMainFrame) this.determineIfTranslationisRequired();
+                if (this.isMainFrame) this.determineIfTranslationisRequired(message.isMochitest);
                 break;
             case "translationRequested":
                 // not started yet

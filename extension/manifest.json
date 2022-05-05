@@ -16,6 +16,10 @@
       "strict_min_version": "79.0"
     }
   },
+  "options_ui": {
+    "page": "view/static/dataConsent.html",
+    "browser_style": true
+  },
   "permissions": [
     "<all_urls>",
     "tabs",
@@ -79,6 +83,7 @@
   ],
   "web_accessible_resources": [
     "view/static/outboundTranslation.html",
+    "view/static/dataConsent.html",
     "model/Queue.js",
     "controller/translation/translationWorker.js"
   ],
