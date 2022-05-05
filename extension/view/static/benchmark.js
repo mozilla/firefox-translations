@@ -48,7 +48,7 @@ const implementations = [
 		factory: () => new TLTranslationHelper({...defaults, workers: 4})
 	},
 	{
-		name: "WASM, 1 worker, batch-size: 16, cache-size: 20000",
+		name: "WASM, 1 worker, batch-size: 8, cache-size: 20000",
 		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: false, batchSize: 16, cacheSize: 20000})
 	},
 	
