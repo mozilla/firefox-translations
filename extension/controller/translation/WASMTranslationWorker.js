@@ -5,11 +5,7 @@
 // Global because importScripts is global.
 var Module = {};
 
-console.log("AAA");
-
 importScripts('yaml.js');
-
-console.log("BBBV");
 
 class WASMTranslationWorker {
     static GEMM_TO_FALLBACK_FUNCTIONS_MAP = {
@@ -225,16 +221,12 @@ class WASMTranslationWorker {
 }
 
 onmessage = ({data}) => {
-    console.debug("WASMTranslationWorker received initial message", data);
-
     if (!data.options){
         console.warn('Did not receive initial message with options');
         return;
     }
 
     const worker = new WASMTranslationWorker(data.options);
-
-    console.log("Made it past");
 
     // Responder for Proxy<Channel> created in TranslationHelper.loadWorker()
     onmessage = async ({data: {id, message}}) => {
