@@ -1,6 +1,3 @@
-// For untar.js
-workerScriptUri = browser.runtime.getURL('3rd_party/js-untar/untar-worker.js');
-
 const defaults = {
 	cacheSize: 0
 };
