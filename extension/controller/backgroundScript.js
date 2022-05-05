@@ -128,9 +128,11 @@ class Tab extends EventTarget {
             totalTranslationRequests: 0,
             modelDownloadRead: undefined,
             modelDownloadSize: undefined,
+            record: false,
             recordedPagesCount: undefined,
             recordedPagesURL: undefined
         };
+
         this.frames = new Map();
 
         this._scheduledUpdateEvent = null;
@@ -228,40 +230,37 @@ function showPopup(event) {
 }
 
 class Recorder {
+    #pages;
+
     constructor(backing) {
-        this.pages = new Map();
-        this.backing = backing;
+        this.#pages = new Map();
     }
 
-    get registry() {
-        return this.backing.registry;
-    }
-
-    remove(filter) {
-        this.backing.remove(filter);
-    }
-
-    async translate(request) {
-        const {from, text, html} = request;
-
+    record({from, text, html, session: {url}}) {
         // Unique per page url
-        if (!this.pages.has(request.session.url))
-            this.pages.set(request.session.url, {
-                url: request.session.url,
-                texts: [],
+        if (!this.#pages.has(url))
+            this.#pages.set(url, {
+                url,
                 from,
+                texts: [],
             });
 
-        this.pages.get(request.session.url).texts.push(text);
+        this.#pages.get(url).texts.push(text);
+    }
 
-        return await this.backing.translate(request);
+    get size() {
+        return this.#pages.size;
+    }
+
+    clear() {
+        this.#pages.clear();
     }
 
     exportAXML() {
         const root = document.implementation.createDocument('', '', null);
         const dataset = root.createElement('dataset');
 
-        this.pages.forEach(page => {
+        this.#pages.forEach(page => {
             const doc = root.createElement('doc');
             doc.setAttribute('origlang', page.from);
             doc.setAttribute('href', page.url);
@@ -335,9 +334,9 @@ let provider = new class {
             state.provider = 'wasm';
         }
         
-        const provider = new providers[state.provider](state.options);
+        this.#provider = new providers[state.provider](state.options);
 
-        provider.onerror = err => {
+        this.#provider.onerror = err => {
             console.error('Translation provider error:', err);
 
             // Try falling back to WASM is the current provider doesn't work
@@ -350,8 +349,6 @@ let provider = new class {
             }
         };
 
-        this.#provider = new Recorder(provider);
-
         return this.#provider;
     }
 
@@ -360,6 +357,8 @@ let provider = new class {
         this.#provider = null;
     }
 };
+
+const recorder = new Recorder();
 
 /**
  * Connects the port of a content-script or popup with the state management
@@ -459,6 +458,16 @@ function connectContentScript(contentScript) {
                     pendingTranslationRequests: state.pendingTranslationRequests + 1,
                     totalTranslationRequests: state.totalTranslationRequests + 1
                 }));
+
+                // If we're recording requests from this tab, add the translation
+                // request.
+                if (tab.state.record) {
+                    recorder.record(message.data);
+                    tab.update(state => ({
+                        recordedPagesCount: recorder.size
+                    }));
+                }
+
                 provider.get().translate({...message.data, _abortSignal})
                     .then(response => {
                         if (!response.request._abortSignal.aborted) {
@@ -553,13 +562,15 @@ function connectPopup(popup) {
                 break;
 
             case 'ExportRecordedPages':
-                const recordedPagesCount = provider.get().pages.size;
-                const recordedPagesURL = URL.createObjectURL(provider.get().exportAXML());
-                tab.update(state => ({
-                    recordedPagesURL,
-                    recordedPagesCount
-                }));
-                provider.get().pages.clear();
+                popup.postMessage({
+                    command: 'DownloadRecordedPages',
+                    data: {
+                        name: 'recorded-pages.xml',
+                        url: URL.createObjectURL(recorder.exportAXML())
+                    }
+                });
+                recorder.clear();
+                tab.update(state => ({recordedPagesCount: 0}));
                 break;
         }
     });

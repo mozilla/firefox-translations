@@ -74,11 +74,11 @@
 			Enable debug mode
 		</label>
 		<label>
-			<a data-bind:href="benchmarkURL" target="blank_">Benchmark</a>
+			<input type="checkbox" data-bind:checked="record">
+			Record pages <a href="#" id="export-recorded-pages-btn" data-bind:hidden="!canExportPages">Export <span data-bind:text-content="recordedPagesCount"></span> pages</button>
 		</label>
 		<label>
-			<button id="export-recorded-pages-btn">Export recorded pages</button>
-			<a data-bind:hidden="!recordedPagesURL" data-bind:href="recordedPagesURL" download="recored-pages.xml">Download <span data-bind:text-content="recordedPagesCount"></span> recorded pages as xml</a>
+			<a data-bind:href="benchmarkURL" target="blank_">Benchmark</a>
 		</label>
 		<script src="common.js"></script>
 		<script src="popup.js"></script>

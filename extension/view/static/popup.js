@@ -26,7 +26,8 @@ function render(state) {
 		'lang-to-options': new Map(state.page.models.filter(model => from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
 		'needs-download': needsDownload,
 		'completedTranslationRequests': state.totalTranslationRequests - state.pendingTranslationRequests || undefined,
-		'benchmarkURL': browser.runtime.getURL('view/static/benchmark.html')
+		'benchmarkURL': browser.runtime.getURL('view/static/benchmark.html'),
+		'canExportPages': state.recordedPagesCount > 0,
 	};
 
 	// Toggle "hidden" state of all <div data-state=""> elements
@@ -35,6 +36,18 @@ function render(state) {
 	});
 
 	renderBoundElements(document.body, renderState);
+}
+
+function download(url, name) {
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = name;
+	a.click();
+	a.addEventListener('click', e => {
+		requestIdleCallback(() => {
+			URL.revokeObjectURL(url);
+		});
+	});
 }
 
 // Query which tab we represent and then connect to the tab state in the 
@@ -52,6 +65,9 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 			case 'Update':
 				Object.assign(state, data);
 				render(state);
+				break;
+			case 'DownloadRecordedPages':
+				download(data.url, data.name);
 				break;
 		}
 	});
