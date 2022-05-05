@@ -4,54 +4,65 @@ const defaults = {
 
 const implementations = [
 	{
+		enabled: true,
 		name: "WASM, 1 worker, batch-size: 8",
 		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: false, batchSize: 8})
 	},
 	{
+		enabled: true,
+		name: "WASM, 1 worker, batch-size: 8, cache-size: 20000",
+		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: false, batchSize: 16, cacheSize: 20000})
+	},
+	{
+		enabled: false,
 		name: "WASM, 1 worker, batch-size: 16",
 		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: false, batchSize: 16})
 	},
 	{
+		enabled: true,
 		name: "WASM, 1 worker, native intgemm, batch-size: 8",
 		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: true})
 	},
 	{
+		enabled: true,
 		name: "WASM, 4 workers, batch-size: 8",
 		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: false})
 	},
 	{
+		enabled: true,
 		name: "WASM, 4 workers, native intgemm, batch-size: 8",
 		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: true, batchSize: 8})
 	},
 	{
+		enabled: false,
 		name: "WASM, 4 workers, native intgemm, batch-size 16",
 		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: true, batchSize: 16})
 	},
 	{
+		enabled: false,
 		name: "WASM, 4 workers, native intgemm, batch-size 32",
 		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: true, batchSize: 32})
 	},
 	{
+		enabled: false,
 		name: "WASM, 4 workers, native intgemm, batch-size 128",
 		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: true, batchSize: 128})
 	},
 	{
+		enabled: false,
 		name: "WASM, 4 workers, native intgemm, batch-size 256",
 		factory: () => new WASMTranslationHelper({...defaults, workers: 4, useNativeIntGemm: true, batchSize: 256})
 	},
 	{
+		enabled: true,
 		name: "Native Messaging, 1 worker",
 		factory: () => new TLTranslationHelper({...defaults, workers: 1})
 	},
 	{
+		enabled: true,
 		name: "Native Messaging, 4 workers",
 		factory: () => new TLTranslationHelper({...defaults, workers: 4})
 	},
-	{
-		name: "WASM, 1 worker, batch-size: 8, cache-size: 20000",
-		factory: () => new WASMTranslationHelper({...defaults, workers: 1, useNativeIntGemm: false, batchSize: 16, cacheSize: 20000})
-	},
-	
 ];
 
 function readFileAsText(file) {
@@ -153,7 +164,7 @@ const scenarios = implementations.map(implementation => {
 	document.querySelector('#results').appendChild(section);
 
 	const data = observe({
-		enabled: true,
+		enabled: implementation.enabled,
 		expanded: false,
 		busy: false,
 		name: implementation.name,
