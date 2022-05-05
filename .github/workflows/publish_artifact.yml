@@ -96,9 +96,6 @@ jobs:
       - name: ccache epilog
         run: |
           ccache -s # Print current cache stats
-      - name: Import GEMM library from a separate wasm module
-        working-directory: bergamot-translator/build-wasm-without-wormhole
-        run: bash ../wasm/patch-artifacts-import-gemm-module.sh
       - name: Upload wasm artifact
         uses: actions/upload-artifact@v2
         with:
