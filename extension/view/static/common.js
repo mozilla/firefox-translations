@@ -128,3 +128,12 @@ function debounce(callable) {
 		}
 	};
 }
+
+async function* asCompleted(iterable) {
+	const promises = new Set(iterable);
+	while (promises.size() > 0) {
+		const next = await Promise.race(promises);
+		yield next;
+		promises.delete(next);
+	}
+}
