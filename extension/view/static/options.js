@@ -7,14 +7,14 @@ const state = {
 
 browser.storage.local.get().then(localState => {
 	Object.assign(state, localState);
-	renderBoundElements(state);
+	renderBoundElements(document.body, state);
 });
 
 browser.storage.onChanged.addListener(async changes => {
 	Object.entries(changes).forEach(([key, {newValue}]) => {
 		state[key] = newValue;
 	});
-	renderBoundElements(state);
+	renderBoundElements(document.body, state);
 });
 
 addBoundElementListeners(document.body, (key, value) => {

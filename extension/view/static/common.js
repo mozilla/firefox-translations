@@ -99,8 +99,8 @@ class BoundElementRenderer {
 	}
 }
 
-function renderBoundElements(state) {
-	return new BoundElementRenderer(this).render(state);
+function renderBoundElements(root, state) {
+	return new BoundElementRenderer(root).render(state);
 }
 
 function addBoundElementListeners(root, callback) {
