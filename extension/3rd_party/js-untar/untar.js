@@ -1,6 +1,6 @@
 /* globals Blob: false, Promise: false, console: false, Worker: false, ProgressivePromise: false */
 
-var workerScriptUri = '3rd_party/js-untar/untar-worker.js';
+var workerScriptUri = compat.runtime.getURL('3rd_party/js-untar/untar-worker.js');
 
 var global = window || this;
 

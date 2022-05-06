@@ -72,6 +72,8 @@ on('Update', diff => {
     }
 });
 
+const sessionID = new Date().getTime();
+
 const inPageTranslation = new InPageTranslation({
     translate(text, user) {
         console.assert(state.from !== undefined && state.to !== undefined);
@@ -88,7 +90,13 @@ const inPageTranslation = new InPageTranslation({
                 user,
                 
                 // data useful for the scheduling
-                priority: user.priority || 0
+                priority: user.priority || 0,
+
+                // data useful for recording
+                session: {
+                    id: sessionID,
+                    url: document.location.href
+                }
             }
         });
     }

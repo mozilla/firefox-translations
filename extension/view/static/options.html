@@ -2,17 +2,36 @@
 <html>
   <head>
     <meta charset="utf-8">
+    <style>
+      body {
+        font-size: 1.2rem;
+      }
+      .panel-formElements-item {
+        flex-wrap: wrap;
+      }
+      .panel-formElements-item p {
+        flex: 0 0 100%;
+        font-size: 1rem;
+      }
+    </style>
   </head>
   <body>
     <div class="panel-section panel-section-formElements">
       <div class="panel-formElements-item">
-        <label for="translation-provider">Translation provider</label>
+        <label for="translation-provider">Translation provider:</label>
         <select id="translation-provider" data-bind:value="provider">
           <option value="wasm">WASM (embedded)</option>
           <option value="translatelocally" data-bind:disabled="!translateLocallyAvailable">TranslateLocally</option>
         </select>
+        <p data-bind:hidden="translateLocallyAvailable">You can <a href="https://translatelocally.com">download TranslateLocally</a> for even faster private translations.</p>
       </div>
-      <p data-bind:hidden="translateLocallyAvailable">You can <a href="https://translatelocally.com">download TranslateLocally</a> for even faster private translations.</p>
+    </div>
+    <div class="panel-section panel-section-formElements">
+      <div class="panel-formElements-item browser-style">
+        <input id="show-developer-toggle" type="checkbox" data-bind:checked="developer" class="browser-style">
+        <label for="show-developer-toggle">Show developer options</label>
+        <p>Mainly useful for benchmarking and debugging. <a data-bind:href="benchmarkURL" target="blank_">Benchmark page</a></p>
+      </div>
     </div>
     <script src="../../controller/translation/compat.js"></script>
     <script src="common.js"></script>

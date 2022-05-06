@@ -8,7 +8,24 @@ var Module = {};
 importScripts('yaml.js');
 
 class WASMTranslationWorker {
-    constructor() {
+    static GEMM_TO_FALLBACK_FUNCTIONS_MAP = {
+        'int8_prepare_a': 'int8PrepareAFallback',
+        'int8_prepare_b': 'int8PrepareBFallback',
+        'int8_prepare_b_from_transposed': 'int8PrepareBFromTransposedFallback',
+        'int8_prepare_b_from_quantized_transposed': 'int8PrepareBFromQuantizedTransposedFallback',
+        'int8_prepare_bias': 'int8PrepareBiasFallback',
+        'int8_multiply_and_add_bias': 'int8MultiplyAndAddBiasFallback',
+        'int8_select_columns_of_b': 'int8SelectColumnsOfBFallback'
+    };
+
+    static NATIVE_INT_GEMM = 'mozIntGemm';
+
+    /**
+     * options: {useNativeIntGemm: false, cacheSize: 0}
+     */
+    constructor(options) {
+        this.options = options || {};
+
         this.module = this.loadModule();
 
         this.service = this.loadTranslationService();
@@ -16,21 +33,51 @@ class WASMTranslationWorker {
         this.models = new Map(); // Map<str,Promise<TranslationModel>>
     }
 
+    linkNativeIntGemm(info) {
+        if (!WebAssembly['mozIntGemm']) {
+            console.warn('Native gemm requested but not available, falling back to embedded gemm');
+            return linkFallbackIntGemm(info);
+        }
+
+        const instance = new WebAssembly.Instance(WebAssembly['mozIntGemm'](), {
+            '': {memory: info['env']['memory']}
+        });
+
+        if (!Array.from(Object.keys(WASMTranslationWorker.GEMM_TO_FALLBACK_FUNCTIONS_MAP)).every(fun => instance.exports[fun])) {
+            console.warn('Native gemm is missing expected functions, falling back to embedded gemm');
+            return linkFallbackIntGemm(info);
+        }
+
+        console.info('Using native gemm');
+
+        return instance.exports;
+    }
+
+    linkFallbackIntGemm(info) {
+        const mapping = Object.entries(WASMTranslationWorker.GEMM_TO_FALLBACK_FUNCTIONS_MAP).map(([key, name]) => {
+            return [key, (...args) => Module['asm'][name](...args)]
+        });
+
+        console.info('Using fallback gemm');
+
+        return Object.fromEntries(mapping);
+    }
+
     /**
      * Internal method. Reads and instantiates the WASM binary.
      */
     loadModule() {
         return new Promise(async (resolve, reject) => {
-            const response = await fetch("bergamot-translator-worker.wasm");
+            const response = await fetch('bergamot-translator-worker.wasm');
 
             Object.assign(Module, {
-                preRun: [
-                        () => {
-                                // this.wasmModuleStartTimestamp = Date.now();
-                        }
-                ],
                 instantiateWasm: (info, accept) => {
-                    WebAssembly.instantiateStreaming(response, info).then(({instance, module}) => accept(instance, module));
+                    WebAssembly.instantiateStreaming(response, {
+                        ...info,
+                        'wasm_gemm': this.options.useNativeIntGemm
+                            ? this.linkNativeIntGemm(info)
+                            : this.linkFallbackIntGemm(info)
+                    }).then(({instance}) => accept(instance));
                     return {};
                 },
                 onRuntimeInitialized: () => {
@@ -40,7 +87,7 @@ class WASMTranslationWorker {
 
             // Emscripten glue code
             importScripts('bergamot-translator-worker.js');
-        })
+        });
     }
 
     /**
@@ -48,7 +95,7 @@ class WASMTranslationWorker {
      */
     async loadTranslationService() {
         const Module = await this.module;
-        return new Module.BlockingService({cacheSize: 20000});
+        return new Module.BlockingService({cacheSize: Math.max(this.options.cacheSize || 0, 0)});
     }
 
     /**
@@ -172,21 +219,28 @@ class WASMTranslationWorker {
     }
 }
 
-const worker = new WASMTranslationWorker();
-
-// Responder for Proxy<Channel> created in TranslationHelper.loadWorker()
-onmessage = async ({data: {id, message}}) => {
-    try {
-        const result = await worker[message.name](...message.args);
-        postMessage({id, message: result});
-    } catch (err) {
-        console.error(err);
-        postMessage({
-            id,
-            error: {
-                name: err.name,
-                message: err.message
-            }
-        });
+onmessage = ({data}) => {
+    if (!data.options){
+        console.warn('Did not receive initial message with options');
+        return;
     }
-};
+
+    const worker = new WASMTranslationWorker(data.options);
+
+    // Responder for Proxy<Channel> created in TranslationHelper.loadWorker()
+    onmessage = async ({data: {id, message}}) => {
+        try {
+            const result = await worker[message.name](...message.args);
+            postMessage({id, message: result});
+        } catch (err) {
+            console.error(err);
+            postMessage({
+                id,
+                error: {
+                    name: err.name,
+                    message: err.message
+                }
+            });
+        }
+    };
+}

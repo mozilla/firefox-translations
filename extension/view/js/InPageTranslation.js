@@ -17,6 +17,19 @@ function *ancestors(node) {
         yield parent;
 }
 
+function removeTextNodes(node) {
+    Array.from(node.childNodes).forEach(child => {
+        switch (child.nodeType) {
+            case Node.TEXT_NODE:
+                node.removeChild(child);
+                break;
+            case Node.ELEMENT_NODE:
+                removeTextNodes(child);
+                break;
+        }
+    });
+``};
+
 // eslint-disable-next-line no-unused-vars
 class InPageTranslation {
 
@@ -176,6 +189,10 @@ class InPageTranslation {
         // Language we expect. If we find elements that do not match, nope out.
         this.language = language;
 
+        // Pre-construct the excluded node selector. Doing it here since it
+        // needs to know `language`. See `containsExcludedNode()`.
+        this.excludedNodeSelector = `[lang]:not([lang|="${this.language}"]),[translate=no],${Array.from(this.excludedTags).join(',')}`;
+
         const pageTitle = document.querySelector("head > title");
         if (pageTitle && this.validateNodeForQueue(pageTitle) === NodeFilter.FILTER_ACCEPT)
             this.enqueueTranslation(pageTitle);
@@ -293,20 +310,18 @@ class InPageTranslation {
     /**
      * Test whether the element is visible.
      */
-    isElementHidden(element) {
-        return element.style.display === "none" || element.style.visibility === "hidden" || element.offsetParent === null;
+    isElementVisible(element) {
+        // Based on jQuery (talk about battle-tested...)
+        // https://github.com/jquery/jquery/blob/main/src/css/hiddenVisibleSelectors.js
+        return !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
     }
 
     /**
      * Test whether any of the parent nodes are already in the process of being
-     * translated.
+     * translated. If the parent of the node is already translating we should 
+     * reject it since we already sent it to translation.
      */
     isParentQueued(node){
-        /*
-         * if the parent of the node is already translating we should reject
-         * it since we already sent it to translation
-         */
-
         // if the immediate parent is the body we just allow it
         if (node.parentNode === document.body) {
             return false;
@@ -408,7 +423,7 @@ class InPageTranslation {
     containsExcludedNode(node) {
         // TODO describe this in terms of the function above, but I assume
         // using querySelector is faster for now.
-        return node.querySelector(`[lang]:not([lang|="${this.language}"]),[translate=no],${Array.from(this.excludedTags).join(',')}`);
+        return node.querySelector(this.excludedNodeSelector);
     }
 
     /**
@@ -483,7 +498,7 @@ class InPageTranslation {
         node.setAttribute('x-bergamot-translated', this.translationsCounter);
 
         let priority = 2;
-        if (this.isElementHidden(node))
+        if (!this.isElementVisible(node))
             priority = 3;
         else if (this.isElementInViewport(node))
             priority = 1;
@@ -538,7 +553,7 @@ class InPageTranslation {
             // console.groupCollapsed(computePath(node));
             node.setAttribute('x-bergamot-translated', '');
             
-            const scratch = node.cloneNode(false); // shallow clone of parent node
+            const scratch = document.createElement('template');
             scratch.innerHTML = translated;
 
             const originalHTML = node.innerHTML;
@@ -548,19 +563,6 @@ class InPageTranslation {
             // console.log(`Original:   ${originalHTML}`);
 
             const clonedNodes = new Set();
-
-            const removeTextNodes = (node) => {
-                Array.from(node.childNodes).forEach(child => {
-                    switch (child.nodeType) {
-                        case Node.TEXT_NODE:
-                            node.removeChild(child);
-                            break;
-                        case Node.ELEMENT_NODE:
-                            removeTextNodes(child);
-                            break;
-                    }
-                });
-            };
 
             // Merge the live tree (dst) with the translated tree (src) by
             // re-using elements from the live tree.
@@ -607,7 +609,18 @@ class InPageTranslation {
                             // Oh this is bad. The original node had text, but
                             // the one that came out of translation doesn't?
                             console.warn(`[InPlaceTranslation] ${computePath(child, scratch)} Child ${child.outerHTML} has no text but counterpart ${counterpart.outerHTML} does`);
-                            removeTextNodes(counterpart); // TODO this should not be necessary
+                            
+                            // TODO: This scenario might be caused by one of two
+                            // causes: 1) element was duplicated by translation
+                            // but then not given text content. This happens on
+                            // Wikipedia articles for example.
+                            if (clonedNodes.has(counterpart.dataset.xBergamotId))
+                                removeTextNodes(counterpart);
+
+                            // Or 2) the translator messed up and could not
+                            // translate the text. This happens on Youtube in the
+                            // language selector. In that case, having the original
+                            // text is much better than no text at all.
                         }
 
                         // Put the live node back in the live branch. But now
@@ -633,7 +646,7 @@ class InPageTranslation {
                     });
             };
 
-            merge(node, scratch);
+            merge(node, scratch.content);
         };
 
         // Pause observing mutations
@@ -652,8 +665,6 @@ class InPageTranslation {
      * Batches translation responses for a single big updateElements() call.
      */
     enqueueTranslationResponse(translated, {id}) {
-        console.log('[in-page-translation] Received response to', id);
-        
         // Look up node by message id. This can fail 
         const node = this.pendingTranslations.get(id);
         if (node === undefined) {

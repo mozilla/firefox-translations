@@ -1,4 +1,4 @@
-function addEventListeners(handlers) {
+function addEventListeners(root, handlers) {
 	const handlersPerEventType = {};
 
 	Object.entries(handlers).forEach(([name, callback]) => {
@@ -9,7 +9,7 @@ function addEventListeners(handlers) {
 	});
 
 	Object.entries(handlersPerEventType).forEach(([event, handlers]) => {
-		document.body.addEventListener(event, e => {
+		root.addEventListener(event, e => {
 			handlers.forEach(({selector, callback}) => {
 				if (e.target.matches(selector))
 					callback(e);
@@ -41,8 +41,8 @@ function renderSelect(select, values) {
 		select.add(new Option(label, value), null);
 }
 
-function queryXPathAll(query, callback) {
-	const result = document.evaluate(query, this instanceof Element ? this : document.body, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null);
+function queryXPathAll(root, query, callback) {
+	const result = document.evaluate(query, root, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null);
 	let output = [];
 	let element;
 	while (element = result.iterateNext()) {
@@ -51,38 +51,60 @@ function queryXPathAll(query, callback) {
 	return output;
 }
 
-function renderBoundElements(state) {
-	// Assign values to each element that has <div data-bind:something=""> attributes
-	queryXPathAll('//*[@*[starts-with(name(), "data-bind:")]]').forEach(el => {
-		Object.entries(el.dataset).forEach(([key, value]) => {
-			let match = key.match(/^bind:(.+)$/);
-			if (!match) return;
+class BoundElementRenderer {
+	constructor(root) {
+		// this.elements = queryXPathAll(root, './/*[@*[starts-with(name(), "data-bind:")]]');
+		this.elements = [];
+		
+		root.querySelectorAll('*').forEach(el => {
+			const bindings = [];
 
-			try {
-				switch (match[1]) {
-					case 'options':
-						renderSelect(el, state[value]);
-						break;
-					default:
-						// Special case for <progress value=undefined> to get an indeterminate progress bar
-						if (match[1] === 'value' && el instanceof HTMLProgressElement && typeof state[value] !== 'number') {
-							el.removeAttribute('value');
-						} else {
-							if (!(value in state))
-								console.warn('render state has no key', value);
-							el[match[1]] = state[value];
-						}
-						break;
-				}
-			} catch (e) {
-				console.error('Error while setting', match[1], 'of', el, 'to the value of', value, ':', e, state[value]);
-			}
+			Object.entries(el.dataset).forEach(([key, value]) => {
+				let match = key.match(/^bind:(.+)$/);
+				if (match) bindings.push({attribute: match[1], key: value});
+			});
+
+			if (bindings.length > 0)
+				this.elements.push({el, bindings});
 		});
-	});
+	}
+
+	render(state) {
+		const stateProxy = new Proxy(state, StateHelper);
+
+		this.elements.forEach(({el, bindings}) => {
+			bindings.forEach(({attribute, key}) => {
+				try {
+					switch (attribute) {
+						case 'options':
+							renderSelect(el, stateProxy[key]);
+							break;
+						default:
+							// Special case for <progress value=undefined> to get an indeterminate progress bar
+							if (attribute === 'value' && el instanceof HTMLProgressElement && typeof stateProxy[key] !== 'number') {
+								el.removeAttribute('value');
+							} else {
+								if (!(key in stateProxy))
+									console.warn('render state has no key', key);
+								else if (typeof stateProxy[key] !== 'undefined')
+									el[attribute] = stateProxy[key];
+							}
+							break;
+					}
+				} catch (e) {
+					console.error('Error while setting',attribute, 'of', el, 'to the value of', key, ':', e, state[key]);
+				}
+			});
+		});
+	}
 }
 
-function addBoundElementListeners(callback) {
-	addEventListeners({
+function renderBoundElements(root, state) {
+	return new BoundElementRenderer(root).render(state);
+}
+
+function addBoundElementListeners(root, callback) {
+	addEventListeners(root, {
 		'change *[data-bind\\:value]': e => {
 			callback(e.target.dataset['bind:value'], e.target.value, e);
 		},
@@ -90,4 +112,28 @@ function addBoundElementListeners(callback) {
 			callback(e.target.dataset['bind:checked'], e.target.checked, e);
 		}
 	});
+}
+
+function debounce(callable) {
+	let scheduled = null;
+	return (...args) => {
+		if (scheduled) {
+			scheduled.args = args;
+		} else {
+			scheduled = {args};
+			requestIdleCallback(() => {
+				callable(...scheduled.args);
+				scheduled = null;
+			}, {timeout: 500});
+		}
+	};
+}
+
+async function* asCompleted(iterable) {
+	const promises = new Set(iterable);
+	while (promises.size() > 0) {
+		const next = await Promise.race(promises);
+		yield next;
+		promises.delete(next);
+	}
 }

@@ -11,7 +11,7 @@ on:
       - main
 
 env:
-  emsdk_version: 2.0.9 # For use in emscripten build
+  emsdk_version: 3.1.8 # For use in emscripten build
   ccache_basedir: ${{ github.workspace }}
   ccache_dir: "${{ github.workspace }}/.ccache"
   ccache_compilercheck: content
@@ -96,9 +96,6 @@ jobs:
       - name: ccache epilog
         run: |
           ccache -s # Print current cache stats
-      - name: Import GEMM library from a separate wasm module
-        working-directory: bergamot-translator/build-wasm-without-wormhole
-        run: bash ../wasm/patch-artifacts-import-gemm-module.sh
       - name: Upload wasm artifact
         uses: actions/upload-artifact@v2
         with:
