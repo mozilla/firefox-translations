@@ -2,14 +2,20 @@
  * Little wrapper to delay a promise to be made only once it is first awaited on
  */
 function lazy(factory) {
+    let promise = null;
+
     return {
         then(...args) {
             // Ask for the actual promise
-            const promise = factory();
-            // Replace ourselves with the actual promise for next calls
-            this.then = promise.then.bind(promise);
+            if (promise === null) {
+                promise = factory();
+            
+                if (typeof promise?.then !== 'function')
+                    throw new TypeError('factory() did not return a promise-like object');
+            }
+
             // Forward the current call to the promise
-            return this.then(...args);
+            return promise.then(...args);
         }
     };
 }

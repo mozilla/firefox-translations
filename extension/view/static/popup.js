@@ -1,12 +1,30 @@
 const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
 
-function render(state) {
+// Tab state
+const tabState = {};
+
+// Plugin state, like configuration mostly
+const globalState = {};
+
+// Init global state
+browser.storage.local.get(['developer']).then(state => {
+	Object.assign(globalState, state);
+});
+
+browser.storage.onChanged.addListener(changes => {
+    Object.entries(changes).forEach(([key, {newValue}]) => {
+        globalState[key] = newValue;
+    });
+    render();
+});
+
+function render() {
 	// Shortcuts, I use these everywhere
-	const from = state.from || state.page.from;
-	const to = state.to || state.page.to;
+	const from = tabState.from || tabState.page?.from;
+	const to = tabState.to || tabState.page?.to;
 
 	// If the model (or one of the models in case of pivoting) needs downloading
-	const needsDownload = state.page.models.find(model => from === model.from && to === model.to)?.models?.some(({model}) => !model.local);
+	const needsDownload = tabState.page?.models?.find(model => from === model.from && to === model.to)?.models?.some(({model}) => !model.local);
 
 	const name = (code) => {
 		try {
@@ -17,24 +35,37 @@ function render(state) {
 	};
 
 	const renderState = {
-		...state,
+		...globalState,
+		...tabState,
 		from,
 		to,
 		'lang-from': regionNamesInEnglish.of(from),
 		'lang-to': regionNamesInEnglish.of(to),
-		'lang-from-options': new Map(state.page.models.map(({from}) => [from, name(from)])),
-		'lang-to-options': new Map(state.page.models.filter(model => from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
+		'lang-from-options': new Map(tabState.page?.models.map(({from}) => [from, name(from)])),
+		'lang-to-options': new Map(tabState.page?.models.filter(model => from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
 		'needs-download': needsDownload,
-		'!needs-download': !needsDownload, // data-bind has no operators, so ! goes in the name :P
-		'completedTranslationRequests': state.totalTranslationRequests - state.pendingTranslationRequests || undefined
+		'completedTranslationRequests': tabState.totalTranslationRequests - tabState.pendingTranslationRequests || undefined,
+		'canExportPages': tabState.recordedPagesCount > 0,
 	};
 
 	// Toggle "hidden" state of all <div data-state=""> elements
 	document.querySelectorAll('*[data-state]').forEach(el => {
-		el.hidden = el.dataset.state != renderState.state;
+		el.hidden = el.dataset.state != tabState.state;
 	});
 
-	renderBoundElements(renderState);
+	renderBoundElements(document.body, renderState);
+}
+
+function download(url, name) {
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = name;
+	a.click();
+	a.addEventListener('click', e => {
+		requestIdleCallback(() => {
+			URL.revokeObjectURL(url);
+		});
+	});
 }
 
 // Query which tab we represent and then connect to the tab state in the 
@@ -45,44 +76,45 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 
 	const backgroundScript = browser.runtime.connect({name: `popup-${tabId}`});
 
-	const state = {};
-
 	backgroundScript.onMessage.addListener(({command, data}) => {
 		switch (command) {
 			case 'Update':
-				Object.assign(state, data);
-				render(state);
+				Object.assign(tabState, data);
+				render();
+				break;
+			case 'DownloadRecordedPages':
+				download(data.url, data.name);
 				break;
 		}
 	});
 
-	addBoundElementListeners((key, value) => {
+	addBoundElementListeners(document.body, (key, value) => {
 		backgroundScript.postMessage({
 			command: 'UpdateRequest',
 			data: {[key]: value}
 		});
 	});
 
-	addEventListeners({
+	addEventListeners(document.body, {
 		'click #translate-btn': e => {
 			backgroundScript.postMessage({
 				command: 'TranslateStart',
 				data: {
-					from: state.from || state.page.from,
-					to: state.to || state.page.to
+					from: tabState.from || tabState.page.from,
+					to: tabState.to || tabState.page.to
 				}
 			});
 		},
 		'click #download-btn': e => {
 			const data = {
-				from: state.from || state.page.from,
-				to: state.to || state.page.to
+				from: tabState.from || tabState.page.from,
+				to: tabState.to || tabState.page.to
 			};
 
-			// TODO this assumes state.from and state.to reflect the current UI,
+			// TODO this assumes tabState.from and tabState.to reflect the current UI,
 			// which they should iff the UpdateRequest has been processed and
 			// broadcasted by backgroundScript.
-			data.models = state.page.models
+			data.models = tabState.page.models
 			              .find(({from, to}) => from === data.from && to === data.to)
 			              .models
 			              .map(({model}) => model.id);
@@ -95,6 +127,11 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 		'click #abort-translate-btn': e => {
 			backgroundScript.postMessage({
 				command: 'TranslateAbort'
+			});
+		},
+		'click #export-recorded-pages-btn': e => {
+			backgroundScript.postMessage({
+				command: 'ExportRecordedPages'
 			});
 		}
 	});

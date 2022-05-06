@@ -1,23 +1,27 @@
 // Defaults. Duplicated in backgroundScript.js :(
 
-const state = new Proxy({
+const state = {
 	provider: 'wasm',
-	translateLocallyAvailable: false
-}, StateHelper);
+	translateLocallyAvailable: false,
+	recorder: false,
+	get benchmarkURL() {
+		return browser.runtime.getURL('view/static/benchmark.html');
+	}
+};
 
 browser.storage.local.get().then(localState => {
 	Object.assign(state, localState);
-	renderBoundElements(state);
+	renderBoundElements(document.body, state);
 });
 
 browser.storage.onChanged.addListener(async changes => {
 	Object.entries(changes).forEach(([key, {newValue}]) => {
 		state[key] = newValue;
 	});
-	renderBoundElements(state);
+	renderBoundElements(document.body, state);
 });
 
-addBoundElementListeners((key, value) => {
+addBoundElementListeners(document.body, (key, value) => {
 	browser.storage.local.set({[key]: value});
 });
 
@@ -29,6 +33,6 @@ port.onDisconnect.addListener(e => {
 	} else {
 		state.translateLocallyAvailable = true;
 	}
-	renderBoundElements(state);
+	renderBoundElements(document.body, state);
 })
 port.disconnect();

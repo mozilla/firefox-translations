@@ -128,7 +128,11 @@ class Tab extends EventTarget {
             totalTranslationRequests: 0,
             modelDownloadRead: undefined,
             modelDownloadSize: undefined,
+            record: false,
+            recordedPagesCount: undefined,
+            recordedPagesURL: undefined
         };
+
         this.frames = new Map();
 
         this._scheduledUpdateEvent = null;
@@ -225,6 +229,69 @@ function showPopup(event) {
     }
 }
 
+class Recorder {
+    #pages;
+
+    constructor(backing) {
+        this.#pages = new Map();
+    }
+
+    record({from, text, html, session: {url}}) {
+        // Unique per page url
+        if (!this.#pages.has(url))
+            this.#pages.set(url, {
+                url,
+                from,
+                texts: [],
+            });
+
+        this.#pages.get(url).texts.push(text);
+    }
+
+    get size() {
+        return this.#pages.size;
+    }
+
+    clear() {
+        this.#pages.clear();
+    }
+
+    exportAXML() {
+        const root = document.implementation.createDocument('', '', null);
+        const dataset = root.createElement('dataset');
+
+        this.#pages.forEach(page => {
+            const doc = root.createElement('doc');
+            doc.setAttribute('origlang', page.from);
+            doc.setAttribute('href', page.url);
+
+            const src = root.createElement('src');
+            src.setAttribute('lang', page.from);
+
+            page.texts.forEach((text, i) => {
+                const p = root.createElement('p');
+                
+                const seg = root.createElement('seg');
+                seg.setAttribute('id', i + 1);
+
+                seg.appendChild(root.createTextNode(text));
+                p.appendChild(seg);
+
+                src.appendChild(p);
+            });
+
+            doc.appendChild(src);
+            dataset.appendChild(doc);
+        });
+
+        root.appendChild(dataset);
+
+        const serializer = new XMLSerializer();
+        const xml = serializer.serializeToString(root);
+        return new Blob([xml], {type: 'application/xml'});
+    }
+}
+
 // Supported translation providers
 const providers = {
     'translatelocally': TLTranslationHelper,
@@ -233,7 +300,13 @@ const providers = {
 
 // Global state (and defaults)
 const state = {
-    provider: 'wasm'
+    provider: 'wasm',
+    options: {
+        workers: 1, // be kind to the user's pc
+        cacheSize: 20000, // remember website boilerplate
+        useNativeIntGemm: true // faster is better (unless it is buggy: https://github.com/browsermt/marian-dev/issues/81)
+    },
+    developer: false // should we show the option to record page translation requests?
 };
 
 // State per tab
@@ -262,7 +335,7 @@ let provider = new class {
             state.provider = 'wasm';
         }
         
-        this.#provider = new providers[state.provider]();
+        this.#provider = new providers[state.provider](state.options);
 
         this.#provider.onerror = err => {
             console.error('Translation provider error:', err);
@@ -285,6 +358,8 @@ let provider = new class {
         this.#provider = null;
     }
 };
+
+const recorder = new Recorder();
 
 /**
  * Connects the port of a content-script or popup with the state management
@@ -384,6 +459,17 @@ function connectContentScript(contentScript) {
                     pendingTranslationRequests: state.pendingTranslationRequests + 1,
                     totalTranslationRequests: state.totalTranslationRequests + 1
                 }));
+
+                // If we're recording requests from this tab, add the translation
+                // request. Also disabled when developer setting is false since
+                // then there are no controls to turn it on/off.
+                if (state.developer && tab.state.record) {
+                    recorder.record(message.data);
+                    tab.update(state => ({
+                        recordedPagesCount: recorder.size
+                    }));
+                }
+
                 provider.get().translate({...message.data, _abortSignal})
                     .then(response => {
                         if (!response.request._abortSignal.aborted) {
@@ -475,6 +561,18 @@ function connectPopup(popup) {
             
             case 'TranslateAbort':
                 tab.abort();
+                break;
+
+            case 'ExportRecordedPages':
+                popup.postMessage({
+                    command: 'DownloadRecordedPages',
+                    data: {
+                        name: 'recorded-pages.xml',
+                        url: URL.createObjectURL(recorder.exportAXML())
+                    }
+                });
+                recorder.clear();
+                tab.update(state => ({recordedPagesCount: 0}));
                 break;
         }
     });

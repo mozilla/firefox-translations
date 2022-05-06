@@ -665,8 +665,6 @@ class InPageTranslation {
      * Batches translation responses for a single big updateElements() call.
      */
     enqueueTranslationResponse(translated, {id}) {
-        console.log('[in-page-translation] Received response to', id);
-        
         // Look up node by message id. This can fail 
         const node = this.pendingTranslations.get(id);
         if (node === undefined) {

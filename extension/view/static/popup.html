@@ -69,9 +69,14 @@
 				<p><code id="error-message" data-bind:text-content="error"></code></p>
 			</div>
 		</div>
-		<label>
+		<label data-bind:hidden="!developer" title="Renders coloured borders around sections identified by the in-page translation code">
 			<input type="checkbox" data-bind:checked="debug">
-			Enable debug mode
+			Draw translation sections
+		</label>
+		<label data-bind:hidden="!developer" title="Records translation requests made to the translation provider. These can be exported as XML.">
+			<input type="checkbox" data-bind:checked="record">
+			Record translation requests
+			<a href="#" id="export-recorded-pages-btn" data-bind:hidden="!canExportPages">Export <span data-bind:text-content="recordedPagesCount"></span> pages</button>
 		</label>
 		<script src="common.js"></script>
 		<script src="popup.js"></script>

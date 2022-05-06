@@ -23,18 +23,16 @@ class PortChannel {
         return new PromiseWithProgress((resolve, reject, update) => {
             const id = ++this.serial;
             this.pending.set(id, {resolve, reject, update});
-            console.log('Sending', {id, command, data})
             this.port.postMessage({id, command, data});
         })
     }
 
     onMessage(message) {
-        console.log('Received', message);
-        
         if (message.id === undefined) {
             console.warn('Ignoring message from translateLocally that was missing the id', message);
+            return;
         }
-
+        
         const {resolve, reject, update} = this.pending.get(message.id);
 
         if (!message.update)
@@ -54,7 +52,11 @@ class PortChannel {
  */
  class TLTranslationHelper {
     
-    constructor() {
+    constructor(options) {
+        this.threads = Math.max(options?.workers || 1, 1);
+
+        this.cacheSize = Math.max(options?.cacheSize || 0, 0);
+
         this.client = lazy(this.loadNativeClient.bind(this));
 
         // registry of all available models and their urls: Promise<List<Model>>
@@ -78,16 +80,21 @@ class PortChannel {
     }
 
     async loadNativeClient() {
-        return new Promise((resolve, reject) => {
-            const port = browser.runtime.connectNative('translatelocally');
+        const port = browser.runtime.connectNative('translatelocally');
 
-            port.onDisconnect.addListener(() => {
-                if (port.error)
-                    this.onerror(port.error);
-            });
-
-            resolve(new PortChannel(port));
+        port.onDisconnect.addListener(() => {
+            if (port.error)
+                this.onerror(port.error);
         });
+
+        const channel = new PortChannel(port);
+
+        await channel.request('Configure', {
+            threads: this.threads,
+            cacheSize: this.cacheSize
+        });
+
+        return channel;
     }
 
     /**

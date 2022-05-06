@@ -1,0 +1,66 @@
+html, body {
+	font: 14px/18px sans-serif;
+}
+
+.activity-indicator {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background: #933;
+	color: white;
+	padding: 0 1em;
+}
+
+.activity-indicator progress {
+/*	margin: 1em 0;*/
+}
+
+#results th, #results td {
+	padding: 0.25em 0.5em;
+}
+
+#results .run td:first-child {
+	text-indent: 2em;
+}
+
+#results .collapse-col {
+	padding: 0.25em 0;
+}
+
+#results .name-col {
+	width: 26em;
+	text-align: left;
+}
+
+#results .startup-col,
+#results .first-col,
+#results .time-col,
+#results .wps-col {
+	width: 12em;
+	text-align: right;
+}
+
+#results .time-col progress {
+	width: 12em;
+}
+
+.details-toggle {
+	appearance: none;
+	border-top: .5em solid transparent;
+  border-bottom: .5em solid transparent;
+  border-left: .5em solid currentColor;
+
+  width: 1em;
+  height: 1em;
+  margin: 0;
+  padding: 0;
+  vertical-align: middle;
+  
+  transition: transform .2s ease-out;
+	transform-origin: 25% 50%;
+}
+
+.details-toggle:checked {
+	transform: rotate(90deg);
+}

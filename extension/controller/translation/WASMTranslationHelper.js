@@ -6,13 +6,9 @@
 /* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts */
 
 
-const BATCH_SIZE = 8; // number of requested translations
-
 const CACHE_NAME = "bergamot-translations";
 
 const MAX_DOWNLOAD_TIME = 60000; // TODO move this
-
-const MAX_WORKERS = 1;
 
 /**
  * Little wrapper around the message passing API to keep track of messages and
@@ -22,7 +18,6 @@ const MAX_WORKERS = 1;
 class WorkerChannel {
     constructor(worker) {
         this.worker = worker;
-        this.worker.onerror = this.onerror.bind(this);
         this.worker.onmessage = this.onmessage.bind(this);
         this.serial = 0;
         this.pending = new Map();
@@ -34,10 +29,6 @@ class WorkerChannel {
             this.pending.set(id, {resolve, reject});
             this.worker.postMessage({id, message});
         })
-    }
-
-    onerror(error) {
-        throw new Error(`Error in worker: ${error.message}`);
     }
 
     onmessage({data: {id, message, error}}) {
@@ -61,7 +52,16 @@ class WorkerChannel {
  */
  class WASMTranslationHelper {
     
-    constructor() {
+    /**
+     * options:
+     *   cacheSize: 0
+     *   useNativeIntGemm: false
+     *   workers: 1
+     *   batchSize: 8
+     */
+    constructor(options) {
+        this.options = options || {};
+
         // registry of all available models and their urls: Promise<List<Model>>
         this.registry = lazy(this.loadModelRegistery.bind(this));
 
@@ -74,11 +74,20 @@ class WorkerChannel {
         // List of active workers (and a flag to mark them idle or not)
         this.workers = [];
 
+        // Maximum number of workers
+        this.workerLimit = Math.max(this.options.workers || 0, 1);
+
         // List of batches we push() to & shift() from
         this.queue = [];
 
         // batch serial to help keep track of batches when debugging
         this.batchSerial = 0;
+
+        // Number of requests in a batch before it is ready to be translated in
+        // a single call. Bigger is better for throughput (better matrix packing)
+        // but worse for latency since you'll have to wait for the entire batch
+        // to be translated.
+        this.batchSize = Math.max(this.options.batchSize || 8, 1);
 
         // Error handler for all errors that are async, not tied to a specific
         // call and that are unrecoverable.
@@ -94,8 +103,11 @@ class WorkerChannel {
     loadWorker() {
         // TODO is this really not async? Can I just send messages to it from
         // the start and will they be queued or something?
-        const worker = new Worker('controller/translation/WASMTranslationWorker.js');
-        worker.onerror = (err) => this.onerror(err);
+        const worker = new Worker(browser.runtime.getURL('controller/translation/WASMTranslationWorker.js'));
+        worker.onerror = this.onerror.bind(this);
+
+        // Initialisation options
+        worker.postMessage({options: this.options});
 
         // Little wrapper around the message passing api of Worker to make it
         // easy to await a response to a sent message.
@@ -345,7 +357,7 @@ class WorkerChannel {
             let worker = this.workers.find(worker => worker.idle);
 
             // No worker free, but space for more?
-            if (!worker && this.workers.length < MAX_WORKERS) {
+            if (!worker && this.workers.length < this.workerLimit) {
                 worker = {
                     idle: true,
                     worker: this.loadWorker()
@@ -451,7 +463,7 @@ class WorkerChannel {
         let batch = this.queue.find(batch => {
             return batch.key === key
                 && batch.priority === priority
-                && batch.requests.length < BATCH_SIZE
+                && batch.requests.length < this.batchSize
         });
 
         // No batch or full batch? Queue up a new one
