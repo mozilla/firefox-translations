@@ -1,0 +1,12 @@
+{
+    "addons": {
+        "firefox-translations-addon@mozilla.org": {
+        "updates": [
+            {
+            "version": "1.1",
+            "update_link": "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/NawIpbRRT5akNq4aix5soQ/artifacts/public%2Fbuild%2Ffirefox_translations.xpi"
+            }
+        ]
+        }
+    }
+}
