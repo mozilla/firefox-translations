@@ -3,7 +3,7 @@
 const state = {
 	provider: 'wasm',
 	translateLocallyAvailable: false,
-	recorder: false,
+	developer: false,
 	get benchmarkURL() {
 		return compat.runtime.getURL('view/static/benchmark.html');
 	}
@@ -35,4 +35,4 @@ port.onDisconnect.addListener(e => {
 });
 port.disconnect();
 state.translateLocallyAvailable = true;
-renderBoundElements(state);
+renderBoundElements(document.body, state);
