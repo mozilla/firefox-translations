@@ -41,7 +41,7 @@ subprocess.call("cp -r gecko/browser/extensions/translations/extension/model/sta
 # patching BrowserGlue.jsm to add the extension's version so it could be loaded
 f = open("extension/manifest.json")
 data = json.load(f)
-extension_version = data["version"]
+extension_version = data["version"][0]
 f.close()
 
 f = open("scripts/tests/BrowserGlue.jsm")
