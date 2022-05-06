@@ -217,14 +217,17 @@ class Tab extends EventTarget {
     }
 }
 
-function showPopup(event) {
+function updateActionButton(event) {
     switch (event.target.state.state) {
         case State.TRANSLATION_AVAILABLE:
         case State.TRANSLATION_IN_PROGRESS:
-            compat.pageAction.show(event.target.id);
+            compat.browserAction.enable(event.target.id);
             break;
         case State.TRANSLATION_NOT_AVAILABLE:
-            compat.pageAction.hide(event.target.id);
+            compat.browserAction.disable(event.target.id);            
+            break;
+        case State.TRANSLATION_NOT_AVAILABLE:
+        default:
             break;
     }
 }
@@ -316,7 +319,7 @@ function getTab(tabId) {
     if (!tabs.has(tabId)) {
         const tab = new Tab(tabId);
         tabs.set(tabId, tab);
-        tab.addEventListener('update', showPopup);
+        tab.addEventListener('update', updateActionButton);
     }
 
     return tabs.get(tabId);
@@ -607,6 +610,10 @@ async function main() {
 
         // Todo: treat reload and link different? Reload -> disable translation?
         getTab(tabId).reset(url);
+    });
+
+    compat.tabs.onCreated.addListener(({id: tabId}) => {
+        getTab(tabId).reset();
     });
 
     // Remove the tab state if a tab is removed

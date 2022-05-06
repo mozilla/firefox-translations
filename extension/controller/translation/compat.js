@@ -69,7 +69,7 @@ const compat = new class {
 			return this.#runtime.i18n;
 	}
 
-	get pageAction() {
-		return this.#runtime.pageAction;
+	get browserAction() {
+		return this.#runtime.browserAction;
 	}
 };
