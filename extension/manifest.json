@@ -13,7 +13,8 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "firefox-translations-addon@mozilla.org",
-      "strict_min_version": "79.0"
+      "strict_min_version": "79.0",
+      "update_url": "https://storage.googleapis.com/bergamot-models-sandbox/xpi_update_manifest/update.json"
     }
   },
   "options_ui": {
