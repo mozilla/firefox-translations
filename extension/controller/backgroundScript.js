@@ -141,11 +141,9 @@ class Tab extends EventTarget {
     /**
      * Begins translation of the tab
      */
-    translate({from, to}) {
+    translate() {
         this.update(state => ({
-            state: State.TRANSLATION_IN_PROGRESS,
-            from,
-            to
+            state: State.TRANSLATION_IN_PROGRESS
         }));
     }
 
@@ -448,7 +446,9 @@ function connectContentScript(contentScript) {
                         return; 
 
                     tab.update(state => ({
-                        page: summary, // {from, to, models}
+                        from: state.from || summary.from,
+                        to: state.to || summary.to,
+                        models: summary.models,
                         state: summary.models.length > 0 // TODO this is always true
                             ? State.TRANSLATION_AVAILABLE
                             : State.TRANSLATION_NOT_AVAILABLE
@@ -544,10 +544,7 @@ function connectPopup(popup) {
                 try {
                     await Promise.all(downloads.keys());
 
-                    tab.translate({
-                       from: message.data.from,
-                         to: message.data.to
-                    });
+                    tab.translate();
                 } catch (e) {
                     tab.update(state => ({
                         state: State.TRANSLATION_ERROR,
@@ -556,10 +553,7 @@ function connectPopup(popup) {
                 }
                 break;
             case "TranslateStart":
-                tab.translate({
-                    from: message.data.from,
-                    to: message.data.to
-                });
+                tab.translate();
                 break;
             
             case 'TranslateAbort':
@@ -619,7 +613,24 @@ async function main() {
     // Remove the tab state if a tab is removed
     compat.tabs.onRemoved.addListener(({tabId}) => {
         tabs.delete(tabId);
-    });    
+    });
+
+    // Add global "translate this item" menu option
+    chrome.contextMenus.create({
+        id: 'translate-element',
+        title: 'Translate Element',
+        contexts: ['page']
+    });
+
+    chrome.contextMenus.onClicked.addListener((info, tab) => {
+        switch (info.menuItemId) {
+            case 'translate-element':
+                getTab(tab.id).frames.get(info.frameId).postMessage({
+                    command: 'TranslateClickedElement'
+                })
+                break;
+        }
+    })
 }
 
 main();

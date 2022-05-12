@@ -33,6 +33,8 @@ on('Update', diff => {
                 break;
             
             case 'translation-in-progress':
+                inPageTranslation.addElement(document.querySelector("head > title"));
+                inPageTranslation.addElement(document.body);
                 inPageTranslation.start(state.from);
                 break;
             
@@ -76,7 +78,8 @@ const sessionID = new Date().getTime();
 
 const inPageTranslation = new InPageTranslation({
     translate(text, user) {
-        console.assert(state.from !== undefined && state.to !== undefined);
+        console.assert(state.from !== undefined && state.to !== undefined,
+            "state.from or state.to is not set");
         backgroundScript.postMessage({
             command: "TranslateRequest",
             data: {
@@ -127,4 +130,16 @@ window.addEventListener('pageshow', e => {
 window.addEventListener('pagehide', e => {
     if (backgroundScript)
         backgroundScript.disconnect();
+});
+
+let lastClickedElement;
+
+window.addEventListener('mousedown', e => {
+    lastClickedElement = e.target;
+});
+
+on('TranslateClickedElement', () => {
+    console.assert(lastClickedElement, 'TranslateClickedElement but no lastClickedElement');
+    inPageTranslation.addElement(lastClickedElement);
+    inPageTranslation.start(state.from);
 });
