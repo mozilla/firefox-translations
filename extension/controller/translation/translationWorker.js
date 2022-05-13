@@ -460,7 +460,7 @@ class TranslationHelper {
              * them from network as cache APIs are unavailable there (as per
              * https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage)
              */
-            if (typeof caches !== "undefined") {
+            try {
                 const cache = await caches.open(this.CACHE_NAME);
                 let response = await cache.match(itemURL);
                 if (!response) {
@@ -481,9 +481,9 @@ class TranslationHelper {
                     response = await cache.match(itemURL);
                 }
                 buffer = await response.arrayBuffer();
-            } else {
+            } catch (error) {
                 // cache api is not supported
-                console.log("cache API not supported");
+                console.log(`cache API not supported (${error})`);
                 const responseFromWeb = await this.getItemFromWeb(itemURL, fileSize, fileChecksum);
                 if (!responseFromWeb) {
                     return null;
