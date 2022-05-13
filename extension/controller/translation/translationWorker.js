@@ -453,116 +453,141 @@ class TranslationHelper {
 
             /*
              * there are two possible sources for the wasm modules: the Cache
-             * API or the the network, so we check for their existence in the
+             * API or the network, so we check for their existence in the
              * former, and if it's not there, we download from the network and
              * save it in the cache
              */
             const cache = await caches.open(this.CACHE_NAME);
-            let cache_match = await cache.match(itemURL);
-            const MAX_DOWNLOAD_TIME = 60000;
-            if (!cache_match) {
+            let response = await cache.match(itemURL);
+            if (!response) {
 
                 /*
                  * no match for this object was found in the cache.
                  * we'll need to download it and inform the progress to the
                  * sender UI so it could display it to the user
                  */
-                console.log("no cache match. downloading");
-                let response = null;
-                try {
-                    response = await fetch(itemURL);
-                } catch (exception) {
-                    console.log(`Error downloading translation modules. (${itemURL} not found)`);
-                    postMessage([
-                        "updateProgress",
-                        "notfoundErrorsDownloadingEngine"
-                    ]);
+                console.log(`${itemURL} not found in cache`);
+                const responseFromWeb = await this.getItemFromWeb(itemURL, fileSize, fileChecksum);
+                if (!responseFromWeb) {
                     return null;
                 }
+                // save in cache
+                await cache.put(itemURL, responseFromWeb);
+                console.log(`${itemURL} saved to cache`);
+                response = await cache.match(itemURL);
+            }
+            const buffer = await response.arrayBuffer();
+            return buffer;
+        }
 
-                if (response.status >= 200 && response.status < 300) {
-                    await cache.put(itemURL, response.clone());
-                    const reader = response.body.getReader();
-                    const contentLength = fileSize;
-                    let receivedLength = 0;
-                    let chunks = [];
-                    let doneReading = false;
-                    let value = null;
-                    const tDownloadStart = performance.now();
-                    let elapsedTime = 0;
-                    while (!doneReading) {
-                        console.log(`elapsedTime after doneReading ${elapsedTime}`);
-                        if (elapsedTime > MAX_DOWNLOAD_TIME) {
-                            console.log("timeout");
-                            cache.delete(itemURL);
-                            postMessage([
-                                "updateProgress",
-                                "timeoutDownloadingEngine"
-                            ]);
-                            return null;
-                        }
-                        // eslint-disable-next-line no-await-in-loop
-                        const response = await reader.read();
-                        doneReading = response.done;
-                        value = response.value;
-                        console.log(`elapsedTime after reader.read ${elapsedTime} - doneReading ${doneReading}`);
-                        elapsedTime = performance.now() - tDownloadStart;
+        // eslint-disable-next-line max-lines-per-function
+        async getItemFromWeb(itemURL, fileSize, fileChecksum) {
+            let fetchResponse = null;
+            try {
+                fetchResponse = await fetch(itemURL);
+            } catch (error) {
+                console.log(`Error downloading ${itemURL} (error: ${error})`);
+                postMessage([
+                    "updateProgress",
+                    "notfoundErrorsDownloadingEngine"
+                ]);
+                return null;
+            }
 
-                        if (doneReading) {
-                            break;
-                        }
+            if (!fetchResponse.ok) {
+                console.log(`Error downloading ${itemURL} (response status:${fetchResponse.status})`);
+                postMessage([
+                    "updateProgress",
+                    "notfoundErrorsDownloadingEngine"
+                ]);
+                return null;
+            }
 
-                        if (value) {
-                            chunks.push(value);
-                            receivedLength += value.length;
-                            console.log(`Received ${receivedLength} of ${contentLength} ${itemURL}.`);
-                            postMessage([
-                                "updateProgress",
-                                ["downloadProgress", [`${receivedLength}`,`${contentLength}`]]
-                            ]);
-                        } else {
-                            cache.delete(itemURL);
-                            postMessage([
-                                "updateProgress",
-                                "nodataDownloadingEngine"
-                            ]);
-                            return null;
-                        }
-
-                        if (receivedLength === contentLength) {
-                            doneReading = true;
-                        }
+            // function to download using stream of body contents with a timeout
+            const streamDownloadWithTimeout = async response => {
+                const MAX_DOWNLOAD_TIME = 60000;
+                const reader = response.body.getReader();
+                const contentLength = fileSize;
+                let receivedLength = 0;
+                let chunks = [];
+                let doneReading = false;
+                let value = null;
+                const tDownloadStart = performance.now();
+                let elapsedTime = 0;
+                while (!doneReading) {
+                    if (elapsedTime > MAX_DOWNLOAD_TIME) {
+                        console.log(`Max time (${MAX_DOWNLOAD_TIME}ms) reached while downloading ${itemURL}`);
+                        postMessage([
+                            "updateProgress",
+                            "timeoutDownloadingEngine"
+                        ]);
+                        return false;
                     }
-                    console.log("wasm saved to cache");
-                    cache_match = await cache.match(itemURL);
-                } else {
-                    cache.delete(itemURL);
-                    postMessage([
-                        "updateProgress",
-                        "notfoundErrorsDownloadingEngine"
-                    ]);
-                    return null;
+                    // eslint-disable-next-line no-await-in-loop
+                    const readResponse = await reader.read();
+                    elapsedTime = performance.now() - tDownloadStart;
+                    doneReading = readResponse.done;
+                    value = readResponse.value;
+
+                    if (doneReading) {
+                        break;
+                    }
+                    if (value) {
+                        chunks.push(value);
+                        receivedLength += value.length;
+                        postMessage([
+                            "updateProgress",
+                            ["downloadProgress", [`${receivedLength}`,`${contentLength}`]]
+                        ]);
+                    } else {
+                        postMessage([
+                            "updateProgress",
+                            "nodataDownloadingEngine"
+                        ]);
+                        return false;
+                    }
+
+                    if (receivedLength === contentLength) {
+                        doneReading = true;
+                    }
                 }
-            }
-            const arraybuffer = await cache_match.arrayBuffer();
-            const sha256 = await this.digestSha256(arraybuffer);
-            if (!sha256) {
-                postMessage([
-                    "updateProgress",
-                    "tlsIncompatibility"
-                ]);
+                console.log(`Successfully downloaded ${itemURL} (took ${elapsedTime}ms)`);
+                return true;
+            };
+
+            if (!await streamDownloadWithTimeout(fetchResponse.clone())) {
                 return null;
             }
 
-            if (sha256 !== fileChecksum) {
-                cache.delete(itemURL);
-                postMessage([
-                    "updateProgress",
-                    "checksumErrorsDownloadingEngine"
-                ]);
+            // function to validate the checksum of the downloaded buffer
+            const isValidChecksum = async arrayBuffer => {
+                const sha256 = await this.digestSha256(arrayBuffer);
+                if (!sha256) {
+                    console.log(`Sha256 error for ${itemURL}`);
+                    postMessage([
+                        "updateProgress",
+                        "tlsIncompatibility"
+                    ]);
+                    return false;
+                }
+
+                if (sha256 !== fileChecksum) {
+                    console.log(`Checksum failed for ${itemURL}`);
+                    postMessage([
+                        "updateProgress",
+                        "checksumErrorsDownloadingEngine"
+                    ]);
+                    return false;
+                }
+                console.log(`Checksum passed for ${itemURL}`);
+                return true;
+            }
+
+            let buffer = await fetchResponse.clone().arrayBuffer();
+            if (!await isValidChecksum(buffer)) {
                 return null;
             }
-            return arraybuffer;
+            return fetchResponse;
         }
 
         async digestSha256 (buffer) {
