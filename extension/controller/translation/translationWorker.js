@@ -450,33 +450,46 @@ class TranslationHelper {
 
         // eslint-disable-next-line max-lines-per-function
         async getItemFromCacheOrWeb(itemURL, fileSize, fileChecksum) {
+            let buffer = null;
 
             /*
-             * there are two possible sources for the wasm modules: the Cache
-             * API or the network, so we check for their existence in the
+             * there are two possible sources for the translation modules: the Cache
+             * API or the network. We check for their existence in the
              * former, and if it's not there, we download from the network and
-             * save it in the cache
+             * save it in the cache. In private mode, we will always be downloading
+             * them from network as cache APIs are unavailable there (as per
+             * https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage)
              */
-            const cache = await caches.open(this.CACHE_NAME);
-            let response = await cache.match(itemURL);
-            if (!response) {
+            if (typeof caches !== "undefined") {
+                const cache = await caches.open(this.CACHE_NAME);
+                let response = await cache.match(itemURL);
+                if (!response) {
 
-                /*
-                 * no match for this object was found in the cache.
-                 * we'll need to download it and inform the progress to the
-                 * sender UI so it could display it to the user
-                 */
-                console.log(`${itemURL} not found in cache`);
+                    /*
+                     * no match for this object was found in the cache.
+                     * we'll need to download it and inform the progress to the
+                     * sender UI so it could display it to the user
+                     */
+                    console.log(`${itemURL} not found in cache`);
+                    const responseFromWeb = await this.getItemFromWeb(itemURL, fileSize, fileChecksum);
+                    if (!responseFromWeb) {
+                        return null;
+                    }
+                    // save in cache
+                    await cache.put(itemURL, responseFromWeb);
+                    console.log(`${itemURL} saved to cache`);
+                    response = await cache.match(itemURL);
+                }
+                buffer = await response.arrayBuffer();
+            } else {
+                // cache api is not supported
+                console.log("cache API not supported");
                 const responseFromWeb = await this.getItemFromWeb(itemURL, fileSize, fileChecksum);
                 if (!responseFromWeb) {
                     return null;
                 }
-                // save in cache
-                await cache.put(itemURL, responseFromWeb);
-                console.log(`${itemURL} saved to cache`);
-                response = await cache.match(itemURL);
+                buffer = await responseFromWeb.arrayBuffer();
             }
-            const buffer = await response.arrayBuffer();
             return buffer;
         }
 
