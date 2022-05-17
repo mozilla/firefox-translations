@@ -25,7 +25,8 @@
     "<all_urls>",
     "tabs",
     "webNavigation",
-    "storage"
+    "storage",
+    "mozillaAddons"
   ],
   "background": {
     "persistent": true,
