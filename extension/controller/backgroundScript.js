@@ -66,6 +66,7 @@ let modelFastTextReadyPromise = null;
 let platformInfo = null;
 
 let telemetryByTab = new Map();
+let pingByTab = new Set();
 let translationRequestsByTab = new Map();
 let outboundRequestsByTab = new Map();
 const translateAsBrowseMap = new Map();
@@ -107,6 +108,16 @@ const onError = error => {
   if (error.message.endsWith("Could not establish connection. Receiving end does not exist.")) {
     console.warn(error);
   } else throw error;
+}
+
+const submitPing = tabId => {
+  if (pingByTab.has(tabId)) {
+    getTelemetry(tabId).submit();
+    pingByTab.delete(tabId);
+  }
+  telemetryByTab.delete(tabId);
+  translationRequestsByTab.delete(tabId);
+  outboundRequestsByTab.delete(tabId);
 }
 
 // eslint-disable-next-line max-lines-per-function,complexity
@@ -283,11 +294,8 @@ const messageListener = function(message, sender) {
           Sentry.captureException(deserializeError(message.exception));
           break;
 
-        case "submitPing":
-            getTelemetry(message.tabId).submit();
-            telemetryByTab.delete(message.tabId);
-            translationRequestsByTab.delete(message.tabId);
-            outboundRequestsByTab.delete(message.tabId);
+        case "enablePing":
+            pingByTab.add(message.tabId);
             break;
 
         case "translationRequested":
@@ -436,11 +444,16 @@ browser.pageAction.onClicked.addListener(tab => {
     });
 });
 
-// here we remove the closed tabs from translateAsBrowseMap
+// here we remove the closed tabs from translateAsBrowseMap and submit telemetry
 browser.tabs.onRemoved.addListener(tabId => {
   translateAsBrowseMap.delete(tabId);
+  submitPing(tabId);
 });
 
+browser.webNavigation.onCommitted.addListener(details => {
+  // only send pings if the top frame navigates.
+  if (details.frameId === 0) submitPing(details.tabId);
+});
 
 const displayedConsentPromise = browser.storage.local.get("displayedConsent");
 const isMochitestPromise = browser.experiments.translationbar.isMochitest();
