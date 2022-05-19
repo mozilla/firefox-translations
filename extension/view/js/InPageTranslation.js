@@ -193,7 +193,7 @@ class InPageTranslation {
         if (!element.sheet) return;
         const sheet = element.sheet;
         sheet.insertRule(`
-        [x-bergamot-word-score].bad { background-image:
+        [x-bergamot-word-score].x-fxtranslations-bad { background-image:
             linear-gradient(45deg, transparent 65%, red 80%, transparent 90%),
             linear-gradient(135deg, transparent 5%, red 15%, transparent 25%),
             linear-gradient(135deg, transparent 45%, red 55%, transparent 65%),
@@ -203,7 +203,7 @@ class InPageTranslation {
           background-position:0 95%;
         }`, 0);
         sheet.insertRule(`
-        [x-bergamot-sentence-score].bad {
+        [x-bergamot-sentence-score].x-fxtranslations-bad {
             background: rgba(255, 128, 128, 0.8);
           }`, 1);
         sheet.insertRule(`
@@ -217,14 +217,14 @@ class InPageTranslation {
         document.querySelectorAll("[x-bergamot-sentence-score]").forEach(el => {
             const sentenceScore = parseFloat(el.getAttribute("x-bergamot-sentence-score"));
             if (sentenceScore < this.QE_THRESHOLD) {
-                el.classList.toggle("bad", true);
+                el.classList.toggle("x-fxtranslations-bad", true);
             }
         });
 
         document.querySelectorAll("[x-bergamot-word-score]").forEach(el => {
             const wordScore = parseFloat(el.getAttribute("x-bergamot-word-score"));
             if (wordScore < this.QE_THRESHOLD) {
-                el.classList.toggle("bad",true);
+                el.classList.toggle("x-fxtranslations-bad",true);
             }
         });
       }
