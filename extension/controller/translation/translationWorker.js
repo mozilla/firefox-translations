@@ -475,7 +475,7 @@ class TranslationHelper {
                 response = await fetch(languageModelURL[fileType]);
             } catch (e) {
                 console.log(`Error Fetching "${fileType}:${languageModelURL[fileType]}" (error: ${e})`);
-                throw new Error(`Error Fetching "${fileType}:${languageModelURL[fileType]}" (error: ${e})`);;
+                throw new Error(`Error Fetching "${fileType}:${languageModelURL[fileType]}" (error: ${e})`);
             }
             if (!response.ok) {
                 console.log(`Fetch Response not ok ${fileType}:${languageModelURL[fileType]} (response.status:${response.status})`);
