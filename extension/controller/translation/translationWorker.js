@@ -470,8 +470,18 @@ class TranslationHelper {
 
         // fetch file as buffer from given url
         async fetchFile(fileType, fileAlignment, languageModelURL) {
-            console.log(`fileType: ${fileType}, languageModelURL:${languageModelURL[fileType]}`);
-            let buffer = await fetch(languageModelURL[fileType]).then(response => response.arrayBuffer());
+            let response;
+            try {
+                response = await fetch(languageModelURL[fileType]);
+            } catch (e) {
+                console.log(`Error Fetching "${fileType}:${languageModelURL[fileType]}" (error: ${e})`);
+                throw new Error(`Error Fetching "${fileType}:${languageModelURL[fileType]}" (error: ${e})`);;
+            }
+            if (!response.ok) {
+                console.log(`Fetch Response not ok ${fileType}:${languageModelURL[fileType]} (response.status:${response.status})`);
+                throw new Error(`Error in Fetch Response "${fileType}:${languageModelURL[fileType]}" (response.status:${response.status})`);
+            }
+            let buffer = await response.arrayBuffer();
             return {
                 buffer,
                 fileAlignment,
