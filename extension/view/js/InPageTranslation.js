@@ -236,6 +236,7 @@ class InPageTranslation {
 
         // if we have a textNode whose parent's parent was excluded we walk through its parent and reject it
         if (root.nodeType === 3){
+            this.startTreeWalker(root.parentNode);
             return;
         }
 
