@@ -351,7 +351,7 @@ class TranslationHelper {
             if (!this.translationService) {
                 // caching is disabled (see https://github.com/mozilla/firefox-translations/issues/288)
                 let translationServiceConfig = { cacheSize: 0 };
-                console.log(`Creating Translation Service with config: ${translationServiceConfig}`);
+                console.log(`Creating Translation Service with config: ${JSON.stringify(translationServiceConfig)}`);
                 this.translationService = new this.WasmEngineModule.BlockingService(translationServiceConfig);
                 console.log("Translation Service created successfully");
             }
@@ -437,7 +437,7 @@ class TranslationHelper {
                 alignedQEMemory = alignedMemories[3];
                 alignedMemoryLogMessage += `QualityModel: ${alignedQEMemory.size()}`;
             }
-            console.log(`Translation Model config: ${JSON.stringify(modelConfig)}`);
+            console.log(`Translation Model config: ${modelConfig}`);
             console.log(alignedMemoryLogMessage);
 
             // construct model

@@ -688,24 +688,28 @@ const digestSha256 = async (buffer) => {
 const sendUpdateProgress = (tabId, payload) => {
     /*
      * let's invoke the experiment api in order to update the
-     * model/engine download progress in the appropiate infobar
+     * model download progress in the appropiate infobar
      */
     // first we localize the message.
     // eslint-disable-next-line no-case-declarations
-    let localizedMessage;
-    if (typeof payload[1] === "string") {
-        localizedMessage = browser.i18n.getMessage(payload[1]);
-    } else if (typeof payload[1] === "object") {
-        // we have a downloading message, which contains placeholders, hence this special treatment
-        localizedMessage = browser.i18n.getMessage(payload[1][0], payload[1][1]);
-    }
-
-    if (payload[1][0] === "translationProgress") {
-        localizedMessage = `${browser.i18n.getMessage("translationEnabled")} ${localizedMessage}`;
-    }
-
+    let localizedMessage = getLocalizedMessage(payload);
     browser.experiments.translationbar.updateProgress(
       tabId,
       localizedMessage
     );
 }
+
+const getLocalizedMessage = payload => {
+  let localizedMessage;
+  if (typeof payload[1] === "string") {
+      localizedMessage = browser.i18n.getMessage(payload[1]);
+  } else if (typeof payload[1] === "object") {
+      // we have a downloading message, which contains placeholders, hence this special treatment
+      localizedMessage = browser.i18n.getMessage(payload[1][0], payload[1][1]);
+  }
+
+  if (payload[1][0] === "translationProgress") {
+      localizedMessage = `${browser.i18n.getMessage("translationEnabled")} ${localizedMessage}`;
+  }
+  return localizedMessage;
+};
