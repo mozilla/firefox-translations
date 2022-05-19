@@ -391,12 +391,12 @@ class InPageTranslation {
     }
 
     validateNode(node) {
-        if (this.isExcludedNode(node)) {
+        if (node.nodeType === 1 && this.isExcludedNode(node)) {
             node.setAttribute("x-bergamot-translated", "rejected is-excluded-node");
             return NodeFilter.FILTER_REJECT;
         }
 
-        if (node.textContent.trim().length === 0) {
+        if (node.nodeType === 1 && node.textContent.trim().length === 0) {
             node.setAttribute("x-bergamot-translated", "rejected empty-text-content");
             return NodeFilter.FILTER_REJECT;
         }
@@ -406,12 +406,12 @@ class InPageTranslation {
             return NodeFilter.FILTER_REJECT;
         }
 
-        if (!this.hasInlineContent(node)) {
+        if (node.nodeType === 1 && !this.hasInlineContent(node)) {
             node.setAttribute("x-bergamot-translated", "skipped does-not-have-text-of-its-own");
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper
         }
 
-        if (this.containsExcludedNode(node) && !this.hasTextNodes(node)) {
+        if (node.nodeType === 1 && this.containsExcludedNode(node) && !this.hasTextNodes(node)) {
             node.setAttribute("x-bergamot-translated", "skipped contains-excluded-node");
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper
         }
