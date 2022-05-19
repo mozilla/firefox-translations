@@ -2,9 +2,7 @@
 /* eslint-disable no-native-reassign */
 /* eslint-disable max-lines */
 
-/* global loadEmscriptenGlueCode, Queue, serializeError */
-/* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry, importScripts */
-
+/* global loadEmscriptenGlueCode, Queue, serializeError, importScripts */
 
 let engineWasmLocalPath;
 
@@ -767,7 +765,6 @@ onmessage = function(message) {
             importScripts("/model/Queue.js");
             importScripts(message.data[1].engineScriptLocalPath);
             engineWasmLocalPath = message.data[1].engineWasmLocalPath;
-            importScripts(message.data[1].modelRegistry);
             importScripts(message.data[1].serializeErrorScript);
             break;
         case "translate":

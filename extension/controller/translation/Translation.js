@@ -24,7 +24,6 @@ class Translation {
             engineScriptLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker-without-wormhole.js");
             engineWasmLocalPath = browser.runtime.getURL("model/static/translation/bergamot-translator-worker-without-wormhole.wasm");
         }
-        const modelRegistry = browser.runtime.getURL("model/modelRegistry.js");
         const serializeErrorScript = browser.runtime.getURL("model/static/errorReporting/serializeError.js");
         const version = browser.runtime.getManifest().version;
         if (window.Worker) {
@@ -38,7 +37,6 @@ class Translation {
                 {
                     engineScriptLocalPath,
                     engineWasmLocalPath,
-                    modelRegistry,
                     serializeErrorScript,
                     version,
                 }
