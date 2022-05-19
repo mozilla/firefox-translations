@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 /* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL,
-Telemetry, loadFastText, FastText, Sentry, settings, deserializeError */
+Telemetry, loadFastText, FastText, Sentry, settings, deserializeError,
+modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry */
 
 /*
  * we need the background script in order to have full access to the
@@ -71,6 +72,8 @@ let translationRequestsByTab = new Map();
 let outboundRequestsByTab = new Map();
 const translateAsBrowseMap = new Map();
 let isMochitest = false;
+const languageModelFileTypes = ["model", "lex", "vocab", "qualityModel"];
+const CACHE_NAME = "fxtranslations";
 
 const init = () => {
   Sentry.wrap(async () => {
@@ -313,6 +316,27 @@ const messageListener = function(message, sender) {
                 }
             );
             break;
+        case "downloadLanguageModels":
+          try {
+            let models = await getLanguageModels(message.tabId, message.languagePairs);
+            // pass the downloaded language models to the mediator
+            browser.tabs.sendMessage(
+              message.tabId,
+              {
+                  command: "responseDownloadLanguageModels",
+                  tabId: message.tabId,
+                  languageModels: models
+              }
+            );
+          } catch (error) {
+            sendUpdateProgress(message.tabId, ["updateProgress", "errorLoadingWasm"]);
+            //postMessage(["reportError", "model_load"]);
+            getTelemetry(message.tabId).record("counter", "errors", "model_load");
+            console.warn("Reporting content script error to Sentry");
+            Sentry.captureException(deserializeError(serializeError(error)));
+            //postMessage(["reportException", serializeError(error)]);
+          }
+          break;
         case "updateProgress":
           browser.experiments.translationbar.updateProgress(
             message.tabId,
@@ -467,3 +491,257 @@ Promise.allSettled([displayedConsentPromise, isMochitestPromise]).then(values =>
     browser.storage.local.set({ displayedConsent: true });
   }
 });
+
+// return language models as urls for language pairs
+const getLanguageModels = async (tabId, languagePairs) => {
+  console.log(`LangPairs: ${JSON.stringify(languagePairs)}\n modelRegistryRootURL:${modelRegistryRootURL}`);
+  let languageModelsPromise = [];
+  languagePairs.forEach(languagePair => languageModelsPromise.push(getLanguageModel(tabId, languagePair)));
+  let languageModelURLs = await Promise.all(languageModelsPromise);
+
+  let result = [];
+  languageModelURLs.forEach((languageModelURL, index) => {
+    let clonedLanguagePair = Object.assign({}, languagePairs[index]);
+    clonedLanguagePair["languageModelURL"] = languageModelURL;
+    result.push(clonedLanguagePair);
+  });
+  console.log(`LangModelResult: ${JSON.stringify(result)}`);
+  return result;
+};
+
+const getLanguageModel = async (tabId, languagePair) => {
+  //console.log(`LangPairs: ${JSON.stringify(languagePairs)}\n modelRegistryRootURL:${modelRegistryRootURL}`);
+  let languageModelPromise = [];
+  languageModelFileTypes
+      .filter(fileType => fileType !== "qualityModel" || languagePair.withQualityEstimation)
+      .filter(fileType => Reflect.apply(Object.prototype.hasOwnProperty, modelRegistry[languagePair.name], [fileType]))
+      .forEach(fileType => languageModelPromise.push(downloadFile(tabId, fileType, languagePair.name)));
+
+  let buffers = await Promise.all(languageModelPromise);
+
+  // create URLs from buffers and return
+  let fileURLs = {};
+  buffers.forEach((buffer, index) => {
+    fileURLs[languageModelFileTypes[index]] = URL.createObjectURL(new Blob([buffer]));
+  });
+  return fileURLs;
+};
+
+// download files as buffers from given urls
+const downloadFile = async (tabId, fileType, languagePairName) => {
+  const fileName = `${modelRegistryRootURL}/${languagePairName}/${modelRegistry[languagePairName][fileType].name}`;
+  const fileSize = modelRegistry[languagePairName][fileType].size;
+  const fileChecksum = modelRegistry[languagePairName][fileType].expectedSha256Hash;
+  const buffer = await getItemFromCacheOrWeb(tabId, fileName, fileSize, fileChecksum);
+  if (!buffer) {
+      console.error(`Error loading models from cache or web ("${fileType}")`);
+      //postMessage(["onError", "model_download"]);
+      throw new Error(`Error loading models from cache or web ("${fileType}")`);
+  }
+  return buffer;
+};
+
+// eslint-disable-next-line max-lines-per-function
+const getItemFromCacheOrWeb = async (tabId, itemURL, fileSize, fileChecksum) => {
+  let buffer = null;
+
+  /*
+    * there are two possible sources for the translation modules: the Cache
+    * API or the network. We check for their existence in the
+    * former, and if it's not there, we download from the network and
+    * save it in the cache.
+    */
+  try {
+      const cache = await caches.open(CACHE_NAME);
+      let response = await cache.match(itemURL);
+      if (!response) {
+
+          /*
+            * no match for this object was found in the cache.
+            * we'll need to download it and inform the progress to the
+            * sender UI so it could display it to the user
+            */
+          console.log(`${itemURL} not found in cache`);
+          const responseFromWeb = await getItemFromWeb(tabId, itemURL, fileSize, fileChecksum);
+          if (!responseFromWeb) {
+              return null;
+          }
+          // save in cache
+          await cache.put(itemURL, responseFromWeb);
+          console.log(`${itemURL} saved to cache`);
+          response = await cache.match(itemURL);
+      }
+      buffer = await response.arrayBuffer();
+  } catch (error) {
+      // cache api is not supported
+      console.log(`cache API not supported (${error})`);
+      const responseFromWeb = await getItemFromWeb(itemURL, fileSize, fileChecksum);
+      if (!responseFromWeb) {
+          return null;
+      }
+      buffer = await responseFromWeb.arrayBuffer();
+  }
+  return buffer;
+};
+
+// eslint-disable-next-line max-lines-per-function
+const getItemFromWeb = async (tabId, itemURL, fileSize, fileChecksum) => {
+  let fetchResponse = null;
+  try {
+      fetchResponse = await fetch(itemURL);
+  } catch (error) {
+      console.log(`Error downloading ${itemURL} (error: ${error})`);
+      // inform mediator
+      sendUpdateProgress(tabId, ["updateProgress", "notfoundErrorsDownloadingEngine"]);
+      /*postMessage([
+          "updateProgress",
+          "notfoundErrorsDownloadingEngine"
+      ]);*/
+      return null;
+  }
+
+  if (!fetchResponse.ok) {
+      console.log(`Error downloading ${itemURL} (response status:${fetchResponse.status})`);
+      sendUpdateProgress(tabId, ["updateProgress", "notfoundErrorsDownloadingEngine"]);
+      /*postMessage([
+          "updateProgress",
+          "notfoundErrorsDownloadingEngine"
+      ]);*/
+      return null;
+  }
+
+  // function to download using stream of body contents with a timeout
+  const streamDownloadWithTimeout = async response => {
+      const MAX_DOWNLOAD_TIME = 60000;
+      const reader = response.body.getReader();
+      const contentLength = fileSize;
+      let receivedLength = 0;
+      let chunks = [];
+      let doneReading = false;
+      let value = null;
+      const tDownloadStart = performance.now();
+      let elapsedTime = 0;
+      while (!doneReading) {
+          if (elapsedTime > MAX_DOWNLOAD_TIME) {
+              console.log(`Max time (${MAX_DOWNLOAD_TIME}ms) reached while downloading ${itemURL}`);
+              sendUpdateProgress(tabId, ["updateProgress", "timeoutDownloadingEngine"]);
+              /*postMessage([
+                  "updateProgress",
+                  "timeoutDownloadingEngine"
+              ]);*/
+              return false;
+          }
+          // eslint-disable-next-line no-await-in-loop
+          const readResponse = await reader.read();
+          elapsedTime = performance.now() - tDownloadStart;
+          doneReading = readResponse.done;
+          value = readResponse.value;
+
+          if (doneReading) {
+              break;
+          }
+          if (value) {
+              chunks.push(value);
+              receivedLength += value.length;
+              sendUpdateProgress(tabId, ["updateProgress", ["downloadProgress", [`${receivedLength}`,`${contentLength}`]]]);
+              /*postMessage([
+                  "updateProgress",
+                  ["downloadProgress", [`${receivedLength}`,`${contentLength}`]]
+              ]);*/
+          } else {
+            sendUpdateProgress(tabId, ["updateProgress", "nodataDownloadingEngine"]);
+              /*postMessage([
+                  "updateProgress",
+                  "nodataDownloadingEngine"
+              ]);*/
+              return false;
+          }
+
+          if (receivedLength === contentLength) {
+              doneReading = true;
+          }
+      }
+      console.log(`Successfully downloaded ${itemURL} (took ${elapsedTime}ms)`);
+      return true;
+  };
+
+  if (!await streamDownloadWithTimeout(fetchResponse.clone())) {
+      return null;
+  }
+
+  // function to validate the checksum of the downloaded buffer
+  const isValidChecksum = async arrayBuffer => {
+      const sha256 = await digestSha256(arrayBuffer);
+      if (!sha256) {
+          console.log(`Sha256 error for ${itemURL}`);
+          sendUpdateProgress(tabId, ["updateProgress", "tlsIncompatibility"]);
+          /*postMessage([
+              "updateProgress",
+              "tlsIncompatibility"
+          ]);*/
+          return false;
+      }
+
+      if (sha256 !== fileChecksum) {
+          console.log(`Checksum failed for ${itemURL}`);
+          sendUpdateProgress(tabId, ["updateProgress", "checksumErrorsDownloadingEngine"]);
+          /*postMessage([
+              "updateProgress",
+              "checksumErrorsDownloadingEngine"
+          ]);*/
+          return false;
+      }
+      console.log(`Checksum passed for ${itemURL}`);
+      return true;
+  }
+
+  let buffer = await fetchResponse.clone().arrayBuffer();
+  if (!await isValidChecksum(buffer)) {
+      return null;
+  }
+  return fetchResponse;
+};
+
+const digestSha256 = async (buffer) => {
+  // hash the message
+  if (!crypto.subtle) return null;
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  // convert buffer to byte array
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  // convert bytes to hex string
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+};
+
+const sendUpdateProgress = (tabId, payload) => {
+  //let command = payload[0];
+    /*
+     * let's invoke the experiment api in order to update the
+     * model/engine download progress in the appropiate infobar
+     */
+    // first we localize the message.
+    // eslint-disable-next-line no-case-declarations
+    let localizedMessage;
+    if (typeof payload[1] === "string") {
+        localizedMessage = browser.i18n.getMessage(payload[1]);
+    } else if (typeof payload[1] === "object") {
+        // we have a downloading message, which contains placeholders, hence this special treatment
+        localizedMessage = browser.i18n.getMessage(payload[1][0], payload[1][1]);
+    }
+
+    if (payload[1][0] === "translationProgress") {
+        localizedMessage = `${browser.i18n.getMessage("translationEnabled")} ${localizedMessage}`;
+    }
+
+    browser.experiments.translationbar.updateProgress(
+      tabId,
+      localizedMessage
+    );
+  /*browser.tabs.sendMessage(
+    tabId,
+    {
+      command,
+      tabId,
+      payload: [command, message]
+    }
+  );*/
+}

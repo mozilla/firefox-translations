@@ -166,6 +166,14 @@ class Mediator {
                     });
                     // console.log("translation complete rcvd:", message, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
                     break;
+                case "downloadLanguageModels":
+
+                    browser.runtime.sendMessage({
+                        command: "downloadLanguageModels",
+                        languagePairs: message.payload,
+                        tabId: this.tabId
+                    });
+                    break;
                 case "updateProgress":
 
                     /*
@@ -297,6 +305,9 @@ class Mediator {
             case "responseDetectPageLanguage":
                 this.languageDetection.setPageLanguage(message.pageLanguage);
                 if (this.isMainFrame) this.determineIfTranslationisRequired(message.isMochitest);
+                break;
+            case "responseDownloadLanguageModels":
+                this.translation.sendDownloadedLanguageModels(message.languageModels);
                 break;
             case "translationRequested":
                 // not started yet

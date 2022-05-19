@@ -60,6 +60,12 @@ class Translation {
                         payload: translationMessage.data
                     });
                     break;
+                case "downloadLanguageModels":
+                    this.mediator.contentScriptsMessageListener(this, {
+                        command: "downloadLanguageModels",
+                        payload: translationMessage.data[1]
+                    });
+                    break;
                 case "updateProgress":
                     this.mediator.contentScriptsMessageListener(this, {
                         command: "updateProgress",
@@ -98,6 +104,14 @@ class Translation {
                 default:
             }
         });
+    }
+
+    sendDownloadedLanguageModels(downloadedLanguageModels) {
+        // send language models to worker
+        this.translationWorker.postMessage([
+            "responseDownloadLanguageModels",
+            downloadedLanguageModels
+        ]);
     }
 
     /*

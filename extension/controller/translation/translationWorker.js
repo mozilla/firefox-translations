@@ -23,10 +23,10 @@ class TranslationHelper {
         constructor() {
             // all variables specific to translation service
             this.translationService = null;
-            this.responseOptions = null;
+
             // a map of language-pair to TranslationModel object
             this.translationModels = new Map();
-            this.CACHE_NAME = "fxtranslations";
+            //this.CACHE_NAME = "fxtranslations";
             this.wasmModuleStartTimestamp = null;
             this.WasmEngineModule = null;
             this.engineState = this.ENGINE_STATE.LOAD_PENDING;
@@ -76,7 +76,8 @@ class TranslationHelper {
                      * initialized, we then load the language models
                      */
                     console.log(`Wasm Runtime initialized Successfully (preRun -> onRuntimeInitialized) in ${(Date.now() - this.wasmModuleStartTimestamp) / 1000} secs`);
-                    this.loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation);
+                    this.getLanguageModels(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation);
+                    //this.loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation);
                 }.bind(this),
                 wasmBinary: wasmArrayBuffer,
             };
@@ -259,8 +260,42 @@ class TranslationHelper {
             }
         }
 
+        getLanguageModels(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation) {
+            this.sourceLanguage = sourceLanguage;
+            this.targetLanguage = targetLanguage;
+            this.withOutboundTranslation = withOutboundTranslation;
+            this.withQualityEstimation = withQualityEstimation;
+
+            let languagePairs = [];
+            const languagePairInfo = (languagePairName, isQE) => {
+                return {
+                    "name": languagePairName,
+                    "withQualityEstimation": isQE
+                };
+            }
+            if (this._isPivotingRequired(sourceLanguage, targetLanguage)) {
+                // pivoting requires 2 translation models
+                languagePairs.push(languagePairInfo(this._getLanguagePair(sourceLanguage, this.PIVOT_LANGUAGE), withQualityEstimation));
+                languagePairs.push(languagePairInfo(this._getLanguagePair(this.PIVOT_LANGUAGE, targetLanguage), withQualityEstimation));
+                if (withOutboundTranslation) {
+                    languagePairs.push(languagePairInfo(this._getLanguagePair(targetLanguage, this.PIVOT_LANGUAGE), false));
+                    languagePairs.push(languagePairInfo(this._getLanguagePair(this.PIVOT_LANGUAGE, sourceLanguage), false));
+                }
+            }
+            else {
+                languagePairs.push(languagePairInfo(this._getLanguagePair(sourceLanguage, targetLanguage), withQualityEstimation));
+                if (withOutboundTranslation) {
+                    languagePairs.push(languagePairInfo(this._getLanguagePair(targetLanguage, sourceLanguage), false));
+                }
+            }
+            postMessage([
+                "downloadLanguageModels",
+                languagePairs
+              ]);
+        }
+
     // eslint-disable-next-line max-lines-per-function
-        async loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation) {
+        async loadLanguageModel(languageModels) {
 
             /*
              * let's load the models and communicate to the caller (translation)
@@ -270,12 +305,12 @@ class TranslationHelper {
             let isReversedModelLoadingFailed = false;
             try {
               this.constructTranslationService();
-              await this.constructTranslationModel(sourceLanguage, targetLanguage, withQualityEstimation);
+              await this.constructTranslationModel(languageModels, this.sourceLanguage, this.targetLanguage, this.withQualityEstimation);
 
-              if (withOutboundTranslation) {
+              if (this.withOutboundTranslation) {
                   try {
                     // the Outbound Translation doesn't require supporting Quality Estimation
-                    await this.constructTranslationModel(targetLanguage, sourceLanguage, /* withQualityEstimation=*/false);
+                    await this.constructTranslationModel(languageModels, this.targetLanguage, this.sourceLanguage, /* withQualityEstimation=*/false);
                     postMessage([
                         "displayOutboundTranslation",
                         null
@@ -286,7 +321,7 @@ class TranslationHelper {
                   }
               }
               let finish = Date.now();
-              console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
+              console.log(`Model '${this.sourceLanguage}${this.targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
               postMessage([
                 "reportPerformanceTimespan",
                 "model_load_time_num",
@@ -294,7 +329,7 @@ class TranslationHelper {
               ]);
 
             } catch (error) {
-              console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
+              console.log(`Model '${this.sourceLanguage}${this.targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
               sendException(error);
               postMessage(["reportError", "model_load"]);
               postMessage(["updateProgress", "errorLoadingWasm"]);
@@ -331,23 +366,29 @@ class TranslationHelper {
             this.translationModels.clear();
         }
 
-        async constructTranslationModel(from, to, withQualityEstimation) {
+        async constructTranslationModel(languageModels, from, to, withQualityEstimation) {
             if (this._isPivotingRequired(from, to)) {
                 // pivoting requires 2 translation models to be constructed
-                const languagePairSrcToPivot = this._getLanguagePair(from, this.PIVOT_LANGUAGE);
-                const languagePairPivotToTarget = this._getLanguagePair(this.PIVOT_LANGUAGE, to);
                 await Promise.all([
-                    this.constructTranslationModelHelper(languagePairSrcToPivot, withQualityEstimation),
-                    this.constructTranslationModelHelper(languagePairPivotToTarget, withQualityEstimation)
+                    this.constructTranslationModelHelper(languageModels, this._getLanguagePair(from, this.PIVOT_LANGUAGE), withQualityEstimation),
+                    this.constructTranslationModelHelper(languageModels, this._getLanguagePair(this.PIVOT_LANGUAGE, to), withQualityEstimation)
                 ]);
             } else {
                 // non-pivoting case requires only 1 translation model
-                await this.constructTranslationModelHelper(this._getLanguagePair(from, to), withQualityEstimation);
+                await this.constructTranslationModelHelper(languageModels, this._getLanguagePair(from, to), withQualityEstimation);
             }
         }
 
+        getLanguageModelURLForPair(languageModels, languagePair) {
+            //const languagePair = this._getLanguagePair(from, to);
+            let languageModel = languageModels.find(languageModel => {
+                return languageModel["name"] === languagePair ? true : false;
+            });
+            return languageModel["languageModelURL"];
+        }
+
         // eslint-disable-next-line max-lines-per-function
-        async constructTranslationModelHelper(languagePair, withQualityEstimation) {
+        async constructTranslationModelHelper(languageModels, languagePair, withQualityEstimation) {
             console.log(`Constructing translation model ${languagePair}`);
             const modelConfigQualityEstimation = !withQualityEstimation;
 
@@ -374,12 +415,12 @@ class TranslationHelper {
 
             // download files into buffers
             let start = Date.now();
-
+            let languageModelURL = this.getLanguageModelURLForPair(languageModels, languagePair);
             let donwloadedBuffersPromises = [];
             Object.entries(this.modelFileAlignments)
                 .filter(([fileType]) => fileType !== "qualityModel" || withQualityEstimation)
-                .filter(([fileType]) => Reflect.apply(Object.prototype.hasOwnProperty, modelRegistry[languagePair], [fileType]))
-                .map(([fileType, fileAlignment]) => donwloadedBuffersPromises.push(this.downloadFiles(fileType, fileAlignment, languagePair)));
+                .filter(([fileType]) => Reflect.apply(Object.prototype.hasOwnProperty, languageModelURL, [fileType]))
+                .map(([fileType, fileAlignment]) => donwloadedBuffersPromises.push(this.fetchFile(fileType, fileAlignment, languageModelURL)));
 
             let donwloadedBuffers = await Promise.all(donwloadedBuffersPromises);
 
@@ -405,7 +446,7 @@ class TranslationHelper {
                 alignedQEMemory = alignedMemories[3];
                 alignedMemoryLogMessage += `QualityModel: ${alignedQEMemory.size()}`;
             }
-            console.log(`Translation Model config: ${modelConfig}`);
+            console.log(`Translation Model config: ${JSON.stringify(modelConfig)}`);
             console.log(alignedMemoryLogMessage);
 
             // construct model
@@ -430,46 +471,25 @@ class TranslationHelper {
             return `${from}${to}`;
         }
 
-        // download files as buffers from given urls
-        async downloadFiles(fileType, fileAlignment, languagePair) {
-            const fileName = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair][fileType].name}`;
-            const fileSize = modelRegistry[languagePair][fileType].size;
-            const fileChecksum = modelRegistry[languagePair][fileType].expectedSha256Hash;
-            const buffer = await this.getItemFromCacheOrWeb(fileName, fileSize, fileChecksum);
-            if (!buffer) {
-                console.error(`Error loading models from cache or web ("${fileType}")`);
-                postMessage(["onError", "model_download"]);
-                throw new Error(`Error loading models from cache or web ("${fileType}")`);
-            }
+        // fetch file as buffer from given url
+        async fetchFile(fileType, fileAlignment, languageModelURL) {
+            console.log(`fileType: ${fileType}, languageModelURL:${languageModelURL[fileType]}`);
+            let buffer = await fetch(languageModelURL[fileType]).then(response => response.arrayBuffer());
             return {
                 buffer,
                 fileAlignment,
                 fileType,
             };
         }
-
+/*
         // eslint-disable-next-line max-lines-per-function
         async getItemFromCacheOrWeb(itemURL, fileSize, fileChecksum) {
             let buffer = null;
 
-            /*
-             * there are two possible sources for the translation modules: the Cache
-             * API or the network. We check for their existence in the
-             * former, and if it's not there, we download from the network and
-             * save it in the cache. In private mode, we will always be downloading
-             * them from network as cache APIs are unavailable there (as per
-             * https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage)
-             */
             try {
                 const cache = await caches.open(this.CACHE_NAME);
                 let response = await cache.match(itemURL);
                 if (!response) {
-
-                    /*
-                     * no match for this object was found in the cache.
-                     * we'll need to download it and inform the progress to the
-                     * sender UI so it could display it to the user
-                     */
                     console.log(`${itemURL} not found in cache`);
                     const responseFromWeb = await this.getItemFromWeb(itemURL, fileSize, fileChecksum);
                     if (!responseFromWeb) {
@@ -611,7 +631,7 @@ class TranslationHelper {
             const hashArray = Array.from(new Uint8Array(hashBuffer));
             // convert bytes to hex string
             return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-        }
+        }*/
 
         // this function constructs and initializes the AlignedMemory from the array buffer and alignment size
         prepareAlignedMemoryFromBuffer (buffer, alignmentSize) {
@@ -772,6 +792,8 @@ onmessage = function(message) {
                 throw ex;
             }
             break;
+        case "responseDownloadLanguageModels":
+            translationHelper.loadLanguageModel(message.data[1]);
         default:
             // ignore
       }
