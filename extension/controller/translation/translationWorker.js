@@ -24,7 +24,6 @@ class TranslationHelper {
 
             // a map of language-pair to TranslationModel object
             this.translationModels = new Map();
-            //this.CACHE_NAME = "fxtranslations";
             this.wasmModuleStartTimestamp = null;
             this.WasmEngineModule = null;
             this.engineState = this.ENGINE_STATE.LOAD_PENDING;
@@ -75,7 +74,6 @@ class TranslationHelper {
                      */
                     console.log(`Wasm Runtime initialized Successfully (preRun -> onRuntimeInitialized) in ${(Date.now() - this.wasmModuleStartTimestamp) / 1000} secs`);
                     this.getLanguageModels(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation);
-                    //this.loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation);
                 }.bind(this),
                 wasmBinary: wasmArrayBuffer,
             };
@@ -378,7 +376,6 @@ class TranslationHelper {
         }
 
         getLanguageModelURLForPair(languageModels, languagePair) {
-            //const languagePair = this._getLanguagePair(from, to);
             let languageModel = languageModels.find(languageModel => {
                 return languageModel["name"] === languagePair ? true : false;
             });
@@ -470,157 +467,6 @@ class TranslationHelper {
                 fileType,
             };
         }
-/*
-        // eslint-disable-next-line max-lines-per-function
-        async getItemFromCacheOrWeb(itemURL, fileSize, fileChecksum) {
-            let buffer = null;
-
-            try {
-                const cache = await caches.open(this.CACHE_NAME);
-                let response = await cache.match(itemURL);
-                if (!response) {
-                    console.log(`${itemURL} not found in cache`);
-                    const responseFromWeb = await this.getItemFromWeb(itemURL, fileSize, fileChecksum);
-                    if (!responseFromWeb) {
-                        return null;
-                    }
-                    // save in cache
-                    await cache.put(itemURL, responseFromWeb);
-                    console.log(`${itemURL} saved to cache`);
-                    response = await cache.match(itemURL);
-                }
-                buffer = await response.arrayBuffer();
-            } catch (error) {
-                // cache api is not supported
-                console.log(`cache API not supported (${error})`);
-                const responseFromWeb = await this.getItemFromWeb(itemURL, fileSize, fileChecksum);
-                if (!responseFromWeb) {
-                    return null;
-                }
-                buffer = await responseFromWeb.arrayBuffer();
-            }
-            return buffer;
-        }
-
-        // eslint-disable-next-line max-lines-per-function
-        async getItemFromWeb(itemURL, fileSize, fileChecksum) {
-            let fetchResponse = null;
-            try {
-                fetchResponse = await fetch(itemURL);
-            } catch (error) {
-                console.log(`Error downloading ${itemURL} (error: ${error})`);
-                postMessage([
-                    "updateProgress",
-                    "notfoundErrorsDownloadingEngine"
-                ]);
-                return null;
-            }
-
-            if (!fetchResponse.ok) {
-                console.log(`Error downloading ${itemURL} (response status:${fetchResponse.status})`);
-                postMessage([
-                    "updateProgress",
-                    "notfoundErrorsDownloadingEngine"
-                ]);
-                return null;
-            }
-
-            // function to download using stream of body contents with a timeout
-            const streamDownloadWithTimeout = async response => {
-                const MAX_DOWNLOAD_TIME = 60000;
-                const reader = response.body.getReader();
-                const contentLength = fileSize;
-                let receivedLength = 0;
-                let chunks = [];
-                let doneReading = false;
-                let value = null;
-                const tDownloadStart = performance.now();
-                let elapsedTime = 0;
-                while (!doneReading) {
-                    if (elapsedTime > MAX_DOWNLOAD_TIME) {
-                        console.log(`Max time (${MAX_DOWNLOAD_TIME}ms) reached while downloading ${itemURL}`);
-                        postMessage([
-                            "updateProgress",
-                            "timeoutDownloadingEngine"
-                        ]);
-                        return false;
-                    }
-                    // eslint-disable-next-line no-await-in-loop
-                    const readResponse = await reader.read();
-                    elapsedTime = performance.now() - tDownloadStart;
-                    doneReading = readResponse.done;
-                    value = readResponse.value;
-
-                    if (doneReading) {
-                        break;
-                    }
-                    if (value) {
-                        chunks.push(value);
-                        receivedLength += value.length;
-                        postMessage([
-                            "updateProgress",
-                            ["downloadProgress", [`${receivedLength}`,`${contentLength}`]]
-                        ]);
-                    } else {
-                        postMessage([
-                            "updateProgress",
-                            "nodataDownloadingEngine"
-                        ]);
-                        return false;
-                    }
-
-                    if (receivedLength === contentLength) {
-                        doneReading = true;
-                    }
-                }
-                console.log(`Successfully downloaded ${itemURL} (took ${elapsedTime}ms)`);
-                return true;
-            };
-
-            if (!await streamDownloadWithTimeout(fetchResponse.clone())) {
-                return null;
-            }
-
-            // function to validate the checksum of the downloaded buffer
-            const isValidChecksum = async arrayBuffer => {
-                const sha256 = await this.digestSha256(arrayBuffer);
-                if (!sha256) {
-                    console.log(`Sha256 error for ${itemURL}`);
-                    postMessage([
-                        "updateProgress",
-                        "tlsIncompatibility"
-                    ]);
-                    return false;
-                }
-
-                if (sha256 !== fileChecksum) {
-                    console.log(`Checksum failed for ${itemURL}`);
-                    postMessage([
-                        "updateProgress",
-                        "checksumErrorsDownloadingEngine"
-                    ]);
-                    return false;
-                }
-                console.log(`Checksum passed for ${itemURL}`);
-                return true;
-            }
-
-            let buffer = await fetchResponse.clone().arrayBuffer();
-            if (!await isValidChecksum(buffer)) {
-                return null;
-            }
-            return fetchResponse;
-        }
-
-        async digestSha256 (buffer) {
-            // hash the message
-            if (!crypto.subtle) return null;
-            const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-            // convert buffer to byte array
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            // convert bytes to hex string
-            return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-        }*/
 
         // this function constructs and initializes the AlignedMemory from the array buffer and alignment size
         prepareAlignedMemoryFromBuffer (buffer, alignmentSize) {

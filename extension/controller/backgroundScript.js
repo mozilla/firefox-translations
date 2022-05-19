@@ -491,12 +491,13 @@ Promise.allSettled([displayedConsentPromise, isMochitestPromise]).then(values =>
 
 // return language models as urls for language pairs
 const getLanguageModels = async (tabId, languagePairs) => {
-  console.log(`LangPairs: ${JSON.stringify(languagePairs)}\n modelRegistryRootURL:${modelRegistryRootURL}`);
-  let languageModelsPromise = [];
   let start = performance.now();
-  languagePairs.forEach(languagePair => languageModelsPromise.push(getLanguageModel(tabId, languagePair)));
-  let languageModelURLs = await Promise.all(languageModelsPromise);
+
+  let languageModelURLPromises = [];
+  languagePairs.forEach(languagePair => languageModelURLPromises.push(getLanguageModelAsURL(tabId, languagePair)));
+  let languageModelURLs = await Promise.all(languageModelURLPromises);
   let end = performance.now();
+
   console.log(`Total Download time for all language model files: ${(end - start) / 1000}s`);
   getTelemetry(tabId).record("timespan", "performance", "model_download_time_num", end-start);
 
@@ -506,12 +507,10 @@ const getLanguageModels = async (tabId, languagePairs) => {
     clonedLanguagePair["languageModelURL"] = languageModelURL;
     result.push(clonedLanguagePair);
   });
-  console.log(`LangModelResult: ${JSON.stringify(result)}`);
   return result;
 };
 
-const getLanguageModel = async (tabId, languagePair) => {
-  console.log(`LangPair: ${JSON.stringify(languagePair)}`);
+const getLanguageModelAsURL = async (tabId, languagePair) => {
   let languageModelPromise = [];
   languageModelFileTypes
       .filter(fileType => fileType !== "qualityModel" || languagePair.withQualityEstimation)

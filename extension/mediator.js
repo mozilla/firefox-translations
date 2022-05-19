@@ -307,7 +307,6 @@ class Mediator {
                 if (this.isMainFrame) this.determineIfTranslationisRequired();
                 break;
             case "responseDownloadLanguageModels":
-                //console.log(`11111111111111 message.tabId:${message.tabId} this.tabId:${this.tabId}`);
                 if (this.tabId && message.tabId === this.tabId && this.translation) {
                     this.translation.sendDownloadedLanguageModels(message.languageModels);
                 }
