@@ -307,7 +307,10 @@ class Mediator {
                 if (this.isMainFrame) this.determineIfTranslationisRequired(message.isMochitest);
                 break;
             case "responseDownloadLanguageModels":
-                this.translation.sendDownloadedLanguageModels(message.languageModels);
+                //console.log(`11111111111111 message.tabId:${message.tabId} this.tabId:${this.tabId}`);
+                if (this.tabId && message.tabId === this.tabId && this.translation) {
+                    this.translation.sendDownloadedLanguageModels(message.languageModels);
+                }
                 break;
             case "translationRequested":
                 // not started yet

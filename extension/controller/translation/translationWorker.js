@@ -414,7 +414,7 @@ class TranslationHelper {
             `;
 
             // download files into buffers
-            let start = Date.now();
+            //let start = Date.now();
             let languageModelURL = this.getLanguageModelURLForPair(languageModels, languagePair);
             let donwloadedBuffersPromises = [];
             Object.entries(this.modelFileAlignments)
@@ -424,13 +424,13 @@ class TranslationHelper {
 
             let donwloadedBuffers = await Promise.all(donwloadedBuffersPromises);
 
-            let finish = Date.now();
-            console.log(`Total Download time for all files of '${languagePair}': ${(finish - start) / 1000} secs`);
+            //let finish = Date.now();
+            /*console.log(`Total Download time for all files of '${languagePair}': ${(finish - start) / 1000} secs`);
             postMessage([
                 "reportPerformanceTimespan",
                 "model_download_time_num",
                 finish-start
-            ]);
+            ]);*/
 
             // prepare aligned memories from buffers
             let alignedMemories = [];

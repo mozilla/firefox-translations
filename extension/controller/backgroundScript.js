@@ -330,11 +330,9 @@ const messageListener = function(message, sender) {
             );
           } catch (error) {
             sendUpdateProgress(message.tabId, ["updateProgress", "errorLoadingWasm"]);
-            //postMessage(["reportError", "model_load"]);
             getTelemetry(message.tabId).record("counter", "errors", "model_load");
             console.warn("Reporting content script error to Sentry");
             Sentry.captureException(deserializeError(serializeError(error)));
-            //postMessage(["reportException", serializeError(error)]);
           }
           break;
         case "updateProgress":
@@ -496,8 +494,12 @@ Promise.allSettled([displayedConsentPromise, isMochitestPromise]).then(values =>
 const getLanguageModels = async (tabId, languagePairs) => {
   console.log(`LangPairs: ${JSON.stringify(languagePairs)}\n modelRegistryRootURL:${modelRegistryRootURL}`);
   let languageModelsPromise = [];
+  let start = performance.now();
   languagePairs.forEach(languagePair => languageModelsPromise.push(getLanguageModel(tabId, languagePair)));
   let languageModelURLs = await Promise.all(languageModelsPromise);
+  let end = performance.now();
+  console.log(`Total Download time for all language model files: ${(end - start) / 1000}s`);
+  getTelemetry(tabId).record("timespan", "performance", "model_download_time_num", end-start);
 
   let result = [];
   languageModelURLs.forEach((languageModelURL, index) => {
@@ -510,7 +512,7 @@ const getLanguageModels = async (tabId, languagePairs) => {
 };
 
 const getLanguageModel = async (tabId, languagePair) => {
-  //console.log(`LangPairs: ${JSON.stringify(languagePairs)}\n modelRegistryRootURL:${modelRegistryRootURL}`);
+  console.log(`LangPair: ${JSON.stringify(languagePair)}`);
   let languageModelPromise = [];
   languageModelFileTypes
       .filter(fileType => fileType !== "qualityModel" || languagePair.withQualityEstimation)
@@ -535,7 +537,6 @@ const downloadFile = async (tabId, fileType, languagePairName) => {
   const buffer = await getItemFromCacheOrWeb(tabId, fileName, fileSize, fileChecksum);
   if (!buffer) {
       console.error(`Error loading models from cache or web ("${fileType}")`);
-      //postMessage(["onError", "model_download"]);
       throw new Error(`Error loading models from cache or web ("${fileType}")`);
   }
   return buffer;
@@ -593,20 +594,12 @@ const getItemFromWeb = async (tabId, itemURL, fileSize, fileChecksum) => {
       console.log(`Error downloading ${itemURL} (error: ${error})`);
       // inform mediator
       sendUpdateProgress(tabId, ["updateProgress", "notfoundErrorsDownloadingEngine"]);
-      /*postMessage([
-          "updateProgress",
-          "notfoundErrorsDownloadingEngine"
-      ]);*/
       return null;
   }
 
   if (!fetchResponse.ok) {
       console.log(`Error downloading ${itemURL} (response status:${fetchResponse.status})`);
       sendUpdateProgress(tabId, ["updateProgress", "notfoundErrorsDownloadingEngine"]);
-      /*postMessage([
-          "updateProgress",
-          "notfoundErrorsDownloadingEngine"
-      ]);*/
       return null;
   }
 
@@ -625,10 +618,6 @@ const getItemFromWeb = async (tabId, itemURL, fileSize, fileChecksum) => {
           if (elapsedTime > MAX_DOWNLOAD_TIME) {
               console.log(`Max time (${MAX_DOWNLOAD_TIME}ms) reached while downloading ${itemURL}`);
               sendUpdateProgress(tabId, ["updateProgress", "timeoutDownloadingEngine"]);
-              /*postMessage([
-                  "updateProgress",
-                  "timeoutDownloadingEngine"
-              ]);*/
               return false;
           }
           // eslint-disable-next-line no-await-in-loop
@@ -644,17 +633,9 @@ const getItemFromWeb = async (tabId, itemURL, fileSize, fileChecksum) => {
               chunks.push(value);
               receivedLength += value.length;
               sendUpdateProgress(tabId, ["updateProgress", ["downloadProgress", [`${receivedLength}`,`${contentLength}`]]]);
-              /*postMessage([
-                  "updateProgress",
-                  ["downloadProgress", [`${receivedLength}`,`${contentLength}`]]
-              ]);*/
           } else {
             sendUpdateProgress(tabId, ["updateProgress", "nodataDownloadingEngine"]);
-              /*postMessage([
-                  "updateProgress",
-                  "nodataDownloadingEngine"
-              ]);*/
-              return false;
+            return false;
           }
 
           if (receivedLength === contentLength) {
@@ -675,20 +656,12 @@ const getItemFromWeb = async (tabId, itemURL, fileSize, fileChecksum) => {
       if (!sha256) {
           console.log(`Sha256 error for ${itemURL}`);
           sendUpdateProgress(tabId, ["updateProgress", "tlsIncompatibility"]);
-          /*postMessage([
-              "updateProgress",
-              "tlsIncompatibility"
-          ]);*/
           return false;
       }
 
       if (sha256 !== fileChecksum) {
           console.log(`Checksum failed for ${itemURL}`);
           sendUpdateProgress(tabId, ["updateProgress", "checksumErrorsDownloadingEngine"]);
-          /*postMessage([
-              "updateProgress",
-              "checksumErrorsDownloadingEngine"
-          ]);*/
           return false;
       }
       console.log(`Checksum passed for ${itemURL}`);
@@ -713,7 +686,6 @@ const digestSha256 = async (buffer) => {
 };
 
 const sendUpdateProgress = (tabId, payload) => {
-  //let command = payload[0];
     /*
      * let's invoke the experiment api in order to update the
      * model/engine download progress in the appropiate infobar
@@ -736,12 +708,4 @@ const sendUpdateProgress = (tabId, payload) => {
       tabId,
       localizedMessage
     );
-  /*browser.tabs.sendMessage(
-    tabId,
-    {
-      command,
-      tabId,
-      payload: [command, message]
-    }
-  );*/
 }
