@@ -329,7 +329,10 @@ class TranslationHelper {
               postMessage(["reportError", "model_load"]);
               postMessage(["updateProgress", "errorLoadingWasm"]);
               return;
+            } finally {
+                this.revokeLanguageModelURLs(languageModels);
             }
+
             this.engineState = this.ENGINE_STATE.LOADED;
             if (isReversedModelLoadingFailed) {
                 postMessage(["updateProgress","translationEnabledNoOT"]);
@@ -339,6 +342,15 @@ class TranslationHelper {
 
             this.consumeTranslationQueue();
             console.log("loadLanguageModel function complete");
+        }
+
+        revokeLanguageModelURLs(languageModels) {
+            languageModels.forEach(languageModel => {
+                Object.values(languageModel.languageModelURL)
+                .forEach(url => {
+                    URL.revokeObjectURL(url);
+                });
+            });
         }
 
         // instantiate the Translation Service
