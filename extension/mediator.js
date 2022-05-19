@@ -63,7 +63,7 @@ class Mediator {
     }
 
     // eslint-disable-next-line max-lines-per-function
-    determineIfTranslationisRequired(isMochitest) {
+    determineIfTranslationisRequired() {
 
         /*
          * here we:
@@ -98,7 +98,7 @@ class Mediator {
                 });
                 this.translationBarDisplayed = true;
                 // create the translation object
-                this.translation = new Translation(this, isMochitest);
+                this.translation = new Translation(this);
             } else {
                 this.recordTelemetry("counter", "service", "not_supported");
             }
@@ -304,7 +304,7 @@ class Mediator {
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection.setPageLanguage(message.pageLanguage);
-                if (this.isMainFrame) this.determineIfTranslationisRequired(message.isMochitest);
+                if (this.isMainFrame) this.determineIfTranslationisRequired();
                 break;
             case "responseDownloadLanguageModels":
                 //console.log(`11111111111111 message.tabId:${message.tabId} this.tabId:${this.tabId}`);

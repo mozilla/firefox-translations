@@ -157,8 +157,7 @@ const messageListener = function(message, sender) {
           if (pageLanguage === "no") pageLanguage = "nb"
           browser.tabs.sendMessage(sender.tab.id, {
             command: "responseDetectPageLanguage",
-            pageLanguage,
-            isMochitest
+            pageLanguage
           })
           break;
         }
@@ -531,7 +530,8 @@ const getLanguageModel = async (tabId, languagePair) => {
 
 // download files as buffers from given urls
 const downloadFile = async (tabId, fileType, languagePairName) => {
-  const fileName = `${modelRegistryRootURL}/${languagePairName}/${modelRegistry[languagePairName][fileType].name}`;
+  let modelURL = isMochitest ? modelRegistryRootURLTest : modelRegistryRootURL;
+  const fileName = `${modelURL}/${languagePairName}/${modelRegistry[languagePairName][fileType].name}`;
   const fileSize = modelRegistry[languagePairName][fileType].size;
   const fileChecksum = modelRegistry[languagePairName][fileType].expectedSha256Hash;
   const buffer = await getItemFromCacheOrWeb(tabId, fileName, fileSize, fileChecksum);

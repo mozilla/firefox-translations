@@ -414,7 +414,6 @@ class TranslationHelper {
             `;
 
             // download files into buffers
-            //let start = Date.now();
             let languageModelURL = this.getLanguageModelURLForPair(languageModels, languagePair);
             let donwloadedBuffersPromises = [];
             Object.entries(this.modelFileAlignments)
@@ -423,14 +422,6 @@ class TranslationHelper {
                 .map(([fileType, fileAlignment]) => donwloadedBuffersPromises.push(this.fetchFile(fileType, fileAlignment, languageModelURL)));
 
             let donwloadedBuffers = await Promise.all(donwloadedBuffersPromises);
-
-            //let finish = Date.now();
-            /*console.log(`Total Download time for all files of '${languagePair}': ${(finish - start) / 1000} secs`);
-            postMessage([
-                "reportPerformanceTimespan",
-                "model_download_time_num",
-                finish-start
-            ]);*/
 
             // prepare aligned memories from buffers
             let alignedMemories = [];
@@ -778,11 +769,6 @@ onmessage = function(message) {
             engineWasmLocalPath = message.data[1].engineWasmLocalPath;
             importScripts(message.data[1].modelRegistry);
             importScripts(message.data[1].serializeErrorScript);
-            if (message.data[1].isMochitest){
-                // running tests. let's setup the proper tests endpoints
-                // eslint-disable-next-line no-global-assign
-                modelRegistryRootURL = modelRegistryRootURLTest;
-            }
             break;
         case "translate":
             try {

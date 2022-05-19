@@ -7,7 +7,7 @@
 
 // eslint-disable-next-line no-unused-vars
 class Translation {
-    constructor (mediator, isMochitest){
+    constructor (mediator){
         this.translationsMessagesCounter = 0;
         this.TRANSLATION_INTERVAL = 100; // ms
         this.MAX_TRANSLATION_MSGS = 100; // max translations to process per batch we should utilize here the max throughput per cpu type
@@ -41,7 +41,6 @@ class Translation {
                     modelRegistry,
                     serializeErrorScript,
                     version,
-                    isMochitest
                 }
             ])
         }
