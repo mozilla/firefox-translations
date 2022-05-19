@@ -277,8 +277,7 @@ class TranslationHelper {
                     languagePairs.push(languagePairInfo(this._getLanguagePair(targetLanguage, this.PIVOT_LANGUAGE), false));
                     languagePairs.push(languagePairInfo(this._getLanguagePair(this.PIVOT_LANGUAGE, sourceLanguage), false));
                 }
-            }
-            else {
+            } else {
                 languagePairs.push(languagePairInfo(this._getLanguagePair(sourceLanguage, targetLanguage), withQualityEstimation));
                 if (withOutboundTranslation) {
                     languagePairs.push(languagePairInfo(this._getLanguagePair(targetLanguage, sourceLanguage), false));
@@ -377,9 +376,9 @@ class TranslationHelper {
 
         getLanguageModelURLForPair(languageModels, languagePair) {
             let languageModel = languageModels.find(languageModel => {
-                return languageModel["name"] === languagePair ? true : false;
+                return languageModel.name === languagePair;
             });
-            return languageModel["languageModelURL"];
+            return languageModel.languageModelURL;
         }
 
         // eslint-disable-next-line max-lines-per-function
@@ -623,6 +622,7 @@ onmessage = function(message) {
             break;
         case "responseDownloadLanguageModels":
             translationHelper.loadLanguageModel(message.data[1]);
+            break;
         default:
             // ignore
       }

@@ -317,6 +317,7 @@ const messageListener = function(message, sender) {
             break;
         case "downloadLanguageModels":
           try {
+            // eslint-disable-next-line no-use-before-define
             let models = await getLanguageModels(message.tabId, message.languagePairs);
             // pass the downloaded language models to the mediator
             browser.tabs.sendMessage(
@@ -328,10 +329,11 @@ const messageListener = function(message, sender) {
               }
             );
           } catch (error) {
+            // eslint-disable-next-line no-use-before-define
             sendUpdateProgress(message.tabId, ["updateProgress", "errorLoadingWasm"]);
             getTelemetry(message.tabId).record("counter", "errors", "model_load");
             console.warn("Reporting content script error to Sentry");
-            Sentry.captureException(deserializeError(serializeError(error)));
+            Sentry.captureException(error);
           }
           break;
         case "updateProgress":
@@ -494,6 +496,7 @@ const getLanguageModels = async (tabId, languagePairs) => {
   let start = performance.now();
 
   let languageModelURLPromises = [];
+  // eslint-disable-next-line no-use-before-define
   languagePairs.forEach(languagePair => languageModelURLPromises.push(getLanguageModelAsURL(tabId, languagePair)));
   let languageModelURLs = await Promise.all(languageModelURLPromises);
   let end = performance.now();
@@ -503,8 +506,8 @@ const getLanguageModels = async (tabId, languagePairs) => {
 
   let result = [];
   languageModelURLs.forEach((languageModelURL, index) => {
-    let clonedLanguagePair = Object.assign({}, languagePairs[index]);
-    clonedLanguagePair["languageModelURL"] = languageModelURL;
+    let clonedLanguagePair = { ...languagePairs[index] };
+    clonedLanguagePair.languageModelURL = languageModelURL;
     result.push(clonedLanguagePair);
   });
   return result;
@@ -515,7 +518,7 @@ const getLanguageModelAsURL = async (tabId, languagePair) => {
   languageModelFileTypes
       .filter(fileType => fileType !== "qualityModel" || languagePair.withQualityEstimation)
       .filter(fileType => Reflect.apply(Object.prototype.hasOwnProperty, modelRegistry[languagePair.name], [fileType]))
-      .forEach(fileType => languageModelPromise.push(downloadFile(tabId, fileType, languagePair.name)));
+      .forEach(fileType => languageModelPromise.push(downloadFile(tabId, fileType, languagePair.name))); // eslint-disable-line no-use-before-define
 
   let buffers = await Promise.all(languageModelPromise);
 
@@ -529,10 +532,13 @@ const getLanguageModelAsURL = async (tabId, languagePair) => {
 
 // download files as buffers from given urls
 const downloadFile = async (tabId, fileType, languagePairName) => {
-  let modelURL = isMochitest ? modelRegistryRootURLTest : modelRegistryRootURL;
+  let modelURL = isMochitest
+? modelRegistryRootURLTest
+: modelRegistryRootURL;
   const fileName = `${modelURL}/${languagePairName}/${modelRegistry[languagePairName][fileType].name}`;
   const fileSize = modelRegistry[languagePairName][fileType].size;
   const fileChecksum = modelRegistry[languagePairName][fileType].expectedSha256Hash;
+  // eslint-disable-next-line no-use-before-define
   const buffer = await getItemFromCacheOrWeb(tabId, fileName, fileSize, fileChecksum);
   if (!buffer) {
       console.error(`Error loading models from cache or web ("${fileType}")`);
@@ -546,22 +552,23 @@ const getItemFromCacheOrWeb = async (tabId, itemURL, fileSize, fileChecksum) => 
   let buffer = null;
 
   /*
-    * there are two possible sources for the translation modules: the Cache
-    * API or the network. We check for their existence in the
-    * former, and if it's not there, we download from the network and
-    * save it in the cache.
-    */
+   * there are two possible sources for the translation modules: the Cache
+   * API or the network. We check for their existence in the
+   * former, and if it's not there, we download from the network and
+   * save it in the cache.
+   */
   try {
       const cache = await caches.open(CACHE_NAME);
       let response = await cache.match(itemURL);
       if (!response) {
 
           /*
-            * no match for this object was found in the cache.
-            * we'll need to download it and inform the progress to the
-            * sender UI so it could display it to the user
-            */
+           * no match for this object was found in the cache.
+           * we'll need to download it and inform the progress to the
+           * sender UI so it could display it to the user
+           */
           console.log(`${itemURL} not found in cache`);
+          // eslint-disable-next-line no-use-before-define
           const responseFromWeb = await getItemFromWeb(tabId, itemURL, fileSize, fileChecksum);
           if (!responseFromWeb) {
               return null;
@@ -575,6 +582,7 @@ const getItemFromCacheOrWeb = async (tabId, itemURL, fileSize, fileChecksum) => 
   } catch (error) {
       // cache api is not supported
       console.log(`cache API not supported (${error})`);
+      // eslint-disable-next-line no-use-before-define
       const responseFromWeb = await getItemFromWeb(itemURL, fileSize, fileChecksum);
       if (!responseFromWeb) {
           return null;
@@ -582,6 +590,46 @@ const getItemFromCacheOrWeb = async (tabId, itemURL, fileSize, fileChecksum) => 
       buffer = await responseFromWeb.arrayBuffer();
   }
   return buffer;
+};
+
+const getLocalizedMessage = payload => {
+  let localizedMessage;
+  if (typeof payload[1] === "string") {
+      localizedMessage = browser.i18n.getMessage(payload[1]);
+  } else if (typeof payload[1] === "object") {
+      // we have a downloading message, which contains placeholders, hence this special treatment
+      localizedMessage = browser.i18n.getMessage(payload[1][0], payload[1][1]);
+  }
+
+  if (payload[1][0] === "translationProgress") {
+      localizedMessage = `${browser.i18n.getMessage("translationEnabled")} ${localizedMessage}`;
+  }
+  return localizedMessage;
+};
+
+const sendUpdateProgress = (tabId, payload) => {
+
+    /*
+     * let's invoke the experiment api in order to update the
+     * model download progress in the appropiate infobar
+     */
+    // first we localize the message.
+    // eslint-disable-next-line no-case-declarations
+    let localizedMessage = getLocalizedMessage(payload);
+    browser.experiments.translationbar.updateProgress(
+      tabId,
+      localizedMessage
+    );
+}
+
+const digestSha256 = async buffer => {
+  // hash the message
+  if (!crypto.subtle) return null;
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  // convert buffer to byte array
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  // convert bytes to hex string
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 };
 
 // eslint-disable-next-line max-lines-per-function
@@ -672,43 +720,4 @@ const getItemFromWeb = async (tabId, itemURL, fileSize, fileChecksum) => {
       return null;
   }
   return fetchResponse;
-};
-
-const digestSha256 = async (buffer) => {
-  // hash the message
-  if (!crypto.subtle) return null;
-  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-  // convert buffer to byte array
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  // convert bytes to hex string
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-};
-
-const sendUpdateProgress = (tabId, payload) => {
-    /*
-     * let's invoke the experiment api in order to update the
-     * model download progress in the appropiate infobar
-     */
-    // first we localize the message.
-    // eslint-disable-next-line no-case-declarations
-    let localizedMessage = getLocalizedMessage(payload);
-    browser.experiments.translationbar.updateProgress(
-      tabId,
-      localizedMessage
-    );
-}
-
-const getLocalizedMessage = payload => {
-  let localizedMessage;
-  if (typeof payload[1] === "string") {
-      localizedMessage = browser.i18n.getMessage(payload[1]);
-  } else if (typeof payload[1] === "object") {
-      // we have a downloading message, which contains placeholders, hence this special treatment
-      localizedMessage = browser.i18n.getMessage(payload[1][0], payload[1][1]);
-  }
-
-  if (payload[1][0] === "translationProgress") {
-      localizedMessage = `${browser.i18n.getMessage("translationEnabled")} ${localizedMessage}`;
-  }
-  return localizedMessage;
 };

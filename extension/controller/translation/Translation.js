@@ -90,14 +90,12 @@ class Translation {
                         payload: { metric: translationMessage.data[1], timeMs: translationMessage.data[2] }
                     });
                     break;
-
                 case "reportQeIsSupervised":
                     this.mediator.contentScriptsMessageListener(this, {
                         command: "reportQeIsSupervised",
                         payload: { is_supervised: translationMessage.data[1] }
                     });
                     break;
-
                 default:
             }
         });
