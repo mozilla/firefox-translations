@@ -206,7 +206,7 @@ const messageListener = function(message, sender) {
             {
               displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
               outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
-              qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage"),
+              qualityEstimationMessage: browser.i18n.getMessage("errorHighlightingMessage"),
               surveyMessage: browser.i18n.getMessage("surveyMessage"),
               translateAsBrowseOn: browser.i18n.getMessage("translateAsBrowseOn"),
               translateAsBrowseOff: browser.i18n.getMessage("translateAsBrowseOff")
@@ -420,7 +420,7 @@ browser.pageAction.onClicked.addListener(tab => {
                 {
                     displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
                     outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
-                    qualityEstimationMessage: browser.i18n.getMessage("qualityEstimationMessage"),
+                    qualityEstimationMessage: browser.i18n.getMessage("errorHighlightingMessage"),
                     surveyMessage: browser.i18n.getMessage("surveyMessage"),
                     languageDefaultOption: browser.i18n.getMessage("languageDefaultOption"),
                     translateAsBrowseOn: browser.i18n.getMessage("translateAsBrowseOn"),
