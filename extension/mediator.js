@@ -63,7 +63,7 @@ class Mediator {
     }
 
     // eslint-disable-next-line max-lines-per-function
-    determineIfTranslationisRequired(isMochitest) {
+    determineIfTranslationisRequired() {
 
         /*
          * here we:
@@ -98,7 +98,7 @@ class Mediator {
                 });
                 this.translationBarDisplayed = true;
                 // create the translation object
-                this.translation = new Translation(this, isMochitest);
+                this.translation = new Translation(this);
             } else {
                 this.recordTelemetry("counter", "service", "not_supported");
             }
@@ -165,6 +165,14 @@ class Mediator {
                         engineTimeElapsed: message.payload[2][1]
                     });
                     // console.log("translation complete rcvd:", message, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);
+                    break;
+                case "downloadLanguageModels":
+
+                    browser.runtime.sendMessage({
+                        command: "downloadLanguageModels",
+                        languagePairs: message.payload,
+                        tabId: this.tabId
+                    });
                     break;
                 case "updateProgress":
 
@@ -296,7 +304,12 @@ class Mediator {
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection.setPageLanguage(message.pageLanguage);
-                if (this.isMainFrame) this.determineIfTranslationisRequired(message.isMochitest);
+                if (this.isMainFrame) this.determineIfTranslationisRequired();
+                break;
+            case "responseDownloadLanguageModels":
+                if (this.tabId && message.tabId === this.tabId && this.translation) {
+                    this.translation.sendDownloadedLanguageModels(message.languageModels);
+                }
                 break;
             case "translationRequested":
                 // not started yet

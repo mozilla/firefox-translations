@@ -7,7 +7,7 @@
 
 // eslint-disable-next-line no-unused-vars
 class Translation {
-    constructor (mediator, isMochitest){
+    constructor (mediator){
         this.translationsMessagesCounter = 0;
         this.TRANSLATION_INTERVAL = 100; // ms
         this.MAX_TRANSLATION_MSGS = 100; // max translations to process per batch we should utilize here the max throughput per cpu type
@@ -24,7 +24,6 @@ class Translation {
             engineScriptLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker-without-wormhole.js");
             engineWasmLocalPath = browser.runtime.getURL("model/static/translation/bergamot-translator-worker-without-wormhole.wasm");
         }
-        const modelRegistry = browser.runtime.getURL("model/modelRegistry.js");
         const serializeErrorScript = browser.runtime.getURL("model/static/errorReporting/serializeError.js");
         const version = browser.runtime.getManifest().version;
         if (window.Worker) {
@@ -38,10 +37,8 @@ class Translation {
                 {
                     engineScriptLocalPath,
                     engineWasmLocalPath,
-                    modelRegistry,
                     serializeErrorScript,
                     version,
-                    isMochitest
                 }
             ])
         }
@@ -58,6 +55,12 @@ class Translation {
                     this.mediator.contentScriptsMessageListener(this, {
                         command: "translationComplete",
                         payload: translationMessage.data
+                    });
+                    break;
+                case "downloadLanguageModels":
+                    this.mediator.contentScriptsMessageListener(this, {
+                        command: "downloadLanguageModels",
+                        payload: translationMessage.data[1]
                     });
                     break;
                 case "updateProgress":
@@ -87,17 +90,23 @@ class Translation {
                         payload: { metric: translationMessage.data[1], timeMs: translationMessage.data[2] }
                     });
                     break;
-
                 case "reportQeIsSupervised":
                     this.mediator.contentScriptsMessageListener(this, {
                         command: "reportQeIsSupervised",
                         payload: { is_supervised: translationMessage.data[1] }
                     });
                     break;
-
                 default:
             }
         });
+    }
+
+    sendDownloadedLanguageModels(downloadedLanguageModels) {
+        // send language models to worker
+        this.translationWorker.postMessage([
+            "responseDownloadLanguageModels",
+            downloadedLanguageModels
+        ]);
     }
 
     /*

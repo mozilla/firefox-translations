@@ -2,9 +2,7 @@
 /* eslint-disable no-native-reassign */
 /* eslint-disable max-lines */
 
-/* global loadEmscriptenGlueCode, Queue, serializeError */
-/* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry, importScripts */
-
+/* global loadEmscriptenGlueCode, Queue, serializeError, importScripts */
 
 let engineWasmLocalPath;
 
@@ -23,10 +21,9 @@ class TranslationHelper {
         constructor() {
             // all variables specific to translation service
             this.translationService = null;
-            this.responseOptions = null;
+
             // a map of language-pair to TranslationModel object
             this.translationModels = new Map();
-            this.CACHE_NAME = "fxtranslations";
             this.wasmModuleStartTimestamp = null;
             this.WasmEngineModule = null;
             this.engineState = this.ENGINE_STATE.LOAD_PENDING;
@@ -76,7 +73,7 @@ class TranslationHelper {
                      * initialized, we then load the language models
                      */
                     console.log(`Wasm Runtime initialized Successfully (preRun -> onRuntimeInitialized) in ${(Date.now() - this.wasmModuleStartTimestamp) / 1000} secs`);
-                    this.loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation);
+                    this.getLanguageModels(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation);
                 }.bind(this),
                 wasmBinary: wasmArrayBuffer,
             };
@@ -259,8 +256,41 @@ class TranslationHelper {
             }
         }
 
+        getLanguageModels(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation) {
+            this.sourceLanguage = sourceLanguage;
+            this.targetLanguage = targetLanguage;
+            this.withOutboundTranslation = withOutboundTranslation;
+            this.withQualityEstimation = withQualityEstimation;
+
+            let languagePairs = [];
+            const languagePairInfo = (languagePairName, isQE) => {
+                return {
+                    "name": languagePairName,
+                    "withQualityEstimation": isQE
+                };
+            }
+            if (this._isPivotingRequired(sourceLanguage, targetLanguage)) {
+                // pivoting requires 2 translation models
+                languagePairs.push(languagePairInfo(this._getLanguagePair(sourceLanguage, this.PIVOT_LANGUAGE), withQualityEstimation));
+                languagePairs.push(languagePairInfo(this._getLanguagePair(this.PIVOT_LANGUAGE, targetLanguage), withQualityEstimation));
+                if (withOutboundTranslation) {
+                    languagePairs.push(languagePairInfo(this._getLanguagePair(targetLanguage, this.PIVOT_LANGUAGE), false));
+                    languagePairs.push(languagePairInfo(this._getLanguagePair(this.PIVOT_LANGUAGE, sourceLanguage), false));
+                }
+            } else {
+                languagePairs.push(languagePairInfo(this._getLanguagePair(sourceLanguage, targetLanguage), withQualityEstimation));
+                if (withOutboundTranslation) {
+                    languagePairs.push(languagePairInfo(this._getLanguagePair(targetLanguage, sourceLanguage), false));
+                }
+            }
+            postMessage([
+                "downloadLanguageModels",
+                languagePairs
+              ]);
+        }
+
     // eslint-disable-next-line max-lines-per-function
-        async loadLanguageModel(sourceLanguage, targetLanguage, withOutboundTranslation, withQualityEstimation) {
+        async loadLanguageModel(languageModels) {
 
             /*
              * let's load the models and communicate to the caller (translation)
@@ -270,12 +300,12 @@ class TranslationHelper {
             let isReversedModelLoadingFailed = false;
             try {
               this.constructTranslationService();
-              await this.constructTranslationModel(sourceLanguage, targetLanguage, withQualityEstimation);
+              await this.constructTranslationModel(languageModels, this.sourceLanguage, this.targetLanguage, this.withQualityEstimation);
 
-              if (withOutboundTranslation) {
+              if (this.withOutboundTranslation) {
                   try {
                     // the Outbound Translation doesn't require supporting Quality Estimation
-                    await this.constructTranslationModel(targetLanguage, sourceLanguage, /* withQualityEstimation=*/false);
+                    await this.constructTranslationModel(languageModels, this.targetLanguage, this.sourceLanguage, /* withQualityEstimation=*/false);
                     postMessage([
                         "displayOutboundTranslation",
                         null
@@ -286,7 +316,7 @@ class TranslationHelper {
                   }
               }
               let finish = Date.now();
-              console.log(`Model '${sourceLanguage}${targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
+              console.log(`Model '${this.sourceLanguage}${this.targetLanguage}' successfully constructed. Time taken: ${(finish - start) / 1000} secs`);
               postMessage([
                 "reportPerformanceTimespan",
                 "model_load_time_num",
@@ -294,12 +324,13 @@ class TranslationHelper {
               ]);
 
             } catch (error) {
-              console.log(`Model '${sourceLanguage}${targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
+              console.log(`Model '${this.sourceLanguage}${this.targetLanguage}' construction failed: '${error.message} - ${error.stack}'`);
               sendException(error);
               postMessage(["reportError", "model_load"]);
               postMessage(["updateProgress", "errorLoadingWasm"]);
               return;
             }
+
             this.engineState = this.ENGINE_STATE.LOADED;
             if (isReversedModelLoadingFailed) {
                 postMessage(["updateProgress","translationEnabledNoOT"]);
@@ -316,7 +347,7 @@ class TranslationHelper {
             if (!this.translationService) {
                 // caching is disabled (see https://github.com/mozilla/firefox-translations/issues/288)
                 let translationServiceConfig = { cacheSize: 0 };
-                console.log(`Creating Translation Service with config: ${translationServiceConfig}`);
+                console.log(`Creating Translation Service with config: ${JSON.stringify(translationServiceConfig)}`);
                 this.translationService = new this.WasmEngineModule.BlockingService(translationServiceConfig);
                 console.log("Translation Service created successfully");
             }
@@ -331,23 +362,28 @@ class TranslationHelper {
             this.translationModels.clear();
         }
 
-        async constructTranslationModel(from, to, withQualityEstimation) {
+        async constructTranslationModel(languageModels, from, to, withQualityEstimation) {
             if (this._isPivotingRequired(from, to)) {
                 // pivoting requires 2 translation models to be constructed
-                const languagePairSrcToPivot = this._getLanguagePair(from, this.PIVOT_LANGUAGE);
-                const languagePairPivotToTarget = this._getLanguagePair(this.PIVOT_LANGUAGE, to);
                 await Promise.all([
-                    this.constructTranslationModelHelper(languagePairSrcToPivot, withQualityEstimation),
-                    this.constructTranslationModelHelper(languagePairPivotToTarget, withQualityEstimation)
+                    this.constructTranslationModelHelper(languageModels, this._getLanguagePair(from, this.PIVOT_LANGUAGE), withQualityEstimation),
+                    this.constructTranslationModelHelper(languageModels, this._getLanguagePair(this.PIVOT_LANGUAGE, to), withQualityEstimation)
                 ]);
             } else {
                 // non-pivoting case requires only 1 translation model
-                await this.constructTranslationModelHelper(this._getLanguagePair(from, to), withQualityEstimation);
+                await this.constructTranslationModelHelper(languageModels, this._getLanguagePair(from, to), withQualityEstimation);
             }
         }
 
+        getLanguageModelForPair(languageModels, languagePair) {
+            let languageModel = languageModels.find(languageModel => {
+                return languageModel.name === languagePair;
+            });
+            return languageModel.languageModelBlobs;
+        }
+
         // eslint-disable-next-line max-lines-per-function
-        async constructTranslationModelHelper(languagePair, withQualityEstimation) {
+        async constructTranslationModelHelper(languageModels, languagePair, withQualityEstimation) {
             console.log(`Constructing translation model ${languagePair}`);
             const modelConfigQualityEstimation = !withQualityEstimation;
 
@@ -373,27 +409,18 @@ class TranslationHelper {
             `;
 
             // download files into buffers
-            let start = Date.now();
-
-            let donwloadedBuffersPromises = [];
+            let languageModelBlobs = this.getLanguageModelForPair(languageModels, languagePair);
+            let downloadedBuffersPromises = [];
             Object.entries(this.modelFileAlignments)
                 .filter(([fileType]) => fileType !== "qualityModel" || withQualityEstimation)
-                .filter(([fileType]) => Reflect.apply(Object.prototype.hasOwnProperty, modelRegistry[languagePair], [fileType]))
-                .map(([fileType, fileAlignment]) => donwloadedBuffersPromises.push(this.downloadFiles(fileType, fileAlignment, languagePair)));
+                .filter(([fileType]) => Reflect.apply(Object.prototype.hasOwnProperty, languageModelBlobs, [fileType]))
+                .map(([fileType, fileAlignment]) => downloadedBuffersPromises.push(this.fetchFile(fileType, fileAlignment, languageModelBlobs)));
 
-            let donwloadedBuffers = await Promise.all(donwloadedBuffersPromises);
-
-            let finish = Date.now();
-            console.log(`Total Download time for all files of '${languagePair}': ${(finish - start) / 1000} secs`);
-            postMessage([
-                "reportPerformanceTimespan",
-                "model_download_time_num",
-                finish-start
-            ]);
+            let downloadedBuffers = await Promise.all(downloadedBuffersPromises);
 
             // prepare aligned memories from buffers
             let alignedMemories = [];
-            donwloadedBuffers.forEach(entry => alignedMemories.push(this.prepareAlignedMemoryFromBuffer(entry.buffer, entry.fileAlignment)));
+            downloadedBuffers.forEach(entry => alignedMemories.push(this.prepareAlignedMemoryFromBuffer(entry.buffer, entry.fileAlignment)));
 
             const alignedModelMemory = alignedMemories[0];
             const alignedShortlistMemory = alignedMemories[1];
@@ -430,149 +457,20 @@ class TranslationHelper {
             return `${from}${to}`;
         }
 
-        // download files as buffers from given urls
-        async downloadFiles(fileType, fileAlignment, languagePair) {
-            const fileName = `${modelRegistryRootURL}/${languagePair}/${modelRegistry[languagePair][fileType].name}`;
-            const fileSize = modelRegistry[languagePair][fileType].size;
-            const fileChecksum = modelRegistry[languagePair][fileType].expectedSha256Hash;
-            const buffer = await this.getItemFromCacheOrWeb(fileName, fileSize, fileChecksum);
-            if (!buffer) {
-                console.error(`Error loading models from cache or web ("${fileType}")`);
-                postMessage(["onError", "model_download"]);
-                throw new Error(`Error loading models from cache or web ("${fileType}")`);
+        // fetch file as buffer from given blob
+        async fetchFile(fileType, fileAlignment, languageModelBlobs) {
+            let buffer;
+            try {
+                buffer = await languageModelBlobs[fileType].arrayBuffer();
+            } catch (e) {
+                console.log(`Error Fetching "${fileType}:${languageModelBlobs[fileType]}" (error: ${e})`);
+                throw new Error(`Error Fetching "${fileType}:${languageModelBlobs[fileType]}" (error: ${e})`);
             }
             return {
                 buffer,
                 fileAlignment,
                 fileType,
             };
-        }
-
-        // eslint-disable-next-line max-lines-per-function
-        async getItemFromCacheOrWeb(itemURL, fileSize, fileChecksum) {
-
-            /*
-             * there are two possible sources for the wasm modules: the Cache
-             * API or the the network, so we check for their existence in the
-             * former, and if it's not there, we download from the network and
-             * save it in the cache
-             */
-            const cache = await caches.open(this.CACHE_NAME);
-            let cache_match = await cache.match(itemURL);
-            const MAX_DOWNLOAD_TIME = 60000;
-            if (!cache_match) {
-
-                /*
-                 * no match for this object was found in the cache.
-                 * we'll need to download it and inform the progress to the
-                 * sender UI so it could display it to the user
-                 */
-                console.log("no cache match. downloading");
-                let response = null;
-                try {
-                    response = await fetch(itemURL);
-                } catch (exception) {
-                    console.log(`Error downloading translation modules. (${itemURL} not found)`);
-                    postMessage([
-                        "updateProgress",
-                        "notfoundErrorsDownloadingEngine"
-                    ]);
-                    return null;
-                }
-
-                if (response.status >= 200 && response.status < 300) {
-                    await cache.put(itemURL, response.clone());
-                    const reader = response.body.getReader();
-                    const contentLength = fileSize;
-                    let receivedLength = 0;
-                    let chunks = [];
-                    let doneReading = false;
-                    let value = null;
-                    const tDownloadStart = performance.now();
-                    let elapsedTime = 0;
-                    while (!doneReading) {
-                        console.log(`elapsedTime after doneReading ${elapsedTime}`);
-                        if (elapsedTime > MAX_DOWNLOAD_TIME) {
-                            console.log("timeout");
-                            cache.delete(itemURL);
-                            postMessage([
-                                "updateProgress",
-                                "timeoutDownloadingEngine"
-                            ]);
-                            return null;
-                        }
-                        // eslint-disable-next-line no-await-in-loop
-                        const response = await reader.read();
-                        doneReading = response.done;
-                        value = response.value;
-                        console.log(`elapsedTime after reader.read ${elapsedTime} - doneReading ${doneReading}`);
-                        elapsedTime = performance.now() - tDownloadStart;
-
-                        if (doneReading) {
-                            break;
-                        }
-
-                        if (value) {
-                            chunks.push(value);
-                            receivedLength += value.length;
-                            console.log(`Received ${receivedLength} of ${contentLength} ${itemURL}.`);
-                            postMessage([
-                                "updateProgress",
-                                ["downloadProgress", [`${receivedLength}`,`${contentLength}`]]
-                            ]);
-                        } else {
-                            cache.delete(itemURL);
-                            postMessage([
-                                "updateProgress",
-                                "nodataDownloadingEngine"
-                            ]);
-                            return null;
-                        }
-
-                        if (receivedLength === contentLength) {
-                            doneReading = true;
-                        }
-                    }
-                    console.log("wasm saved to cache");
-                    cache_match = await cache.match(itemURL);
-                } else {
-                    cache.delete(itemURL);
-                    postMessage([
-                        "updateProgress",
-                        "notfoundErrorsDownloadingEngine"
-                    ]);
-                    return null;
-                }
-            }
-            const arraybuffer = await cache_match.arrayBuffer();
-            const sha256 = await this.digestSha256(arraybuffer);
-            if (!sha256) {
-                postMessage([
-                    "updateProgress",
-                    "tlsIncompatibility"
-                ]);
-                return null;
-            }
-
-            if (sha256 !== fileChecksum) {
-                cache.delete(itemURL);
-                postMessage([
-                    "updateProgress",
-                    "checksumErrorsDownloadingEngine"
-                ]);
-                return null;
-            }
-            return arraybuffer;
-        }
-
-        async digestSha256 (buffer) {
-            // hash the message
-            if (!crypto.subtle) return null;
-            const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-            // convert buffer to byte array
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            // convert bytes to hex string
-            return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
         }
 
         // this function constructs and initializes the AlignedMemory from the array buffer and alignment size
@@ -718,13 +616,7 @@ onmessage = function(message) {
             importScripts("/model/Queue.js");
             importScripts(message.data[1].engineScriptLocalPath);
             engineWasmLocalPath = message.data[1].engineWasmLocalPath;
-            importScripts(message.data[1].modelRegistry);
             importScripts(message.data[1].serializeErrorScript);
-            if (message.data[1].isMochitest){
-                // running tests. let's setup the proper tests endpoints
-                // eslint-disable-next-line no-global-assign
-                modelRegistryRootURL = modelRegistryRootURLTest;
-            }
             break;
         case "translate":
             try {
@@ -733,6 +625,9 @@ onmessage = function(message) {
                 sendException(ex);
                 throw ex;
             }
+            break;
+        case "responseDownloadLanguageModels":
+            translationHelper.loadLanguageModel(message.data[1]);
             break;
         default:
             // ignore
