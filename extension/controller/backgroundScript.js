@@ -491,29 +491,29 @@ Promise.allSettled([displayedConsentPromise, isMochitestPromise]).then(values =>
   }
 });
 
-// return language models as urls for language pairs
+// return language models (as blobs) for language pairs
 const getLanguageModels = async (tabId, languagePairs) => {
   let start = performance.now();
 
-  let languageModelURLPromises = [];
+  let languageModelPromises = [];
   // eslint-disable-next-line no-use-before-define
-  languagePairs.forEach(languagePair => languageModelURLPromises.push(getLanguageModelAsURL(tabId, languagePair)));
-  let languageModelURLs = await Promise.all(languageModelURLPromises);
+  languagePairs.forEach(languagePair => languageModelPromises.push(getLanguageModel(tabId, languagePair)));
+  let languageModels = await Promise.all(languageModelPromises);
   let end = performance.now();
 
   console.log(`Total Download time for all language model files: ${(end - start) / 1000}s`);
   getTelemetry(tabId).record("timespan", "performance", "model_download_time_num", end-start);
 
   let result = [];
-  languageModelURLs.forEach((languageModelURL, index) => {
+  languageModels.forEach((languageModel, index) => {
     let clonedLanguagePair = { ...languagePairs[index] };
-    clonedLanguagePair.languageModelURL = languageModelURL;
+    clonedLanguagePair["languageModelBlobs"] = languageModel;
     result.push(clonedLanguagePair);
   });
   return result;
 };
 
-const getLanguageModelAsURL = async (tabId, languagePair) => {
+const getLanguageModel = async (tabId, languagePair) => {
   let languageModelPromise = [];
   languageModelFileTypes
       .filter(fileType => fileType !== "qualityModel" || languagePair.withQualityEstimation)
@@ -522,12 +522,12 @@ const getLanguageModelAsURL = async (tabId, languagePair) => {
 
   let buffers = await Promise.all(languageModelPromise);
 
-  // create URLs from buffers and return
-  let fileURLs = {};
+  // create Blobs from buffers and return
+  let files = {};
   buffers.forEach((buffer, index) => {
-    fileURLs[languageModelFileTypes[index]] = URL.createObjectURL(new Blob([buffer]));
+    files[languageModelFileTypes[index]] = new Blob([buffer]);
   });
-  return fileURLs;
+  return files;
 };
 
 // download files as buffers from given urls

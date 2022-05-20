@@ -386,11 +386,11 @@ class TranslationHelper {
             }
         }
 
-        getLanguageModelURLForPair(languageModels, languagePair) {
+        getLanguageModelForPair(languageModels, languagePair) {
             let languageModel = languageModels.find(languageModel => {
                 return languageModel.name === languagePair;
             });
-            return languageModel.languageModelURL;
+            return languageModel["languageModelBlobs"];
         }
 
         // eslint-disable-next-line max-lines-per-function
@@ -420,12 +420,12 @@ class TranslationHelper {
             `;
 
             // download files into buffers
-            let languageModelURL = this.getLanguageModelURLForPair(languageModels, languagePair);
+            let languageModelBlobs = this.getLanguageModelForPair(languageModels, languagePair);
             let donwloadedBuffersPromises = [];
             Object.entries(this.modelFileAlignments)
                 .filter(([fileType]) => fileType !== "qualityModel" || withQualityEstimation)
-                .filter(([fileType]) => Reflect.apply(Object.prototype.hasOwnProperty, languageModelURL, [fileType]))
-                .map(([fileType, fileAlignment]) => donwloadedBuffersPromises.push(this.fetchFile(fileType, fileAlignment, languageModelURL)));
+                .filter(([fileType]) => Reflect.apply(Object.prototype.hasOwnProperty, languageModelBlobs, [fileType]))
+                .map(([fileType, fileAlignment]) => donwloadedBuffersPromises.push(this.fetchFile(fileType, fileAlignment, languageModelBlobs)));
 
             let donwloadedBuffers = await Promise.all(donwloadedBuffersPromises);
 
@@ -468,20 +468,16 @@ class TranslationHelper {
             return `${from}${to}`;
         }
 
-        // fetch file as buffer from given url
-        async fetchFile(fileType, fileAlignment, languageModelURL) {
-            let response;
+        // fetch file as buffer from given blob
+        async fetchFile(fileType, fileAlignment, languageModelBlobs) {
+            let buffer;
             try {
-                response = await fetch(languageModelURL[fileType]);
+                const fileReaderSync = new FileReaderSync();
+                buffer = fileReaderSync.readAsArrayBuffer(languageModelBlobs[fileType]);
             } catch (e) {
-                console.log(`Error Fetching "${fileType}:${languageModelURL[fileType]}" (error: ${e})`);
-                throw new Error(`Error Fetching "${fileType}:${languageModelURL[fileType]}" (error: ${e})`);
+                console.log(`Error Fetching "${fileType}:${languageModelBlobs[fileType]}" (error: ${e})`);
+                throw new Error(`Error Fetching "${fileType}:${languageModelBlobs[fileType]}" (error: ${e})`);
             }
-            if (!response.ok) {
-                console.log(`Fetch Response not ok ${fileType}:${languageModelURL[fileType]} (response.status:${response.status})`);
-                throw new Error(`Error in Fetch Response "${fileType}:${languageModelURL[fileType]}" (response.status:${response.status})`);
-            }
-            let buffer = await response.arrayBuffer();
             return {
                 buffer,
                 fileAlignment,
