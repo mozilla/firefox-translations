@@ -379,7 +379,7 @@ class TranslationHelper {
             let languageModel = languageModels.find(languageModel => {
                 return languageModel.name === languagePair;
             });
-            return languageModel["languageModelBlobs"];
+            return languageModel.languageModelBlobs;
         }
 
         // eslint-disable-next-line max-lines-per-function
@@ -410,17 +410,17 @@ class TranslationHelper {
 
             // download files into buffers
             let languageModelBlobs = this.getLanguageModelForPair(languageModels, languagePair);
-            let donwloadedBuffersPromises = [];
+            let downloadedBuffersPromises = [];
             Object.entries(this.modelFileAlignments)
                 .filter(([fileType]) => fileType !== "qualityModel" || withQualityEstimation)
                 .filter(([fileType]) => Reflect.apply(Object.prototype.hasOwnProperty, languageModelBlobs, [fileType]))
-                .map(([fileType, fileAlignment]) => donwloadedBuffersPromises.push(this.fetchFile(fileType, fileAlignment, languageModelBlobs)));
+                .map(([fileType, fileAlignment]) => downloadedBuffersPromises.push(this.fetchFile(fileType, fileAlignment, languageModelBlobs)));
 
-            let donwloadedBuffers = await Promise.all(donwloadedBuffersPromises);
+            let downloadedBuffers = await Promise.all(downloadedBuffersPromises);
 
             // prepare aligned memories from buffers
             let alignedMemories = [];
-            donwloadedBuffers.forEach(entry => alignedMemories.push(this.prepareAlignedMemoryFromBuffer(entry.buffer, entry.fileAlignment)));
+            downloadedBuffers.forEach(entry => alignedMemories.push(this.prepareAlignedMemoryFromBuffer(entry.buffer, entry.fileAlignment)));
 
             const alignedModelMemory = alignedMemories[0];
             const alignedShortlistMemory = alignedMemories[1];
@@ -461,8 +461,7 @@ class TranslationHelper {
         async fetchFile(fileType, fileAlignment, languageModelBlobs) {
             let buffer;
             try {
-                const fileReaderSync = new FileReaderSync();
-                buffer = fileReaderSync.readAsArrayBuffer(languageModelBlobs[fileType]);
+                buffer = await languageModelBlobs[fileType].arrayBuffer();
             } catch (e) {
                 console.log(`Error Fetching "${fileType}:${languageModelBlobs[fileType]}" (error: ${e})`);
                 throw new Error(`Error Fetching "${fileType}:${languageModelBlobs[fileType]}" (error: ${e})`);

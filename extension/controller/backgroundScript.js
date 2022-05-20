@@ -507,7 +507,7 @@ const getLanguageModels = async (tabId, languagePairs) => {
   let result = [];
   languageModels.forEach((languageModel, index) => {
     let clonedLanguagePair = { ...languagePairs[index] };
-    clonedLanguagePair["languageModelBlobs"] = languageModel;
+    clonedLanguagePair.languageModelBlobs = languageModel;
     result.push(clonedLanguagePair);
   });
   return result;
