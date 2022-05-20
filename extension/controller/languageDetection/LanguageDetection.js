@@ -20,7 +20,7 @@ class LanguageDetection {
         // skip (expensive) page content extraction if not supported
         let wordsToDetect =
             supported
-            ? document.body.innerText
+            ? document.body.innerText.substring(0, 4096)
             : "";
         return { supported, wordsToDetect };
     }
