@@ -67,7 +67,13 @@ sequenceDiagram
     t-)+w: translate
     deactivate t
     w->>w: load engine
-    w->>w: load models
+    -w->>t: download models
+    t->>m: download models
+    m->>bg+: download models
+    bg->>bg: download models
+    -bg->>m: models
+    m->>t: models
+    t->>w+: load models
     w-)+t: displayOutboundTranslation
     t-)+m: displayOutboundTranslation
     deactivate t
