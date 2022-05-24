@@ -70,12 +70,12 @@ sequenceDiagram
     w->>t: download models
     deactivate w
     t->>m: download models
-    m->>bg+: download models
+    m->>+bg: download models
     bg->>bg: download models
     bg->>m: models
     deactivate bg
     m->>t: models
-    t->>w+: load models
+    t->>+w: load models
     w-)+t: displayOutboundTranslation
     t-)+m: displayOutboundTranslation
     deactivate t
