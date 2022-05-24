@@ -32,15 +32,16 @@ sequenceDiagram
     else cache not matched
         b->>b: getItemFromWeb()
         b->>gcp: Download Model
-        b->>b: this.digestSha256(Model arraybuffer)
+        gcp->>b: Model
+        b->>b: digestSha256(Model as Arraybuffer)
         Note right of b: Validate Model's hash
         b->>cache: cache.put(Model as Blob)
         cache->>b: (Model as Blob)
     end
-    b->>m: responseDownloadLanguageModels
-    m->>t: sendDownloadedLanguageModels(Model)
-    t->>w: responseDownloadLanguageModels
-    w->>w: loadLanguageModel()
+    b->>m: responseDownloadLanguageModels  (Model as Blob) 
+    m->>t: sendDownloadedLanguageModels (Model as Blob)
+    t->>w: responseDownloadLanguageModels  (Model as Blob)
+    w->>w: loadLanguageModel(Model as Blob)
     w->>w: constructTranslationService()
     w->>w: constructTranslationModel()
     w->>w: constructTranslationModelHelper()
