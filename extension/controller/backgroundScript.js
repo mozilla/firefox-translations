@@ -326,7 +326,8 @@ const messageListener = function(message, sender) {
                   command: "responseDownloadLanguageModels",
                   tabId: message.tabId,
                   languageModels: models
-              }
+              },
+              { frameId: 0 }
             );
           } catch (error) {
             // eslint-disable-next-line no-use-before-define
