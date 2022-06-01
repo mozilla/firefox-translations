@@ -38,6 +38,10 @@ function canTranslateLocally() {
 			resolve(true);
 			port.disconnect();
 		});
+
+		// Doesn't matter whether this message is supported or not. If it isn't
+		// it will still elicit a response message, which will confirm that
+		// translatelocally exists and works.
 		port.postMessage({
 			"id": 1,
 			"command": "Version",

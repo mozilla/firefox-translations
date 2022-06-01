@@ -51,7 +51,7 @@ class PortChannel {
  * Wrapper around TranslateLocally native messaging API.
  */
  class TLTranslationHelper {
-    
+
     constructor(options) {
         this.threads = Math.max(options?.workers || 1, 1);
 
@@ -89,10 +89,20 @@ class PortChannel {
 
         const channel = new PortChannel(port);
 
-        await channel.request('Configure', {
-            threads: this.threads,
-            cacheSize: this.cacheSize
-        });
+        // "Configure" is not yet implemented in main branch, but as long as
+        // we're not doing performance analysis that is fine.
+        try {
+            await channel.request('Configure', {
+                threads: this.threads,
+                cacheSize: this.cacheSize
+            });
+        } catch (e) {
+            if (e.toString().includes('Unrecognised message command')) {
+                console.warn("Older version of TranslateLocally found without 'Configure' command");
+            } else {
+                throw e; // Some other error
+            }
+        }
 
         return channel;
     }
