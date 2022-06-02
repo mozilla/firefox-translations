@@ -242,7 +242,9 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   onSurveyClick() {
-    this.translationNotificationManager.showSurvey();
+    const from = this._getSourceLang();
+    const to = this._getTargetLang();
+    this.translationNotificationManager.showSurvey(from, to);
   }
 
   /*
