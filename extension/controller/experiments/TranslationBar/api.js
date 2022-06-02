@@ -48,7 +48,6 @@ const translationNotificationManagers = new Map();
       setBoolPref("browser.translation.ui.show", false);
       setBoolPref("extensions.translations.disabled", false);
       setBoolPref("browser.translation.detectLanguage", false);
-      setBoolPref("javascript.options.wasm_simd_wormhole", true);
     }
 
     onShutdown(isAppShutdown) {

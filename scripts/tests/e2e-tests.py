@@ -86,6 +86,7 @@ except CalledProcessError as cpe:
     print(cpe.output)
     sys.exit("Tests with faster gemm failed")
 
+# build and run test for fallback gemm
 def disable_faster_gemm(engine_js_artifact_name):
     FASTER_GEMM = "mozIntGemm"
     DISABLE_FASTER_GEMM = "DISABLE_" + FASTER_GEMM
@@ -97,17 +98,7 @@ def disable_faster_gemm(engine_js_artifact_name):
         x = x.replace(FASTER_GEMM, DISABLE_FASTER_GEMM)
         f.write(x)
 
-def enable_arm_platform():
-    PLATFORM_DETECTION_FILE = "gecko/browser/extensions/translations/extension/controller/backgroundScript.js"
-
-    with open(PLATFORM_DETECTION_FILE, "rt") as f:
-        x = f.read()
-    with open(PLATFORM_DETECTION_FILE, "wt") as f:
-        x = x.replace("platformInfo = await browser.runtime.getPlatformInfo();", "platformInfo = await browser.runtime.getPlatformInfo(); platformInfo.arch = \"arm\";")
-        f.write(x)
-
-# build and run test for wormhole fallback gemm
-print("****** Test with wormhole fallback gemm ******")
+print("****** Test with fallback gemm ******")
 print("Disabling faster gemm")
 disable_faster_gemm("bergamot-translator-worker.js")
 
@@ -120,20 +111,3 @@ try:
 except CalledProcessError as cpe:
     print(cpe.output)
     sys.exit("Tests with fallback gemm failed")
-
-# build and run test for non-wormhole fallback gemm
-print("****** Test with non-wormhole fallback gemm ******")
-print("Disabling faster gemm")
-disable_faster_gemm("bergamot-translator-worker-without-wormhole.js")
-print("Hardcoding platform detected as arm")
-enable_arm_platform()
-
-try:
-    print("Building gecko")
-    subprocess.check_output("./mach build", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
-    print("Running test with non-wormhole fallback gemm")
-    subprocess.check_output("./mach test --setpref=fxtranslations.running.mochitest=true browser/extensions/translations/test/browser/browser_translation_test.js", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
-    print("Test with non-wormhole fallback gemm Succeeded")
-except CalledProcessError as cpe:
-    print(cpe.output)
-    sys.exit("Tests with non-wormhole fallback gemm failed")

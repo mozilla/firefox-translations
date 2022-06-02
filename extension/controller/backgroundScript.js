@@ -64,7 +64,6 @@ let cachedEnvInfo = null;
 let pingSender = new PingSender();
 let modelFastText = null;
 let modelFastTextReadyPromise = null;
-let platformInfo = null;
 
 let telemetryByTab = new Map();
 let pingByTab = new Set();
@@ -77,7 +76,6 @@ const CACHE_NAME = "fxtranslations";
 
 const init = () => {
   Sentry.wrap(async () => {
-    platformInfo = await browser.runtime.getPlatformInfo();
     cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
     telemetryByTab.forEach(t => t.environment(cachedEnvInfo));
   });
@@ -165,7 +163,7 @@ const messageListener = function(message, sender) {
           if (!await isFrameLoaded(sender.tab.id, sender.frameId)) return;
             browser.tabs.sendMessage(
                     sender.tab.id,
-                    { command: "responseMonitorTabLoad", tabId: sender.tab.id, platformInfo },
+                    { command: "responseMonitorTabLoad", tabId: sender.tab.id },
                     { frameId: sender.frameId }
                     ).catch(onError);
             // loading of other frames may be delayed

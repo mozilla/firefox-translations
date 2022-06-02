@@ -10,7 +10,6 @@ module.exports = {
     },
     "ignorePatterns": [
                     "extension/controller/translation/bergamot-translator-worker.js",
-                    "extension/controller/translation/bergamot-translator-worker-without-wormhole.js",
                     "extension/controller/languageDetection/fasttext.js",
                     "extension/controller/languageDetection/fasttext_wasm.js",
                     "extension/model/static/DOMPurify/purify.min.js",
