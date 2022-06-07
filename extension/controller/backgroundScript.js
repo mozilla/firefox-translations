@@ -584,7 +584,7 @@ const getItemFromCacheOrWeb = async (tabId, itemURL, fileSize, fileChecksum) => 
       // cache api is not supported
       console.log(`cache API not supported (${error})`);
       // eslint-disable-next-line no-use-before-define
-      const responseFromWeb = await getItemFromWeb(itemURL, fileSize, fileChecksum);
+      const responseFromWeb = await getItemFromWeb(tabId, itemURL, fileSize, fileChecksum);
       if (!responseFromWeb) {
           return null;
       }
