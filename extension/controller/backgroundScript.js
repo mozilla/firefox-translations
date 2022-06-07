@@ -11,6 +11,7 @@ modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry */
  * extension's background process.
  */
 
+const extensionVersion = browser.runtime.getManifest().version;
 const scrubSentryEvent = ev => {
 
   /*
@@ -40,7 +41,7 @@ const initializeSentry = () => {
     dsn: settings.sentryDsn,
     tracesSampleRate: 1.0,
     debug: settings.sentryDebug,
-    release: `firefox-translations@${browser.runtime.getManifest().version}`,
+    release: `firefox-translations@${extensionVersion}`,
     beforeSend: scrubSentryEvent,
     integrations(integrations) {
       // integrations will be all default integrations
@@ -88,7 +89,7 @@ const getTelemetry = tabId => {
     if (!telemetryByTab.has(tabId)) {
         let telemetry = new Telemetry(pingSender);
         telemetryByTab.set(tabId, telemetry);
-        telemetry.versions(browser.runtime.getManifest().version, "?", BERGAMOT_VERSION_FULL);
+      telemetry.versions(extensionVersion, "?", BERGAMOT_VERSION_FULL);
         if (cachedEnvInfo) {
             telemetry.environment(cachedEnvInfo);
         }
@@ -244,7 +245,8 @@ const messageListener = function(message, sender) {
           ).catch(onError);
           break;
         case "showSurvey":
-          browser.tabs.create({ url: "https://qsurvey.mozilla.com/s3/Firefox-Translations" });
+          browser.tabs.create({ url:
+              `https://qsurvey.mozilla.com/s3/Firefox-Translations?version=${extensionVersion}&from_lang=${message.from}&to_lang=${message.to}` });
           break;
         case "translationComplete":
           if (!await isFrameLoaded(sender.tab.id, message.translationMessage.frameId)) return;

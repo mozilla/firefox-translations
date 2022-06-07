@@ -118,12 +118,12 @@ class TranslationNotificationManager {
         this.bgScriptListenerCallback(message);
     }
 
-    showSurvey() {
+    showSurvey(from, to) {
 
         /*
          * notify the mediator that the user wants to participate in survey
          */
-        const message = { command: "showSurvey", tabId: this.tabId };
+        const message = { command: "showSurvey", tabId: this.tabId, from, to };
         this.bgScriptListenerCallback(message);
     }
 
