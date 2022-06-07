@@ -23,7 +23,6 @@ class Mediator {
         this.isStarted = false;
         browser.runtime.onMessage.addListener(this.bgScriptsMessageListener.bind(this));
         this.translationBarDisplayed = false;
-        this.platformInfo = null;
         this.statsMode = false;
         this.isMainFrame = window.self === window.top;
     }
@@ -33,9 +32,8 @@ class Mediator {
     }
 
     // main entrypoint to handle the extension's load
-    start(tabId, platformInfo) {
+    start(tabId) {
         this.tabId = tabId;
-        this.platformInfo = platformInfo;
 
         if (!this.isStarted && this.isMainFrame) {
             this.isStarted = true;
@@ -300,7 +298,7 @@ class Mediator {
         // eslint-disable-next-line max-lines-per-function
         switch (message.command) {
             case "responseMonitorTabLoad":
-                this.start(message.tabId, message.platformInfo);
+                this.start(message.tabId);
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection.setPageLanguage(message.pageLanguage);

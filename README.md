@@ -58,9 +58,7 @@ to regenerate JS telemetry schema.
 
 Replace
 - `extension/controller/translation/bergamot-translation-worker.js`
-- `extension/controller/translation/bergamot-translator-worker-without-wormhole.js`
-- `extension/model/static/translation/bergamot-translator-worker-with-wormhole.wasm`
-- `extension/model/static/translation/bergamot-translator-worker-without-wormhole.wasm`
+- `extension/model/static/translation/bergamot-translator-worker.wasm`
 
 with the new artifacts and then execute:
 

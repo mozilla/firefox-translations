@@ -17,13 +17,8 @@ class Translation {
         this.htmlRegex = new RegExp("<(.*)>.*?|<(.*) />", "gi");
         let engineScriptLocalPath = null;
         let engineWasmLocalPath = null;
-        if (this.mediator.platformInfo.arch === "x86-32" || (this.mediator.platformInfo.arch === "x86-64")) {
-            engineScriptLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
-            engineWasmLocalPath = browser.runtime.getURL("model/static/translation/bergamot-translator-worker-with-wormhole.wasm");
-        } else {
-            engineScriptLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker-without-wormhole.js");
-            engineWasmLocalPath = browser.runtime.getURL("model/static/translation/bergamot-translator-worker-without-wormhole.wasm");
-        }
+        engineScriptLocalPath = browser.runtime.getURL("controller/translation/bergamot-translator-worker.js");
+        engineWasmLocalPath = browser.runtime.getURL("model/static/translation/bergamot-translator-worker.wasm");
         const serializeErrorScript = browser.runtime.getURL("model/static/errorReporting/serializeError.js");
         const version = browser.runtime.getManifest().version;
         if (window.Worker) {

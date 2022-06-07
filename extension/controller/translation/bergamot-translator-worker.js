@@ -519,7 +519,7 @@ function loadEmscriptenGlueCode(Module) {
      }
      function instantiateArrayBuffer(receiver) {
       return getBinaryPromise().then(function(binary) {
-       return WebAssembly.instantiate(binary, info, {simdWormhole:true});
+       return WebAssembly.instantiate(binary, info);
       }).then(function(instance) {
        return instance;
       }).then(receiver, function(reason) {
@@ -532,7 +532,7 @@ function loadEmscriptenGlueCode(Module) {
        return fetch(wasmBinaryFile, {
         credentials: "same-origin"
        }).then(function(response) {
-        var result = WebAssembly.instantiateStreaming(response, info, {simdWormhole:true});
+        var result = WebAssembly.instantiateStreaming(response, info);
         return result.then(receiveInstantiationResult, function(reason) {
          err("wasm streaming compile failed: " + reason);
          err("falling back to ArrayBuffer instantiation");
