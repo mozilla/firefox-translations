@@ -34,5 +34,8 @@ If applicable, add screenshots to help explain your problem.
 - Translating to (language):
 - Console logs from Web Developer Tools:
 
+System architecture and extension information can be found as follows:
+Go to about:telemetry#environment-data in browser and share "architecture" field under "build" category and "cpu.extensions" field under "system" category
+
 **Additional context**
 Add any other context about the problem here.
