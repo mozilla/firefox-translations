@@ -23,7 +23,7 @@ You can test nightly builds of the extension in Firefox Nightly or Developer Edi
 ```
 
 - Then install the extension by clicking here  [![Firefox Translations - Install Nightly](https://img.shields.io/badge/Firefox_Translations-Install_Nightly-2ea44f)](https://github.com/mozilla/firefox-translations/releases/download/nightly/firefox_translations.xpi)
-- You may need to restart your browser and Firefox Translations will be ready to use. Just browse to a website in one of the [languages supported](https://pontoon.mozilla.org/projects/firefox-translations-add-on/) and the option to translate should be displayed.
+- You may need to restart your browser and Firefox Translations will be ready to use. Just browse to a website in one of the [languages supported](https://github.com/mozilla/firefox-translations-models/#currently-supported-languages) and the option to translate should be displayed.
 
 ## Development
 
