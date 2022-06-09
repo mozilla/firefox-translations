@@ -90,7 +90,10 @@ const inPageTranslation = new InPageTranslation({
                 text,
 
                 // data useful for the response
-                user,
+                user: {
+                    ...user,
+                    source: 'InPageTranslation'
+                },
                 
                 // data useful for the scheduling
                 priority: user.priority || 0,
@@ -106,7 +109,14 @@ const inPageTranslation = new InPageTranslation({
 });
 
 on('TranslateResponse', data => {
-    inPageTranslation.enqueueTranslationResponse(data.target.text, data.request.user);
+    switch (data.request.user?.source) {
+        case 'InPageTranslation':
+            inPageTranslation.enqueueTranslationResponse(data.target.text, data.request.user);
+            break;
+        case 'TranslateSelection':
+            document.getElementById(data.request.user.id).innerText = data.target.text;
+            break;
+    }
 });
 
 // When this page shows up (either through onload or through history navigation)
@@ -142,4 +152,58 @@ on('TranslateClickedElement', () => {
     console.assert(lastClickedElement, 'TranslateClickedElement but no lastClickedElement');
     inPageTranslation.addElement(lastClickedElement);
     inPageTranslation.start(state.from);
+});
+
+on('TranslateSelection', () => {
+    let selection = document.getSelection();
+    let selRange = selection.getRangeAt(0);
+
+    const id = `selection-panel-${new Date().getTime()}`;
+    
+    const text = selRange.toString();
+
+    // Get bounding box of selection (in position:fixed terms!)
+    const box = selRange.getBoundingClientRect();
+    
+    const panel = document.createElement('div');
+    panel.translate = 'no'; // Don't translate this panel on full-page-translations
+    panel.id = id;
+    panel.textContent = text;
+    document.body.appendChild(panel);
+
+    Object.assign(panel.style, {
+        position: 'absolute',
+        zIndex: 100000,
+        top: `${box.bottom+window.scrollY}px`, // scrollY to go from position:fixed to position:absolute
+        left: `${box.left+window.scrollX}px`,
+        width: `${box.width}px`,
+        backgroundColor: 'white',
+        border: '1px solid black'
+    });
+
+    backgroundScript.postMessage({
+        command: "TranslateRequest",
+        data: {
+            // translation request
+            from: state.from,
+            to: state.to,
+            html: false,
+            text,
+
+            // data useful for the response
+            user: {
+                source: 'TranslateSelection',
+                id
+            },
+            
+            // data useful for the scheduling
+            priority: 1,
+
+            // data useful for recording
+            session: {
+                id: sessionID,
+                url: document.location.href
+            }
+        }
+    });
 });

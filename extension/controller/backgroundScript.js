@@ -622,12 +622,23 @@ async function main() {
         contexts: ['page']
     });
 
+    chrome.contextMenus.create({
+        id: 'translate-selection',
+        title: 'Translate Selection',
+        contexts: ['selection']
+    });
+
     chrome.contextMenus.onClicked.addListener((info, tab) => {
         switch (info.menuItemId) {
             case 'translate-element':
                 getTab(tab.id).frames.get(info.frameId).postMessage({
                     command: 'TranslateClickedElement'
-                })
+                });
+                break;
+            case 'translate-selection':
+                getTab(tab.id).frames.get(info.frameId).postMessage({
+                    command: 'TranslateSelection'
+                });
                 break;
         }
     })
