@@ -72,7 +72,8 @@
 	},
 	"options_ui": {
 		"page": "/view/static/options.html",
-		"browser_style": true
+		"browser_style": true,
+		"chrome_style": true
 	},
 	"icons":
 	{
