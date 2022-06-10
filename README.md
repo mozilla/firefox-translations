@@ -10,11 +10,30 @@ The current release version is available for installation on Mozilla Add-ons
 
 [![AMO](https://ffp4g1ylyit3jdyti1hqcvtb-wpengine.netdna-ssl.com/addons/files/2015/11/get-the-addon-small.png)](https://addons.mozilla.org/en-US/firefox/addon/firefox-translations/)
 
+## Supported languages
+
+#### Production
+- Spanish
+- Estonian
+- English
+- German
+- Czech
+- Bulgarian
+- Portuguese
+- Italian
+
+#### Development
+- Russian
+- Persian (Farsi)
+- Icelandic
+- Norwegian Nynorsk
+- Norwegian Bokmål 
+
 ## Testing
 
 ### Nightly builds
 
-You can test nightly builds of the extension in Firefox Nightly or Developer Edition in one of the [languages supported](https://pontoon.mozilla.org/projects/firefox-translations-add-on/) by following the steps below:
+You can test nightly builds of the extension in Firefox Nightly or Developer Edition in one of the [supported languages](#supported-languages) by following the steps below:
 - Type `about:config` in the navigation bar and set the following preferences:
 
 ```
@@ -23,7 +42,7 @@ You can test nightly builds of the extension in Firefox Nightly or Developer Edi
 ```
 
 - Then install the extension by clicking here  [![Firefox Translations - Install Nightly](https://img.shields.io/badge/Firefox_Translations-Install_Nightly-2ea44f)](https://github.com/mozilla/firefox-translations/releases/download/nightly/firefox_translations.xpi)
-- You may need to restart your browser and Firefox Translations will be ready to use. Just browse to a website in one of the [languages supported](https://github.com/mozilla/firefox-translations-models/#currently-supported-languages) and the option to translate should be displayed.
+- You may need to restart your browser and Firefox Translations will be ready to use. Just browse to a website in one of the [supported languages](#supported-languages) and the option to translate should be displayed.
 
 ## Development
 
@@ -49,7 +68,7 @@ The extension does not utilize any npm modules, and the only vendored dependenci
 - Clone this repo and run `npm install`
 - Run `npm run once` and wait until Nightly starts
 - Go to `about:config` and set `extensions.experiments.enabled` to true
-- Browse to a page in any of the supported languages (https://github.com/mozilla/firefox-translations-models/#currently-supported-languages) to have the translation option to appear
+- Browse to a page in any of the [supported languages](#supported-languages) to have the translation option to appear
 
 
 ### Updating telemetry schema
