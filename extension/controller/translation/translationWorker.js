@@ -66,6 +66,12 @@ class TranslationHelper {
                         this.wasmModuleStartTimestamp = Date.now();
                     }.bind(this)
                 ],
+                onAbort() {
+                    sendException(new Error("Error loading engine (onAbort)"));
+                    console.log("Error loading wasm module.");
+                    postMessage(["reportError", "engine_load"]);
+                    postMessage(["updateProgress", "errorLoadingWasm"]);
+                },
                 onRuntimeInitialized: function() {
 
                     /*
