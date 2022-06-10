@@ -23,6 +23,7 @@
 				display: block;
 				padding: 8px 8px;
 				margin: 4px 0;
+				width: auto; /* <progress> has width: 10em in Chrome */
 			}
 
 			button {
@@ -78,6 +79,7 @@
 			Record translation requests
 			<a href="#" id="export-recorded-pages-btn" data-bind:hidden="!canExportPages">Export <span data-bind:text-content="recordedPagesCount"></span> pages</button>
 		</label>
+		<script src="../../controller/translation/compat.js"></script>
 		<script src="common.js"></script>
 		<script src="popup.js"></script>
 	</body>

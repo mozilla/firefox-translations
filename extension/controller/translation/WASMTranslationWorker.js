@@ -36,7 +36,7 @@ class WASMTranslationWorker {
     linkNativeIntGemm(info) {
         if (!WebAssembly['mozIntGemm']) {
             console.warn('Native gemm requested but not available, falling back to embedded gemm');
-            return linkFallbackIntGemm(info);
+            return this.linkFallbackIntGemm(info);
         }
 
         const instance = new WebAssembly.Instance(WebAssembly['mozIntGemm'](), {
@@ -45,7 +45,7 @@ class WASMTranslationWorker {
 
         if (!Array.from(Object.keys(WASMTranslationWorker.GEMM_TO_FALLBACK_FUNCTIONS_MAP)).every(fun => instance.exports[fun])) {
             console.warn('Native gemm is missing expected functions, falling back to embedded gemm');
-            return linkFallbackIntGemm(info);
+            return this.linkFallbackIntGemm(info);
         }
 
         console.info('Using native gemm');
@@ -78,7 +78,6 @@ class WASMTranslationWorker {
                             ? this.linkNativeIntGemm(info)
                             : this.linkFallbackIntGemm(info)
                     }).then(({instance}) => accept(instance));
-
                     return {};
                 },
                 onRuntimeInitialized: () => {

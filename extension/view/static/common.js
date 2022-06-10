@@ -84,9 +84,11 @@ class BoundElementRenderer {
 							if (attribute === 'value' && el instanceof HTMLProgressElement && typeof stateProxy[key] !== 'number') {
 								el.removeAttribute('value');
 							} else {
-								if (!(key in stateProxy))
+								if (!key.startsWith('!') && !(key in stateProxy))
 									console.warn('render state has no key', key);
-								else if (typeof stateProxy[key] !== 'undefined')
+								else if (typeof stateProxy[key] === 'undefined')
+									el.removeAttribute(attribute);
+								else
 									el[attribute] = stateProxy[key];
 							}
 							break;

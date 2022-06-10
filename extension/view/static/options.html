@@ -4,7 +4,9 @@
     <meta charset="utf-8">
     <style>
       body {
-        font-size: 1.2rem;
+        font-size: 1em;
+        min-height: 300px;
+        overflow: hidden; /* Risky but Chrome always shows a bar otherwise? */
       }
       .panel-formElements-item {
         flex-wrap: wrap;
@@ -33,6 +35,7 @@
         <p>Mainly useful for benchmarking and debugging. <a data-bind:href="benchmarkURL" target="blank_">Benchmark page</a></p>
       </div>
     </div>
+    <script src="../../controller/translation/compat.js"></script>
     <script src="common.js"></script>
     <script src="options.js"></script>
   </body>

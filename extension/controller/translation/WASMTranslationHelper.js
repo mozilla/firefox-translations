@@ -10,6 +10,8 @@ const CACHE_NAME = "bergamot-translations";
 
 const MAX_DOWNLOAD_TIME = 60000; // TODO move this
 
+const WASM_TRANSLATION_WORKER_URL = compat.runtime.getURL('controller/translation/WASMTranslationWorker.js');
+
 /**
  * Little wrapper around the message passing API to keep track of messages and
  * their responses in such a way that you can just wait for them by awaiting
@@ -103,7 +105,7 @@ class WorkerChannel {
     loadWorker() {
         // TODO is this really not async? Can I just send messages to it from
         // the start and will they be queued or something?
-        const worker = new Worker(browser.runtime.getURL('controller/translation/WASMTranslationWorker.js'));
+        const worker = new Worker(WASM_TRANSLATION_WORKER_URL);
         worker.onerror = this.onerror.bind(this);
 
         // Initialisation options

@@ -14,6 +14,7 @@
 	"permissions":
 	[
 		"<all_urls>",
+		"contextMenus",
 		"tabs",
 		"webNavigation",
 		"storage",
@@ -23,6 +24,7 @@
 	{
 		"scripts":
 		[
+			"controller/translation/compat.js",
 			"3rd_party/pako/pako_inflate.js",
 			"3rd_party/js-untar/untar.js",
 			"controller/translation/func.js",
@@ -33,6 +35,7 @@
 			"controller/backgroundScript.js"
 		]
 	},
+	"content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
 	"content_scripts":
 	[
 		{
@@ -42,6 +45,7 @@
 			],
 			"js":
 			[
+				"controller/translation/compat.js",
 				"controller/LanguageDetection.js",
 				"view/js/InPageTranslation.js",
 				"contentScript.js"
@@ -55,7 +59,7 @@
 		}
 	],
 	"incognito": "spanning",
-	"page_action":
+	"browser_action":
 	{
 		"browser_style": true,
 		"default_icon":
@@ -68,7 +72,8 @@
 	},
 	"options_ui": {
 		"page": "/view/static/options.html",
-		"browser_style": true
+		"browser_style": true,
+		"chrome_style": true
 	},
 	"icons":
 	{
@@ -84,6 +89,7 @@
 		"view/js/InPageTranslation.js",
 		"3rd_party/pako/pako_inflate.js",
 		"3rd_party/js-untar/untar.js",
+		"controller/translation/compat.js",
 		"controller/translation/func.js",
 		"controller/translation/promise.js",
 		"controller/translation/yaml.js",

@@ -8,6 +8,31 @@ const state = {
     state: 'page-loaded'
 };
 
+// Panel for selection translation
+const panel = document.createElement('div');
+panel.id = 'x-bergamot-translation-popup';
+panel.translate = 'no'; // to prevent InPageTranslation to pick up on it
+panel.setAttribute('translate', 'no'); // (For old Firefox)
+
+const closeButton = document.createElement('button');
+panel.appendChild(closeButton);
+closeButton.className = 'close-button';
+closeButton.ariaLabel = 'Close';
+closeButton.addEventListener('click', e => {
+    document.body.removeChild(panel);
+});
+
+const panelText = document.createElement('p');
+panelText.className = 'translation';
+panel.appendChild(panelText);
+
+const loadingRings = document.createElement('div');
+loadingRings.className = 'lds-ring';
+panel.appendChild(loadingRings);
+for (let i = 0; i < 4; ++i) {
+    loadingRings.appendChild(document.createElement('div'));
+}
+
 function on(command, callback) {
     if (!listeners.has(command))
         listeners.set(command, []);
@@ -33,6 +58,8 @@ on('Update', diff => {
                 break;
             
             case 'translation-in-progress':
+                inPageTranslation.addElement(document.querySelector("head > title"));
+                inPageTranslation.addElement(document.body);
                 inPageTranslation.start(state.from);
                 break;
             
@@ -74,9 +101,14 @@ on('Update', diff => {
 
 const sessionID = new Date().getTime();
 
+// Used to track the last text selection translation request, so we don't show
+// the response to an old request by accident.
+let selectionTranslationId = null;
+
 const inPageTranslation = new InPageTranslation({
     translate(text, user) {
-        console.assert(state.from !== undefined && state.to !== undefined);
+        console.assert(state.from !== undefined && state.to !== undefined,
+            "state.from or state.to is not set");
         backgroundScript.postMessage({
             command: "TranslateRequest",
             data: {
@@ -87,7 +119,10 @@ const inPageTranslation = new InPageTranslation({
                 text,
 
                 // data useful for the response
-                user,
+                user: {
+                    ...user,
+                    source: 'InPageTranslation'
+                },
                 
                 // data useful for the scheduling
                 priority: user.priority || 0,
@@ -103,13 +138,23 @@ const inPageTranslation = new InPageTranslation({
 });
 
 on('TranslateResponse', data => {
-    inPageTranslation.enqueueTranslationResponse(data.target.text, data.request.user);
+    switch (data.request.user?.source) {
+        case 'InPageTranslation':
+            inPageTranslation.enqueueTranslationResponse(data.target.text, data.request.user);
+            break;
+        case 'TranslateSelection':
+            if (data.request.user.id === selectionTranslationId) {
+                panel.classList.remove('loading');
+                panelText.textContent = data.target.text;
+            }
+            break;
+    }
 });
 
 // When this page shows up (either through onload or through history navigation)
 window.addEventListener('pageshow', e => {
     // Connect to 
-    backgroundScript = browser.runtime.connect({name: 'content-script'});
+    backgroundScript = compat.runtime.connect({name: 'content-script'});
 
     // Connect all message listeners (the "on()" calls above)
     backgroundScript.onMessage.addListener(({command, data}) => {
@@ -127,4 +172,72 @@ window.addEventListener('pageshow', e => {
 window.addEventListener('pagehide', e => {
     if (backgroundScript)
         backgroundScript.disconnect();
+});
+
+let lastClickedElement;
+
+window.addEventListener('mousedown', e => {
+    lastClickedElement = e.target;
+});
+
+on('TranslateClickedElement', () => {
+    console.assert(lastClickedElement, 'TranslateClickedElement but no lastClickedElement');
+    inPageTranslation.addElement(lastClickedElement);
+    inPageTranslation.start(state.from);
+});
+
+on('TranslateSelection', () => {
+    let selection = document.getSelection();
+    let selRange = selection.getRangeAt(0);
+
+    // Unique id for this translation request so we know which one the popup
+    // is currently waiting for.
+    selectionTranslationId = `selection-panel-${new Date().getTime()}`;
+    
+    const text = selRange.toString();
+
+    // Get bounding box of selection (in position:fixed terms!)
+    const box = selRange.getBoundingClientRect();
+    
+    // Reset popup state, and show it in a loading state.
+    panelText.textContent = '';
+    panel.classList.add('loading');
+    document.body.appendChild(panel);
+
+    // Position popup directly under the selection
+    // TODO: Maybe above or right of selection if it is in one of the corners
+    //       of the screen?
+    Object.assign(panel.style, {
+        top: `${box.bottom+window.scrollY}px`, // scrollY to go from position:fixed to position:absolute
+        left: `${box.left+window.scrollX}px`,
+        width: `${box.width}px`
+    });
+
+    console.debug("Translate selection", text);
+
+    backgroundScript.postMessage({
+        command: "TranslateRequest",
+        data: {
+            // translation request
+            from: state.from,
+            to: state.to,
+            html: false,
+            text,
+
+            // Data to trace back the response
+            user: {
+                source: 'TranslateSelection',
+                id: selectionTranslationId
+            },
+            
+            // data useful for the scheduling
+            priority: 2,
+
+            // data useful for recording & debugging
+            session: {
+                id: sessionID,
+                url: document.location.href
+            }
+        }
+    });
 });

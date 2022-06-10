@@ -1,4 +1,4 @@
-/* global browser */
+/* global compat */
 
 function isSameDomain(url1, url2) {
     return url1 && url2 && new URL(url1).host === new URL(url2).host;
@@ -38,7 +38,7 @@ async function detectLanguage({sample, suggested}, provider) {
         throw new Error('Empty sample');
 
     const [detected, models] = await Promise.all([
-        browser.i18n.detectLanguage(sample),
+        compat.i18n.detectLanguage(sample),
         provider.registry
     ]);
 
@@ -75,7 +75,7 @@ async function detectLanguage({sample, suggested}, provider) {
     });
 
     // {[lang]: 0.0 .. 1.0} map of likeliness the user wants to translate to this language.
-    const preferred = (await browser.i18n.getAcceptLanguages()).reduce((preferred, language, i, languages) => {
+    const preferred = (await compat.i18n.getAcceptLanguages()).reduce((preferred, language, i, languages) => {
         // Todo: right now all our models are just two-letter codes instead of BCP-47 :(
         const code = language.substr(0, 2);
         return code in preferred ? preferred : {...preferred, [code]: 1.0 - (i / languages.length)};
@@ -141,11 +141,9 @@ class Tab extends EventTarget {
     /**
      * Begins translation of the tab
      */
-    translate({from, to}) {
+    translate() {
         this.update(state => ({
-            state: State.TRANSLATION_IN_PROGRESS,
-            from,
-            to
+            state: State.TRANSLATION_IN_PROGRESS
         }));
     }
 
@@ -200,7 +198,7 @@ class Tab extends EventTarget {
         // Delay the update notification to accumulate multiple changes in one
         // notification.
         if (!this._scheduledUpdateEvent) {
-            const callbackId = requestIdleCallback(this._dispatchUpdateEvent.bind(this));
+            const callbackId = setTimeout(this._dispatchUpdateEvent.bind(this));
             this._scheduledUpdateEvent = {diff, callbackId};
         } else {
             Object.assign(this._scheduledUpdateEvent.diff, diff);
@@ -217,14 +215,17 @@ class Tab extends EventTarget {
     }
 }
 
-function showPopup(event) {
+function updateActionButton(event) {
     switch (event.target.state.state) {
         case State.TRANSLATION_AVAILABLE:
         case State.TRANSLATION_IN_PROGRESS:
-            browser.pageAction.show(event.target.id);
+            compat.browserAction.enable(event.target.id);
             break;
         case State.TRANSLATION_NOT_AVAILABLE:
-            browser.pageAction.hide(event.target.id);
+            compat.browserAction.disable(event.target.id);            
+            break;
+        case State.TRANSLATION_NOT_AVAILABLE:
+        default:
             break;
     }
 }
@@ -316,7 +317,7 @@ function getTab(tabId) {
     if (!tabs.has(tabId)) {
         const tab = new Tab(tabId);
         tabs.set(tabId, tab);
-        tab.addEventListener('update', showPopup);
+        tab.addEventListener('update', updateActionButton);
     }
 
     return tabs.get(tabId);
@@ -445,7 +446,9 @@ function connectContentScript(contentScript) {
                         return; 
 
                     tab.update(state => ({
-                        page: summary, // {from, to, models}
+                        from: state.from || summary.from,
+                        to: state.to || summary.to,
+                        models: summary.models,
                         state: summary.models.length > 0 // TODO this is always true
                             ? State.TRANSLATION_AVAILABLE
                             : State.TRANSLATION_NOT_AVAILABLE
@@ -541,10 +544,7 @@ function connectPopup(popup) {
                 try {
                     await Promise.all(downloads.keys());
 
-                    tab.translate({
-                       from: message.data.from,
-                         to: message.data.to
-                    });
+                    tab.translate();
                 } catch (e) {
                     tab.update(state => ({
                         state: State.TRANSLATION_ERROR,
@@ -553,10 +553,7 @@ function connectPopup(popup) {
                 }
                 break;
             case "TranslateStart":
-                tab.translate({
-                    from: message.data.from,
-                    to: message.data.to
-                });
+                tab.translate();
                 break;
             
             case 'TranslateAbort':
@@ -580,10 +577,19 @@ function connectPopup(popup) {
 
 async function main() {
     // Init global state (which currently is just the name of the backend to use)
-    Object.assign(state, await browser.storage.local.get(Array.from(Object.keys(state))));
+    Object.assign(state, await compat.storage.local.get(Array.from(Object.keys(state))));
+
+    compat.storage.local.onChanged.addListener(changes => {
+        Object.entries(changes).forEach(([key, {newValue}]) => {
+            state[key] = newValue;
+        });
+
+        if ('provider' in changes)
+            provider.reset();
+    });
 
     // Receive incoming connection requests from content-script and popup
-    browser.runtime.onConnect.addListener((port) => {
+    compat.runtime.onConnect.addListener((port) => {
         if (port.name == 'content-script')
             connectContentScript(port);
         else if (port.name.startsWith('popup-'))
@@ -591,7 +597,7 @@ async function main() {
     });
 
     // Initialize or update the state of a tab when navigating
-    browser.webNavigation.onCommitted.addListener(({tabId, frameId, url}) => {
+    compat.webNavigation.onCommitted.addListener(({tabId, frameId, url}) => {
         // Right now we're only interested in top-level navigation changes
         if (frameId !== 0)
             return;
@@ -600,19 +606,42 @@ async function main() {
         getTab(tabId).reset(url);
     });
 
+    compat.tabs.onCreated.addListener(({id: tabId}) => {
+        getTab(tabId).reset();
+    });
+
     // Remove the tab state if a tab is removed
-    browser.tabs.onRemoved.addListener(({tabId}) => {
+    compat.tabs.onRemoved.addListener(({tabId}) => {
         tabs.delete(tabId);
     });
 
-    browser.storage.onChanged.addListener(changes => {
-        Object.entries(changes).forEach(([key, {newValue}]) => {
-            state[key] = newValue;
-        });
-
-        if ('provider' in changes)
-            provider.reset();
+    // Add global "translate this item" menu option
+    chrome.contextMenus.create({
+        id: 'translate-element',
+        title: 'Translate Element',
+        contexts: ['page']
     });
+
+    chrome.contextMenus.create({
+        id: 'translate-selection',
+        title: 'Translate Selection',
+        contexts: ['selection']
+    });
+
+    chrome.contextMenus.onClicked.addListener((info, tab) => {
+        switch (info.menuItemId) {
+            case 'translate-element':
+                getTab(tab.id).frames.get(info.frameId).postMessage({
+                    command: 'TranslateClickedElement'
+                });
+                break;
+            case 'translate-selection':
+                getTab(tab.id).frames.get(info.frameId).postMessage({
+                    command: 'TranslateSelection'
+                });
+                break;
+        }
+    })
 }
 
 main();

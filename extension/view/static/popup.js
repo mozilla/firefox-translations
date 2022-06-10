@@ -7,11 +7,11 @@ const tabState = {};
 const globalState = {};
 
 // Init global state
-browser.storage.local.get(['developer']).then(state => {
+compat.storage.local.get(['developer']).then(state => {
 	Object.assign(globalState, state);
 });
 
-browser.storage.onChanged.addListener(changes => {
+compat.storage.onChanged.addListener(changes => {
     Object.entries(changes).forEach(([key, {newValue}]) => {
         globalState[key] = newValue;
     });
@@ -19,12 +19,8 @@ browser.storage.onChanged.addListener(changes => {
 });
 
 function render() {
-	// Shortcuts, I use these everywhere
-	const from = tabState.from || tabState.page?.from;
-	const to = tabState.to || tabState.page?.to;
-
 	// If the model (or one of the models in case of pivoting) needs downloading
-	const needsDownload = tabState.page?.models?.find(model => from === model.from && to === model.to)?.models?.some(({model}) => !model.local);
+	const needsDownload = tabState.page?.models?.find(model => tabState.from === model.from && to === model.to)?.models?.some(({model}) => !model.local);
 
 	const name = (code) => {
 		try {
@@ -37,12 +33,10 @@ function render() {
 	const renderState = {
 		...globalState,
 		...tabState,
-		from,
-		to,
-		'lang-from': regionNamesInEnglish.of(from),
-		'lang-to': regionNamesInEnglish.of(to),
-		'lang-from-options': new Map(tabState.page?.models.map(({from}) => [from, name(from)])),
-		'lang-to-options': new Map(tabState.page?.models.filter(model => from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
+		'lang-from': regionNamesInEnglish.of(tabState.from),
+		'lang-to': regionNamesInEnglish.of(tabState.to),
+		'lang-from-options': new Map(tabState.models.map(({from}) => [from, name(from)])),
+		'lang-to-options': new Map(tabState.models.filter(model => tabState.from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
 		'needs-download': needsDownload,
 		'completedTranslationRequests': tabState.totalTranslationRequests - tabState.pendingTranslationRequests || undefined,
 		'canExportPages': tabState.recordedPagesCount > 0,
@@ -71,10 +65,10 @@ function download(url, name) {
 // Query which tab we represent and then connect to the tab state in the 
 // background-script. Connecting will cause us to receive an "Update" message
 // with the tab's state (and any future updates to it)
-browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
+compat.tabs.query({active: true, currentWindow: true}).then(tabs => {
 	const tabId = tabs[0].id;
 
-	const backgroundScript = browser.runtime.connect({name: `popup-${tabId}`});
+	const backgroundScript = compat.runtime.connect({name: `popup-${tabId}`});
 
 	backgroundScript.onMessage.addListener(({command, data}) => {
 		switch (command) {
@@ -98,26 +92,18 @@ browser.tabs.query({active: true, currentWindow: true}).then(tabs => {
 	addEventListeners(document.body, {
 		'click #translate-btn': e => {
 			backgroundScript.postMessage({
-				command: 'TranslateStart',
-				data: {
-					from: tabState.from || tabState.page.from,
-					to: tabState.to || tabState.page.to
-				}
+				command: 'TranslateStart'
 			});
 		},
 		'click #download-btn': e => {
-			const data = {
-				from: tabState.from || tabState.page.from,
-				to: tabState.to || tabState.page.to
-			};
-
 			// TODO this assumes tabState.from and tabState.to reflect the current UI,
 			// which they should iff the UpdateRequest has been processed and
 			// broadcasted by backgroundScript.
-			data.models = tabState.page.models
-			              .find(({from, to}) => from === data.from && to === data.to)
+			data.models = tabState.models
+			              .find(({from, to}) => from === tabState.from && to === tabState.to)
 			              .models
-			              .map(({model}) => model.id);
+			              .map(({model}) => model.id)
+			              .slice(0, 1);
 
 			backgroundScript.postMessage({
 				command: 'DownloadModels',

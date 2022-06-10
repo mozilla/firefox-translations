@@ -64,6 +64,9 @@ class InPageTranslation {
         // Set of elements that have been translated and should not be submitted
         // again unless their contents changed.
         this.processedNodes = new Set();
+
+        // All elements we're actively trying to translate.
+        this.targetNodes = new Set();
         
         // Reference for all tags:
         // https://developer.mozilla.org/en-US/docs/Web/HTML/Element
@@ -173,10 +176,31 @@ class InPageTranslation {
         });
     }
 
+    addElement(node) {
+        if (!(node instanceof Element))
+            return;
+
+        if (this.targetNodes.has(node))
+            return;
+
+        this.targetNodes.add(node);
+
+        if (this.started) {
+            this.startTreeWalker(node);
+            this.observer.observe(node, {
+                characterData: true,
+                childList: true,
+                subtree: true
+            });
+        }
+    }
+
     /**
      * Starts (or resumes) the InPageTranslation process.
      */
     start(language) {
+        console.assert(language, "language is not provided");
+
         if (this.started)
             return;
 
@@ -193,11 +217,9 @@ class InPageTranslation {
         // needs to know `language`. See `containsExcludedNode()`.
         this.excludedNodeSelector = `[lang]:not([lang|="${this.language}"]),[translate=no],${Array.from(this.excludedTags).join(',')}`;
 
-        const pageTitle = document.querySelector("head > title");
-        if (pageTitle && this.validateNodeForQueue(pageTitle) === NodeFilter.FILTER_ACCEPT)
-            this.enqueueTranslation(pageTitle);
+        for (let node of this.targetNodes)
+            this.startTreeWalker(node);
 
-        this.startTreeWalker(document.body);
         this.startMutationObserver();
     }
 
@@ -238,9 +260,13 @@ class InPageTranslation {
         console.assert(root.nodeType === Node.ELEMENT_NODE);
 
         // If the parent itself is rejected, we don't translate any children.
-        for (let parent of ancestors(root)) {
-            if (this.validateNode(parent) === NodeFilter.FILTER_REJECT)
-                return;
+        // However, if this is a specifically targeted node, we don't do this
+        // check. Mainly so we can exclude <head>, but include <title>.
+        if (!this.targetNodes.has(root)) {
+            for (let parent of ancestors(root)) {
+                if (this.validateNode(parent) === NodeFilter.FILTER_REJECT)
+                    return;
+            }
         }
 
         // TODO: Bit of added complicated logic to include `root` in the set
@@ -537,11 +563,13 @@ class InPageTranslation {
     }
 
     startMutationObserver() {
-        this.observer.observe(document, {
-            characterData: true,
-            childList: true,
-            subtree: true
-        });
+        for (let node of this.targetNodes) {
+            this.observer.observe(node, {
+                characterData: true,
+                childList: true,
+                subtree: true
+            });
+        }
     }
 
     stopMutationObserver() {

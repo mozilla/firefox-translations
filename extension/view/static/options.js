@@ -1,38 +1,56 @@
 // Defaults. Duplicated in backgroundScript.js :(
 
-const state = {
+const globalState = {
 	provider: 'wasm',
+	developer: false,
+};
+
+const localState = {
 	translateLocallyAvailable: false,
-	recorder: false,
 	get benchmarkURL() {
-		return browser.runtime.getURL('view/static/benchmark.html');
+		return compat.runtime.getURL('view/static/benchmark.html');
 	}
 };
 
-browser.storage.local.get().then(localState => {
-	Object.assign(state, localState);
-	renderBoundElements(document.body, state);
+const render = () => renderBoundElements(document.body, {...globalState, ...localState});
+
+compat.storage.local.get().then(state => {
+	Object.assign(globalState, state);
+	render();
 });
 
-browser.storage.onChanged.addListener(async changes => {
+compat.storage.onChanged.addListener(async changes => {
 	Object.entries(changes).forEach(([key, {newValue}]) => {
-		state[key] = newValue;
+		globalState[key] = newValue;
 	});
-	renderBoundElements(document.body, state);
+	render();
 });
 
 addBoundElementListeners(document.body, (key, value) => {
-	browser.storage.local.set({[key]: value});
+	compat.storage.local.set({[key]: value});
 });
 
-const port = browser.runtime.connectNative('translatelocally');
-port.onDisconnect.addListener(e => {
-	console.log('onDisconnect', port.error);
-	if (port.error) {
-		state.translateLocallyAvailable = false;
-	} else {
-		state.translateLocallyAvailable = true;
-	}
-	renderBoundElements(document.body, state);
-})
-port.disconnect();
+function canTranslateLocally() {
+	return new Promise((resolve, reject) => {
+		const port = compat.runtime.connectNative('translatelocally');
+		port.onDisconnect.addListener(() => resolve(false));
+		port.onMessage.addListener(message => {
+			resolve(true);
+			port.disconnect();
+		});
+
+		// Doesn't matter whether this message is supported or not. If it isn't
+		// it will still elicit a response message, which will confirm that
+		// translatelocally exists and works.
+		port.postMessage({
+			"id": 1,
+			"command": "Version",
+			"data": {}
+		});
+	});
+}
+
+canTranslateLocally().then(available => {
+	localState.translateLocallyAvailable = available;
+	render();
+});
