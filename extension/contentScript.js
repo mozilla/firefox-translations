@@ -8,6 +8,30 @@ const state = {
     state: 'page-loaded'
 };
 
+// Panel for selection translation
+const panel = document.createElement('div');
+panel.id = 'x-bergamot-translation-popup';
+panel.translate = 'no'; // to prevent InPageTranslation to pick up on it
+
+const closeButton = document.createElement('button');
+panel.appendChild(closeButton);
+closeButton.className = 'close-button';
+closeButton.ariaLabel = 'Close';
+closeButton.addEventListener('click', e => {
+    document.body.removeChild(panel);
+});
+
+const panelText = document.createElement('p');
+panelText.className = 'translation';
+panel.appendChild(panelText);
+
+const loadingRings = document.createElement('div');
+loadingRings.className = 'lds-ring';
+panel.appendChild(loadingRings);
+for (let i = 0; i < 4; ++i) {
+    loadingRings.appendChild(document.createElement('div'));
+}
+
 function on(command, callback) {
     if (!listeners.has(command))
         listeners.set(command, []);
@@ -76,6 +100,10 @@ on('Update', diff => {
 
 const sessionID = new Date().getTime();
 
+// Used to track the last text selection translation request, so we don't show
+// the response to an old request by accident.
+let selectionTranslationId = null;
+
 const inPageTranslation = new InPageTranslation({
     translate(text, user) {
         console.assert(state.from !== undefined && state.to !== undefined,
@@ -114,7 +142,10 @@ on('TranslateResponse', data => {
             inPageTranslation.enqueueTranslationResponse(data.target.text, data.request.user);
             break;
         case 'TranslateSelection':
-            document.getElementById(data.request.user.id).innerText = data.target.text;
+            if (data.request.user.id === selectionTranslationId) {
+                panel.classList.remove('loading');
+                panelText.textContent = data.target.text;
+            }
             break;
     }
 });
@@ -158,28 +189,30 @@ on('TranslateSelection', () => {
     let selection = document.getSelection();
     let selRange = selection.getRangeAt(0);
 
-    const id = `selection-panel-${new Date().getTime()}`;
+    // Unique id for this translation request so we know which one the popup
+    // is currently waiting for.
+    selectionTranslationId = `selection-panel-${new Date().getTime()}`;
     
     const text = selRange.toString();
 
     // Get bounding box of selection (in position:fixed terms!)
     const box = selRange.getBoundingClientRect();
     
-    const panel = document.createElement('div');
-    panel.translate = 'no'; // Don't translate this panel on full-page-translations
-    panel.id = id;
-    panel.textContent = text;
+    // Reset popup state, and show it in a loading state.
+    panelText.textContent = '';
+    panel.classList.add('loading');
     document.body.appendChild(panel);
 
+    // Position popup directly under the selection
+    // TODO: Maybe above or right of selection if it is in one of the corners
+    //       of the screen?
     Object.assign(panel.style, {
-        position: 'absolute',
-        zIndex: 100000,
         top: `${box.bottom+window.scrollY}px`, // scrollY to go from position:fixed to position:absolute
         left: `${box.left+window.scrollX}px`,
-        width: `${box.width}px`,
-        backgroundColor: 'white',
-        border: '1px solid black'
+        width: `${box.width}px`
     });
+
+    console.debug("Translate selection", text);
 
     backgroundScript.postMessage({
         command: "TranslateRequest",
@@ -190,16 +223,16 @@ on('TranslateSelection', () => {
             html: false,
             text,
 
-            // data useful for the response
+            // Data to trace back the response
             user: {
                 source: 'TranslateSelection',
-                id
+                id: selectionTranslationId
             },
             
             // data useful for the scheduling
-            priority: 1,
+            priority: 2,
 
-            // data useful for recording
+            // data useful for recording & debugging
             session: {
                 id: sessionID,
                 url: document.location.href
