@@ -2,7 +2,7 @@
 
 var workerScriptUri = compat.runtime.getURL('3rd_party/js-untar/untar-worker.js');
 
-var global = window || this;
+var global = self;
 
 var URL = global.URL || global.webkitURL;
 

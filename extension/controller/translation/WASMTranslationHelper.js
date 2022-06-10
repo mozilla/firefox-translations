@@ -350,7 +350,7 @@ class WorkerChannel {
      * hurt to call it multiple times. This function always returns immediately.
      */
     notify() {
-        requestIdleCallback(async () => {
+        setTimeout(async () => {
             // Is there work to be done?
             if (!this.queue.length)
                 return;
@@ -385,7 +385,7 @@ class WorkerChannel {
             // Is there more work to be done? Do another idleRequest
             if (this.queue.length)
                 this.notify();
-        }, {timeout: 1000}); // Start after 1000ms even if not idle
+        }, 100);
     }
 
     /**

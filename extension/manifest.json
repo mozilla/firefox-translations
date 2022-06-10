@@ -1,5 +1,5 @@
 {
-	"manifest_version": 2,
+	"manifest_version": 3,
 	"name": "Bergamot Translations",
 	"version": "0.0.1",
 	"version_name": "development",
@@ -13,7 +13,6 @@
 	},
 	"permissions":
 	[
-		"<all_urls>",
 		"contextMenus",
 		"tabs",
 		"webNavigation",
@@ -22,20 +21,11 @@
 	],
 	"background":
 	{
-		"scripts":
-		[
-			"controller/translation/compat.js",
-			"3rd_party/pako/pako_inflate.js",
-			"3rd_party/js-untar/untar.js",
-			"controller/translation/func.js",
-			"controller/translation/promise.js",
-			"controller/translation/yaml.js",
-			"controller/translation/TLTranslationHelper.js",
-			"controller/translation/WASMTranslationHelper.js",
-			"controller/backgroundScript.js"
-		]
+		"service_worker": "controller/backgroundScript.js"
 	},
-	"content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+	"content_security_policy": {
+		"extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+	},
 	"content_scripts":
 	[
 		{
@@ -59,7 +49,7 @@
 		}
 	],
 	"incognito": "spanning",
-	"browser_action":
+	"action":
 	{
 		"browser_style": true,
 		"default_icon":
@@ -72,33 +62,13 @@
 	},
 	"options_ui": {
 		"page": "/view/static/options.html",
-		"browser_style": true,
-		"chrome_style": true
+		"browser_style": true
 	},
 	"icons":
 	{
 		"16": "/view/icons/translation.16x16.png",
 		"32": "/view/icons/translation.32x32.png"
 	},
-	"web_accessible_resources": [
-		"view/static/benchmark.html",
-		"view/static/benchmark.js",
-		"view/static/benchmark.css",
-		"view/static/test.html",
-		"view/static/test.js",
-		"view/js/InPageTranslation.js",
-		"3rd_party/pako/pako_inflate.js",
-		"3rd_party/js-untar/untar.js",
-		"controller/translation/compat.js",
-		"controller/translation/func.js",
-		"controller/translation/promise.js",
-		"controller/translation/yaml.js",
-		"controller/translation/TLTranslationHelper.js",
-		"controller/translation/WASMTranslationHelper.js",
-		"controller/translation/WASMTranslationWorker.js",
-		"controller/translation/bergamot-translation-worker.js",
-		"controller/translation/bergamot-translation-worker.wasm"
-	],
 	"description": "Experimental Bergamot Translations translates any webpage utilizing client based machine learning algorithms and models.",
 	"homepage_url": "https://github.com/jelmervdl/firefox-translations"
 }

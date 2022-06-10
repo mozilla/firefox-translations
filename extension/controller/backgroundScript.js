@@ -1,4 +1,14 @@
 /* global compat */
+importScripts(
+    "translation/compat.js",
+    "../3rd_party/pako/pako_inflate.js",
+    "../3rd_party/js-untar/untar.js",
+    "translation/func.js",
+    "translation/promise.js",
+    "translation/yaml.js",
+    "translation/TLTranslationHelper.js",
+    "translation/WASMTranslationHelper.js"
+);
 
 function isSameDomain(url1, url2) {
     return url1 && url2 && new URL(url1).host === new URL(url2).host;
@@ -219,10 +229,10 @@ function updateActionButton(event) {
     switch (event.target.state.state) {
         case State.TRANSLATION_AVAILABLE:
         case State.TRANSLATION_IN_PROGRESS:
-            compat.browserAction.enable(event.target.id);
+            chrome.action.enable(event.target.id);
             break;
         case State.TRANSLATION_NOT_AVAILABLE:
-            compat.browserAction.disable(event.target.id);            
+            chrome.action.disable(event.target.id);            
             break;
         case State.TRANSLATION_NOT_AVAILABLE:
         default:
