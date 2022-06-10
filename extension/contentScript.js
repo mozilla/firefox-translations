@@ -12,6 +12,7 @@ const state = {
 const panel = document.createElement('div');
 panel.id = 'x-bergamot-translation-popup';
 panel.translate = 'no'; // to prevent InPageTranslation to pick up on it
+panel.setAttribute('translate', 'no'); // (For old Firefox)
 
 const closeButton = document.createElement('button');
 panel.appendChild(closeButton);
