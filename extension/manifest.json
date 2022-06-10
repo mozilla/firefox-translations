@@ -7,13 +7,13 @@
   "applications": {
     "gecko": {
       "id": "firefox-translations-addon@mozilla.org",
-      "strict_min_version": "79.0"
+      "strict_min_version": "90.0"
     }
   },
   "browser_specific_settings": {
     "gecko": {
       "id": "firefox-translations-addon@mozilla.org",
-      "strict_min_version": "79.0"
+      "strict_min_version": "90.0"
     }
   },
   "options_ui": {
