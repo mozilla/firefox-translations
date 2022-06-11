@@ -85,20 +85,28 @@ class TranslationNotificationManager {
         }
     }
 
-    reportInfobarMetric(type, name, value) {
+    reportMetric(type, category, name, value) {
 
         /*
-         * propagate UI event to bgScript
+         * propagate metric to bgScript
          */
         const message = {
             command: "recordTelemetry",
             tabId: this.tabId,
             type,
-            category: "infobar",
+            category,
             name,
             value
         };
         this.bgScriptListenerCallback(message);
+    }
+
+    reportInfobarMetric(type, name, value) {
+
+        /*
+         * propagate UI event to bgScript
+         */
+        this.reportMetric(type, "infobar", name, value);
     }
 
     requestInPageTranslation(from, to, withOutboundTranslation, withQualityEstimation) {

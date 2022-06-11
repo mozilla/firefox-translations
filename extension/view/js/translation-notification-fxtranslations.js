@@ -166,7 +166,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   fromLanguageChanged() {
+    const from = this._getSourceLang();
+    this.translationNotificationManager.reportMetric("string","metadata", "from_lang", from);
     this.translationNotificationManager.reportInfobarMetric("event","change_lang");
+
     if (this._getAnonElt("detectedLanguage").value === "userrequest") {
       this._getAnonElt("translate").disabled = true;
     } else {

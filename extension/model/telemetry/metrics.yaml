@@ -20,7 +20,8 @@ metadata:
     send_in_pings:
       - custom
     description: |
-      Translation source language.
+      Translation source language
+      (it can be set manually and different from detected_lang).
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
@@ -41,6 +42,22 @@ metadata:
     bugs:
       - https://github.com/mozilla-extensions/firefox-translations/issues/42
       - https://github.com/mozilla/firefox-translations/issues/27
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - anatal-all@mozilla.com
+    expires: 2022-08-10
+  detected_lang:
+    type: string
+    lifetime: ping
+    send_in_pings:
+      - custom
+    description: |
+      Translation source language that was automatically detected.
+    bugs:
+      - https://github.com/mozilla/firefox-translations/issues/350
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1694813
     data_sensitivity:
