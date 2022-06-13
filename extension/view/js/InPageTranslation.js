@@ -28,7 +28,7 @@ function removeTextNodes(node) {
                 break;
         }
     });
-``};
+}
 
 // eslint-disable-next-line no-unused-vars
 class InPageTranslation {
@@ -408,7 +408,7 @@ class InPageTranslation {
         // TODO There is probably a quicker way to do this
         for (let child of node.childNodes) {
             switch (child.nodeType) {
-                case 3: // TextNode
+                case Node.TEXT_NODE: // TextNode
                     if (child.textContent.trim() !== "")
                         return true;
                     break;
@@ -602,10 +602,6 @@ class InPageTranslation {
                     .map(child => dst.removeChild(child))
                     .filter(child => child.nodeType === Node.ELEMENT_NODE)
                     .map(child => [child.dataset.xBergamotId, child]));
-
-                const srcChildNodes = new Set(Array.from(src.childNodes)
-                    .filter(child => child.nodeType === Node.ELEMENT_NODE)
-                    .map(child => child.dataset.xBergamotId));
 
                 // src (translated) dictates the order.
                 Array.from(src.childNodes).forEach(child => {
