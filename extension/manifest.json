@@ -135,13 +135,13 @@
     }
   },
   "icons": {
-    "48": "/view/icons/translation.svg",
-    "96": "/view/icons/translation.svg"
+    "48": "/view/icons/translation-color.svg",
+    "96": "/view/icons/translation-color.svg"
   },
   "page_action": {
     "show_matches": ["<all_urls>"],
     "browser_style": true,
-    "default_icon": "view/icons/translation.svg",
+    "default_icon": "view/icons/translation-bw.svg",
     "default_title": "Firefox Translations"
   },
   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';"
