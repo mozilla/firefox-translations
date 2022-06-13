@@ -151,29 +151,61 @@ on('TranslateResponse', data => {
     }
 });
 
-// When this page shows up (either through onload or through history navigation)
-window.addEventListener('pageshow', e => {
-    // Connect to 
+// Timeout of retrying connectToBackgroundScript()
+let retryTimeout = 100;
+
+function connectToBackgroundScript() {
+    // If we're already connected (e.g. when this function was called directly
+    // but then also through 'pageshow' event caused by 'onload') ignore it.
+    if (backgroundScript)
+        return;
+
+    // Connect to our background script, telling it we're the content-script.
     backgroundScript = compat.runtime.connect({name: 'content-script'});
 
     // Connect all message listeners (the "on()" calls above)
     backgroundScript.onMessage.addListener(({command, data}) => {
         if (listeners.has(command))
             listeners.get(command).forEach(callback => callback(data));
+
+        // (We're connected, reset the timeout)
+        retryTimeout = 100;
     });
 
     // When the background script disconnects, also pause in-page translation
     backgroundScript.onDisconnect.addListener(() => {
         inPageTranslation.stop();
+
+        // If we cannot connect because the backgroundScript is not (yet?) 
+        // available, try again in a bit.
+        if (backgroundScript.error && backgroundScript.error.toString().includes('Receiving end does not exist')) {
+            // Exponential back-off sounds like a safe thing, right?
+            retryTimeout *= 2;
+
+            // Fallback fallback: if we keep retrying, stop. We're just wasting CPU at this point.
+            if (retryTimeout < 5000)
+                setTimeout(connectToBackgroundScript, retryTimeout);
+        }
+
+        // Mark as disconnected
+        backgroundScript = null;
     });
-});
+}
+
+connectToBackgroundScript();
+
+// When this page shows up (either through onload or through history navigation)
+window.addEventListener('pageshow', connectToBackgroundScript);
 
 // When this page disappears (either onunload, or through history navigation)
 window.addEventListener('pagehide', e => {
-    if (backgroundScript)
+    if (backgroundScript) {
         backgroundScript.disconnect();
+        backgroundScript = null;
+    }
 });
 
+// Track last clicked element for TranslateClickedElement
 let lastClickedElement;
 
 window.addEventListener('mousedown', e => {
