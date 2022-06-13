@@ -7,12 +7,6 @@
 
 /* global ExtensionCommon, ExtensionAPI, ChromeUtils, Services, modelRegistry, TranslationNotificationManager  */
 
-// the Services object was not available until Firefox 88 - bugzil.la/1698158
-if (typeof Services === "undefined") {
-  // eslint-disable-next-line no-invalid-this
-  this.Services = ChromeUtils.import("resource://gre/modules/Services.jsm").Services;
-}
-
 /*
  * custom elements can only be registered, and not unregistered.
  * To make sure that the extension is able to register the custom element
