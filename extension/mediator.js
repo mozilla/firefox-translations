@@ -84,6 +84,7 @@ class Mediator {
             const pageLang = this.languageDetection.pageLanguage;
             const navLang = this.languageDetection.navigatorLanguage;
             this.recordTelemetry("string", "metadata", "from_lang", pageLang);
+            this.recordTelemetry("string", "metadata", "detected_lang", pageLang);
             this.recordTelemetry("string", "metadata", "to_lang", navLang);
             this.recordTelemetry("string", "metadata", "model_version", modelRegistryVersion);
             this.recordTelemetry("counter", "service", "lang_mismatch");

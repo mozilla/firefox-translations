@@ -18,6 +18,12 @@ const telemetrySchema = {
                     "custom"
                 ]
             },
+            "detected_lang": {
+                "type": "string",
+                "send_in_pings": [
+                    "custom"
+                ]
+            },
             "extension_version": {
                 "type": "string",
                 "send_in_pings": [
