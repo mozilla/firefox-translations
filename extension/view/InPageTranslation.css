@@ -10,7 +10,7 @@ html[x-bergamot-debug] [x-bergamot-translated=""] [x-bergamot-translated~="is-ex
 	background: white;
 	font-size: 14px;
 	padding: 14px;
-	border: none;
+	border: 1px solid rgba(0, 0, 0, 0.25);
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 	
 	/* Shadow from https://getcssscan.com/css-box-shadow-examples */
