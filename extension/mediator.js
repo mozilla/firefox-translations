@@ -323,6 +323,8 @@ class Mediator {
                 if (!this.inPageTranslation.started) {
                     this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
                     this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;
+                    if (!message.withQualityEstimation) this.inPageTranslation.addElement(document.getElementsByTagName("title")[0]);
+                    this.inPageTranslation.addElement(document.body);
                     this.inPageTranslation.start(this.languageDetection.pageLanguage);
                 }
                 break;

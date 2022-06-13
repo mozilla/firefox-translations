@@ -17,14 +17,46 @@ class InPageTranslation {
         this.mediator = mediator;
         this.started = false;
         this.language = null;
-        this.viewportNodeMap = new Map();
-        this.hiddenNodeMap = new Map();
-        this.nonviewportNodeMap = new Map();
-        this.updateMap = new Map();
+
+        /* Timeout between First Translation Received -> Update DOM With Translations. */
         this.updateTimeout = null;
         this.UI_UPDATE_INTERVAL = 500;
-        this.messagesSent = new Set();
-        this.nodesSent = new WeakSet();
+
+        /*
+         * Table of [Element]:Object to be submitted, and some info about them.
+         * Filled by queueTranslation(), emptied by dispatchTranslation().
+         */
+        this.queuedNodes = new Map();
+
+        /*
+         * Table of [Number]:Element of nodes that have been submitted, and are
+         * waiting for a translation.
+         */
+        this.pendingTranslations = new Map();
+
+        /* 
+         * Table of [Element]:Number, inverse of pendingTranslations for easy
+         * cancelling of incoming responses when the node changed after
+         * submission of the request.
+         */
+        this.submittedNodes = new Map();
+
+        /*
+         * Queue with the translation text that they should
+         * be filled with once updateTimeout is reached. Filled by
+         * `queueTranslationResponse()` and emptied by `updateElements()`.
+         */
+        this.translatedNodes = new Map();
+
+        /*
+         * Set of elements that have been translated and should not be submitted
+         * again unless their contents changed.
+         */
+        this.processedNodes = new WeakSet();
+
+        // All elements we're actively trying to translate.
+        this.targetNodes = new Set();
+        
         this.initialWordsInViewportReported = false;
         this.withOutboundTranslation = null;
         this.withQualityEstimation = null;
@@ -128,26 +160,48 @@ class InPageTranslation {
             /*
              * handled in isExcludedNode
              * `*[lang]:not([lang|=${language}])`
+             * `*[translate=no]`
              */
         ])
 
         this.observer = new MutationObserver(mutationsList => {
-            reportErrorsWrap(() => {
-                for (const mutation of mutationsList) {
-                    switch (mutation.type) {
-                        case "childList":
-                            mutation.addedNodes.forEach(node => this.startTreeWalker(node));
-                            break;
-                        case "characterData":
-                            this.startTreeWalker(mutation.target);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            });
-        });
+            // Little helper to always submit a full element.
+            const submitElement = (node) => {
+                while (node.nodeType !== Node.ELEMENT_NODE)
+                    node = node.parentNode;
+                
+                this.restartTreeWalker(node);
+            };
 
+            for (const mutation of mutationsList) {
+                switch (mutation.type) {
+                    case "childList":
+                        mutation.addedNodes.forEach(submitElement);
+                        break;
+                    case "characterData":
+                        submitElement(mutation.target);
+                        break;
+                }
+            }
+        });
+    }
+
+    addElement(node) {
+        if (!(node instanceof Element))
+            return;
+
+        if (this.targetNodes.has(node)) return;
+
+        this.targetNodes.add(node);
+
+        if (this.started) {
+            this.startTreeWalker(node);
+            this.observer.observe(node, {
+                characterData: true,
+                childList: true,
+                subtree: true
+            });
+        }
     }
 
     start(language) {
@@ -165,12 +219,49 @@ class InPageTranslation {
         // language we expect. If we find elements that do not match, nope out.
         this.language = language;
 
-        const pageTitle = document.getElementsByTagName("title")[0];
-        if (pageTitle && !this.withQualityEstimation) {
-            this.queueTranslation(pageTitle);
-        }
-        this.startTreeWalker(document.body);
+        /* 
+         * pre-construct the excluded node selector. Doing it here since it
+         * needs to know `language`. See `containsExcludedNode()`.
+         */
+        this.excludedNodeSelector = `[lang]:not([lang|="${this.language}"]),[translate=no],${Array.from(this.excludedTags).join(',')},#OTapp`;
+
+        for (let node of this.targetNodes)
+            this.startTreeWalker(node);
+
         this.startMutationObserver();
+    }
+
+    /*
+     * Stops the InPageTranslation process, stopping observing and regard any
+     * in-flight translation request as lost.
+     */
+    stop() {
+        if (!this.started)
+            return;
+
+        /*
+         * TODO: cancel translation requests? Not really necessary at this level
+         * because stop() is called on disconnect from the background-script,
+         * and that script on its own will cancel translation requests from
+         * pages it is no longer connected to.
+         */
+
+        this.stopMutationObserver();
+        
+        /*
+         * Remove all elements for which we haven't received a translation yet
+         * from the 'sent' list.
+         */
+        this.submittedNodes.clear();
+
+        this.pendingTranslations.forEach((node, id) => {
+            this.processedNodes.delete(node);
+            this.queueTranslation(node);
+        })
+
+        this.pendingTranslations.clear();
+
+        this.started = false;
     }
 
     addDebugStylesheet() {
@@ -229,37 +320,45 @@ class InPageTranslation {
         });
       }
 
+    /*
+     * Start walking from `root` down through the DOM tree and decide which
+     * elements to enqueue for translation.
+     */
     startTreeWalker(root) {
+        console.assert(root.nodeType === Node.ELEMENT_NODE);
 
-        // we found instances when the root can be null here. so, let's test
-        if (!root) return;
-
-        // if we have a textNode whose parent's parent was excluded we walk through its parent and reject it
-        if (root.nodeType === 3){
-            this.startTreeWalker(root.parentNode);
-            return;
+        /* 
+         * If the parent itself is rejected, we don't translate any children.
+         * However, if this is a specifically targeted node, we don't do this
+         * check. Mainly so we can exclude <head>, but include <title>.
+         */
+        if (!this.targetNodes.has(root)) {
+            for (let parent of this.ancestors(root)) {
+                if (this.validateNode(parent) === NodeFilter.FILTER_REJECT)
+                    return;
+            }
         }
 
         /*
-         * todo: Bit of added complicated logic to include `root` in the set
+         * Bit of added complicated logic to include `root` in the set
          * of nodes that is being evaluated. Normally TreeWalker will only
          * look at the descendants.
          */
-        switch (this.validateNode(root)) {
-            // if even the root is already rejected, no need to look further
+        switch (this.validateNodeForQueue(root)) {
+            // If even the root is already rejected, no need to look further
             case NodeFilter.FILTER_REJECT:
                 return;
-
+            
             /*
-             * if the root itself is accepted, we don't need to drill down
+             * If the root itself is accepted, we don't need to drill down
              * either. But we do want to call dispatchTranslations().
              */
             case NodeFilter.FILTER_ACCEPT:
                 this.queueTranslation(root);
                 break;
-
+            
             /*
-             * if we skip the root (because it's a block element and we want to
+             * If we skip the root (because it's a block element and we want to
              * cut it into smaller chunks first) then start tree walking to
              * those smaller chunks.
              */
@@ -267,20 +366,37 @@ class InPageTranslation {
                 const nodeIterator = document.createTreeWalker(
                     root,
                     NodeFilter.SHOW_ELEMENT,
-                    this.validateNode.bind(this)
+                    this.validateNodeForQueue.bind(this)
                 );
 
                 let currentNode;
-                // eslint-disable-next-line no-cond-assign
                 while (currentNode = nodeIterator.nextNode()) {
                     this.queueTranslation(currentNode);
                 }
             } break;
-            default:
-                break;
         }
 
         this.dispatchTranslations();
+    }
+
+    /*
+     * Like startTreeWalker, but without the "oh ignore this element if it has
+     * already been submitted" bit. Use this one for submitting changed elements.
+     */
+    restartTreeWalker(root) {
+        // Remove node from sent map: if it was send, we don't want it to update
+        // with an old translation once the translation response comes in.
+        const id = this.submittedNodes.get(root);
+        if (id) {
+            this.submittedNodes.delete(root);
+            this.pendingTranslations.delete(id);
+        }
+
+        // Remove node from processed list: we want to reprocess it.
+        this.processedNodes.delete(root);
+
+        // Start submitting it again
+        this.startTreeWalker(root);
     }
 
     isElementInViewport(element) {
@@ -300,13 +416,12 @@ class InPageTranslation {
                 element.offsetParent === null;
     }
 
-    isParentTranslating(node){
-
-        /*
-         * if the parent of the node is already translating we should reject
-         * it since we already sent it to translation
-         */
-
+    /*
+     * Test whether any of the parent nodes are already in the process of being
+     * translated. If the parent of the node is already translating we should 
+     * reject it since we already sent it to translation.
+     */
+    isParentQueued(node){
         // if the immediate parent is the body we just allow it
         if (node.parentNode === document.body) {
             return false;
@@ -315,9 +430,8 @@ class InPageTranslation {
         // let's iterate until we find either the body or if the parent was sent
         let lastNode = node;
         while (lastNode.parentNode) {
-            // console.log("isParentTranslating node", node, " isParentTranslating nodeParent ", lastNode.parentNode);
-            if (this.nodesSent.has(lastNode.parentNode)) {
-                return true;
+            if (this.queuedNodes.has(lastNode.parentNode)) {
+                return lastNode.parentNode;
             }
             lastNode = lastNode.parentNode;
         }
@@ -325,17 +439,23 @@ class InPageTranslation {
         return false;
     }
 
+    /*
+     * Test whether this node should be treated as a wrapper of text, e.g.
+     * a `<p>`, or as a wrapper for block elements, e.g. `<div>`, based on
+     * its contents. The first we submit for translation, the second we try to
+     * split into smaller chunks of HTML for better latency.
+     */
     hasInlineContent(node) {
         let inlineElements = 0;
         let blockElements = 0;
 
         for (let child of node.childNodes) {
             switch (child.nodeType) {
-                case 3: // textNode
+                case Node.TEXT_NODE:
                     if (child.textContent.trim().length > 0) inlineElements+=1;
                     break;
 
-                case 1: // element
+                case Node.ELEMENT_NODE: // element
                     if (this.inlineTags.has(child.nodeName.toLowerCase()) ||
                         (child.nodeName.toLowerCase() === "span" && this.hasInlineContent(child))) inlineElements+=1;
                     else blockElements+=1;
@@ -348,11 +468,20 @@ class InPageTranslation {
         return inlineElements >= blockElements;
     }
 
+    /*
+     * Test whether any of the direct text nodes of this node are non-whitespace
+     * text nodes.
+     * 
+     * For example:
+     *   - `<p>test</p>`: yes
+     *   - `<p> </p>`: no
+     *   - `<p><b>test</b></p>`: no
+     */
     hasTextNodes(node) {
         // there is probably a quicker way to do this
         for (let child of node.childNodes) {
             switch (child.nodeType) {
-                case 3: // textNode
+                case Node.TEXT_NODE: // textNode
                     if (child.textContent.trim() !== "") return true;
                     break;
                 default:
@@ -363,6 +492,11 @@ class InPageTranslation {
         return false;
     }
 
+    /*
+     * Test whether this is an element we do not want to translate. These
+     * are things like `<code>`, elements with a different `lang` attribute,
+     * and elements that have a `translate=no` attribute.
+     */
     isExcludedNode(node) {
         // exclude certain elements
         if (this.excludedTags.has(node.nodeName.toLowerCase())) return true;
@@ -373,46 +507,66 @@ class InPageTranslation {
          */
         if (node.lang && node.lang.substr(0,2) !== this.language) return true;
 
+        /*
+         * Exclude elements that have an translate=no attribute
+         * (See https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/translate)
+         */
+        if (node.translate === false || node.getAttribute('translate') === 'no') return true;
+
         // we should explicitly exclude the outbound translations widget
         if (node.id === "OTapp") return true;
 
         return false;
     }
 
+    /*
+     * Like `isExcludedNode` but looks at the full subtree. Used to see whether
+     * we can submit a subtree, or whether we should split it into smaller
+     * branches first to try to exclude more of the non-translatable content.
+     */
     containsExcludedNode(node) {
-
-        /*
-         * tODO describe this in terms of the function above, but I assume
-         * using querySelector is faster for now.
-         */
-        if (node.nodeType === 1) {
-            node.querySelector(`[lang]:not([lang|="${this.language}"]), ${Array.from(this.excludedTags).join(",")}`);
-        }
-        return true;
+        return node.querySelector(this.excludedNodeSelector);
     }
 
+    /*
+     * Used by TreeWalker to determine whether to ACCEPT, REJECT or SKIP a
+     * subtree. Only checks if the element is acceptable. It does not check
+     * whether the element has been translated already, which makes it usable
+     * on parent nodes to validate whether a child node is in a translatable
+     * context.
+     * 
+     * Returns:
+     *   - FILTER_ACCEPT: this subtree should be a translation request.
+     *   - FILTER_SKIP  : this node itself should not be a translation request
+     *                    but subtrees beneath it could be!
+     *   - FILTER_REJECT: skip this node and everything beneath it.
+     */
     validateNode(node) {
-        if (node.nodeType === 1 && this.isExcludedNode(node)) {
+        // Don't resubmit subtrees that are already in progress (unless their
+        // contents have been changed
+        if (this.queuedNodes.has(node) || this.isParentQueued(node)) {
+            // node.setAttribute("x-bergamot-translated", "rejected is-parent-translating");
+            return NodeFilter.FILTER_REJECT;
+        }
+
+        // Exclude nodes that we don't want to translate
+        if (this.isExcludedNode(node)) {
             node.setAttribute("x-bergamot-translated", "rejected is-excluded-node");
             return NodeFilter.FILTER_REJECT;
         }
 
-        if (node.nodeType === 1 && node.textContent.trim().length === 0) {
+        // Skip over subtrees that don"t have text
+        if (node.textContent.trim().length === 0) {
             node.setAttribute("x-bergamot-translated", "rejected empty-text-content");
             return NodeFilter.FILTER_REJECT;
         }
 
-        if (this.isParentTranslating(node)) {
-            // node.setAttribute('x-bergamot-translated', 'rejected is-parent-translating');
-            return NodeFilter.FILTER_REJECT;
-        }
-
-        if (node.nodeType === 1 && !this.hasInlineContent(node)) {
+        if (!this.hasInlineContent(node)) {
             node.setAttribute("x-bergamot-translated", "skipped does-not-have-text-of-its-own");
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper
         }
 
-        if (node.nodeType === 1 && this.containsExcludedNode(node) && !this.hasTextNodes(node)) {
+        if (this.containsExcludedNode(node) && !this.hasTextNodes(node)) {
             node.setAttribute("x-bergamot-translated", "skipped contains-excluded-node");
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper
         }
@@ -420,49 +574,63 @@ class InPageTranslation {
         return NodeFilter.FILTER_ACCEPT; // send whole node as 1 block
     }
 
-    queueTranslation(node) {
+    /*
+     * Used by TreeWalker to determine whether to ACCEPT, REJECT or SKIP a
+     * subtree. Checks whether element is acceptable, and hasn't been
+     * translated already.
+     */
+    validateNodeForQueue(node) {
+        // Skip nodes already seen (for the partial subtree change, or restart of the whole InPageTranslation process.)
+        if (this.processedNodes.has(node)) return NodeFilter.FILTER_REJECT;
 
-        /*
-         * let's store the node to keep its reference
-         * and send it to the translation worker
-         */
+        return this.validateNode(node);
+    }
+
+    /*
+     * Enqueue a node for translation. Called during startTreeWalker. Queues
+     * are emptied by dispatchTranslation().
+     */
+    queueTranslation(node) {
         this.translationsCounter += 1;
 
-        // debugging: mark the node so we can add CSS to see them
-        if (node.nodeType === 1) {
-            node.setAttribute("x-bergamot-translated", this.translationsCounter);
-            // let's categorize the elements on their respective hashmaps
-            if (this.isElementHidden(node)) {
-                // if the element is entirely hidden
-                this.hiddenNodeMap.set(this.translationsCounter, node);
-            } else if (this.isElementInViewport(node)) {
-                // if the element is present in the viewport
-                this.viewportNodeMap.set(this.translationsCounter, node);
-            } else {
-                // if the element is visible but not present in the viewport
-                this.nonviewportNodeMap.set(this.translationsCounter, node);
-            }
-            this.nodesSent.add(node);
-        }
+        // Debugging: mark the node so we can add CSS to see them
+        node.setAttribute('x-bergamot-translated', this.translationsCounter);
+
+        let priority = 2;
+        if (this.isElementHidden(node)) priority = 3;
+        else if (this.isElementInViewport(node)) priority = 1;
+
+        this.queuedNodes.set(node, {
+            id: this.translationsCounter,
+            priority
+        });
     }
 
     dispatchTranslations() {
         this.reportWordsInViewport();
-        // we then submit for translation the elements in order of priority
-        this.processingNodeMap = "viewportNodeMap";
-        this.viewportNodeMap.forEach(this.submitTranslation, this);
-        this.processingNodeMap = "nonviewportNodeMap";
-        this.nonviewportNodeMap.forEach(this.submitTranslation, this);
-        this.processingNodeMap = "hiddenNodeMap";
-        this.hiddenNodeMap.forEach(this.submitTranslation, this);
+
+        const queuesPerPriority = [null, [], [], []] // priorities 1 to 3
+        this.queuedNodes.forEach((message, node) => {
+            queuesPerPriority[message.priority].push({ message, node });
+        });
+
+        for (let priority = 1; priority <= 3; ++priority) {
+            queuesPerPriority[priority].forEach(({ message, node }) => {
+                this.submitTranslation(message, node);
+            });
+        }
+
+        this.queuedNodes.clear();
     }
 
     reportWordsInViewport() {
-        if (this.initialWordsInViewportReported || this.viewportNodeMap.size === 0) return;
+        if (this.initialWordsInViewportReported || this.queuedNodes.size === 0) return;
 
         let viewPortWordsNum = 0;
-        for (const [, value] of this.viewportNodeMap.entries()) {
-            viewPortWordsNum += value.textContent.trim().split(/\s+/).length;
+        for (const [message, value] of this.queuedNodes.entries()) {
+            if (message.priority === 3) {
+                viewPortWordsNum += value.textContent.trim().split(/\s+/).length;
+            }
         }
 
         this.notifyMediator("reportViewPortWordsNum", viewPortWordsNum);
@@ -470,40 +638,29 @@ class InPageTranslation {
         this.initialWordsInViewportReported = true;
     }
 
-    submitTranslation(node, key) {
-        if (this.messagesSent.has(key)) {
-            // if we already sent this message, we just skip it
-            return;
-        }
-
-        /*
-         * give each element an id that gets passed through the translation so
-         * we can later on reunite it.
-         */
-        node.querySelectorAll("*").forEach((el, i) => {
+    submitTranslation({id}, node) {
+        // Give each element an id that gets passed through the translation so we can later on reunite it.
+        node.querySelectorAll('*').forEach((el, i) => {
             el.dataset.xBergamotId = i;
         });
 
         const text = node.innerHTML;
-        if (text.trim().length) {
+        if (text.trim().length === 0) return;
 
-          /*
-           * send the content back to mediator in order to have the translation
-           * requested by it
-           */
-          const payload = {
+        this.notifyMediator("translate", {
             text,
             type: "inpage",
             withOutboundTranslation: this.withOutboundTranslation,
             withQualityEstimation: this.withQualityEstimation,
-            attrId: [
-                     this.processingNodeMap,
-                     key
-                    ],
-          };
-          this.notifyMediator("translate", payload);
-          this.messagesSent.add(key);
-        }
+            attrId: [id],
+        });
+
+        // Keep reference to this node for once we receive a translation response.
+        this.pendingTranslations.set(id, node);
+        this.submittedNodes.set(node, id);
+
+        // Also mark this node as not to be translated again unless the contents are changed (which the observer will pick up on)
+        this.processedNodes.add(node);
     }
 
     notifyMediator(command, payload) {
@@ -511,16 +668,17 @@ class InPageTranslation {
     }
 
     startMutationObserver() {
-
-        this.observer.observe(document, {
-            characterData: true,
-            childList: true,
-            subtree: true
-        });
+        for (let node of this.targetNodes) {
+            this.observer.observe(node, {
+                characterData: true,
+                childList: true,
+                subtree: true
+            });
+        }
     }
 
     stopMutationObserver() {
-            this.observer.disconnect();
+        this.observer.disconnect();
     }
 
 
@@ -535,7 +693,7 @@ class InPageTranslation {
     }
 
     updateElements() {
-        const updateElement = (translatedHTML, node) => {
+        const updateElement = ({id, translatedHTML}, node) => {
             // console.groupCollapsed(computePath(node));
             node.setAttribute("x-bergamot-translated", "");
 
@@ -557,33 +715,6 @@ class InPageTranslation {
 
             const clonedNodes = new Set();
 
-            const removeTextNodes = node => {
-                Array.from(node.childNodes).forEach(child => {
-                    switch (child.nodeType) {
-                        case Node.TEXT_NODE:
-                            node.removeChild(child);
-                            break;
-                        case Node.ELEMENT_NODE:
-                            removeTextNodes(child);
-                            break;
-                        default:
-                            break;
-                    }
-                });
-            };
-
-            // check (recursively) if a given node and all its children have only QE specific attributes
-            const hasOnlyQEAttributes = node => {
-                if (node.nodeType === Node.ELEMENT_NODE) {
-                    if (node.nodeName.toUpperCase() !== "FONT") return false;
-
-                    if (!node.getAttributeNames().every(attribute => this.qeAttributes.has(attribute))) return false;
-
-                    for (let child of node.children) if (!hasOnlyQEAttributes(child)) return false;
-                }
-                return true;
-            };
-
             /*
              * merge the live tree (dst) with the translated tree (src) by
              * re-using elements from the live tree.
@@ -599,6 +730,10 @@ class InPageTranslation {
                     .map(child => dst.removeChild(child))
                     .filter(child => child.nodeType === Node.ELEMENT_NODE)
                     .map(child => [child.dataset.xBergamotId, child]));
+
+                const srcChildNodes = new Set(Array.from(src.childNodes)
+                    .filter(child => child.nodeType === Node.ELEMENT_NODE)
+                    .map(child => child.dataset.xBergamotId));
 
                 // src (translated) dictates the order.
                 Array.from(src.childNodes).forEach(child => {
@@ -619,7 +754,7 @@ class InPageTranslation {
                              * when QE is on) then just add the translated element child to the live
                              * element node.
                              */
-                            if (!child.hasAttribute("data-x-bergamot-id") && hasOnlyQEAttributes(child)) {
+                            if (!child.hasAttribute("data-x-bergamot-id") && this.hasOnlyQEAttributes(child)) {
                                 dst.appendChild(child);
                             } else {
                                 console.warn(`[InPlaceTranslation] ${this.computePath(child, scratch)} Could not find counterpart for`, child.dataset.xBergamotId, dstChildNodes, child);
@@ -650,7 +785,21 @@ class InPageTranslation {
                              * the one that came out of translation doesn't?
                              */
                             console.warn(`[InPlaceTranslation] ${this.computePath(child, scratch)} Child ${child.outerHTML} has no text but counterpart ${counterpart.outerHTML} does`);
-                            removeTextNodes(counterpart); // this should not be necessary
+                            
+                            /*
+                             * TODO: This scenario might be caused by one of two
+                             * causes: 1) element was duplicated by translation
+                             * but then not given text content. This happens on
+                             * Wikipedia articles for example.
+                             */
+                            if (clonedNodes.has(counterpart.dataset.xBergamotId)) this.removeTextNodes(counterpart);
+
+                            /*
+                             * Or 2) the translator messed up and could not
+                             * translate the text. This happens on Youtube in the
+                             * language selector. In that case, having the original
+                             * text is much better than no text at all.
+                             */
                         }
 
                         /*
@@ -678,32 +827,15 @@ class InPageTranslation {
             };
 
             merge(node, scratch);
-
-
-            /*
-             * remove node again from nodesSent because someone might change
-             * the innerHTML or add children, and then we want to translate
-             * those.
-             * TODO: what if a node was mutated while translation was pending?
-             * Will that mutation then be ignored?
-             */
-            this.nodesSent.delete(node);
-
-            /*
-             * is this a good idea?
-             * this.nodesSent.delete(node);
-             * console.groupEnd(computePath(node));
-             */
         };
 
         // pause observing mutations
         this.stopMutationObserver();
 
         try {
-            this.updateMap.forEach(updateElement);
-            // let's test this here to prevent unnecessary traversals
-            if (this.withQualityEstimation) this.reportQualityEstimation(this.updateMap.keys());
-            this.updateMap.clear();
+            this.translatedNodes.forEach(updateElement);
+            if (this.withQualityEstimation) this.reportQualityEstimation(this.translatedNodes.keys());
+            this.translatedNodes.clear();
             this.updateTimeout = null;
             if (this.withQualityEstimation) this.addQualityClasses();
         } finally {
@@ -736,35 +868,28 @@ class InPageTranslation {
     }
 
     enqueueElement(translationMessage) {
-        const [
-               hashMapName,
-               idCounter
-              ] = translationMessage.attrId;
-        const translatedText = translationMessage.translatedParagraph;
-        // console.log("no enqueue", translatedText);
-        let targetNode = null;
-        switch (hashMapName) {
-            case "hiddenNodeMap":
-                targetNode = this.hiddenNodeMap.get(idCounter);
-                this.hiddenNodeMap.delete(idCounter);
-                break;
-            case "viewportNodeMap":
-                targetNode = this.viewportNodeMap.get(idCounter);
-                this.viewportNodeMap.delete(idCounter);
-                break;
-            case "nonviewportNodeMap":
-                targetNode = this.nonviewportNodeMap.get(idCounter);
-                this.nonviewportNodeMap.delete(idCounter);
-                break;
-            default:
-                break;
+        const [id] = translationMessage.attrId;
+        const translatedHTML = translationMessage.translatedParagraph;
+        
+        // Look up node by message id. This can fail 
+        const node = this.pendingTranslations.get(id);
+        if (node === undefined) {
+            console.debug('[in-page-translation] Message',id,'is not found in pendingTranslations');
+            return;
         }
-        this.messagesSent.delete(idCounter);
-        this.updateMap.set(targetNode, translatedText);
-        // we finally schedule the UI update
-        if (!this.updateTimeout) {
-            this.updateTimeout = setTimeout(this.updateElements.bind(this),this.UI_UPDATE_INTERVAL);
-        }
+
+        // Prune it.
+        this.pendingTranslations.delete(id);
+
+        // Node still exists! Remove node -> (pending) message mapping
+        this.submittedNodes.delete(node);
+        
+        // Queue node to be populated with translation next update.
+        this.translatedNodes.set(node, {id, translatedHTML});
+
+        // we schedule the UI update
+        if (!this.updateTimeout)
+            this.updateTimeout = setTimeout(this.updateElements.bind(this), this.submittedNodes.size === 0 ? 0 : this.UI_UPDATE_INTERVAL);
     }
 
     computePath(node, root) {
@@ -777,5 +902,36 @@ class InPageTranslation {
         if (node.id) path += `#${node.id}`;
         else if (node.className) path += `.${Array.from(node.classList).join(".")}`;
         return path;
+    }
+
+    *ancestors(node) {
+        for (let parent = node.parentNode; parent && parent != document.documentElement; parent = parent.parentNode) yield parent;
+    }
+
+    /*
+     * check (recursively) if a given node and all its children have only QE specific attributes
+     */
+    hasOnlyQEAttributes(node) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.nodeName.toUpperCase() !== "FONT") return false;
+
+            if (!node.getAttributeNames().every(attribute => this.qeAttributes.has(attribute))) return false;
+
+            for (let child of node.children) if (!this.hasOnlyQEAttributes(child)) return false;
+        }
+        return true;
+    }
+
+    removeTextNodes(node) {
+        Array.from(node.childNodes).forEach(child => {
+            switch (child.nodeType) {
+                case Node.TEXT_NODE:
+                    node.removeChild(child);
+                    break;
+                case Node.ELEMENT_NODE:
+                    this.removeTextNodes(child);
+                    break;
+            }
+        });
     }
 }
