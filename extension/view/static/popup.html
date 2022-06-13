@@ -69,6 +69,14 @@
 				<p>Error during translation:</p>
 				<p><code id="error-message" data-bind:text-content="error"></code></p>
 			</div>
+			<div data-state="page-loading">
+				<!-- tab noticed by webRequest, but its content-script didn't connect -->
+				<p>Translations not available for this page.</p>
+			</div>
+			<div data-state="">
+				<!-- tab that has gone unnoticed by webRequest? -->
+				<p>Translations not available for this page.</p>
+			</div>
 		</div>
 		<label data-bind:hidden="!developer" title="Renders coloured borders around sections identified by the in-page translation code">
 			<input type="checkbox" data-bind:checked="debug">

@@ -23,6 +23,9 @@ function render() {
 	const needsDownload = tabState.page?.models?.find(model => tabState.from === model.from && to === model.to)?.models?.some(({model}) => !model.local);
 
 	const name = (code) => {
+		if (!code)
+			return undefined;
+		
 		try {
 			return regionNamesInEnglish.of(code);
 		} catch (RangeError) {
@@ -33,8 +36,8 @@ function render() {
 	const renderState = {
 		...globalState,
 		...tabState,
-		'lang-from': regionNamesInEnglish.of(tabState.from),
-		'lang-to': regionNamesInEnglish.of(tabState.to),
+		'lang-from': name(tabState.from),
+		'lang-to': name(tabState.to),
 		'lang-from-options': new Map(tabState.models.map(({from}) => [from, name(from)])),
 		'lang-to-options': new Map(tabState.models.filter(model => tabState.from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
 		'needs-download': needsDownload,
@@ -44,7 +47,7 @@ function render() {
 
 	// Toggle "hidden" state of all <div data-state=""> elements
 	document.querySelectorAll('*[data-state]').forEach(el => {
-		el.hidden = el.dataset.state != tabState.state;
+		el.hidden = tabState.state ? el.dataset.state != tabState.state : el.dataset.state != '';
 	});
 
 	renderBoundElements(document.body, renderState);
