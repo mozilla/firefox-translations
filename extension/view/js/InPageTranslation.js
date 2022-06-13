@@ -63,7 +63,7 @@ class InPageTranslation {
 
         // Set of elements that have been translated and should not be submitted
         // again unless their contents changed.
-        this.processedNodes = new Set();
+        this.processedNodes = new WeakSet();
 
         // All elements we're actively trying to translate.
         this.targetNodes = new Set();
