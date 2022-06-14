@@ -20,7 +20,7 @@ compat.storage.onChanged.addListener(changes => {
 
 function render() {
 	// If the model (or one of the models in case of pivoting) needs downloading
-	const needsDownload = tabState.page?.models?.find(model => tabState.from === model.from && to === model.to)?.models?.some(({model}) => !model.local);
+	const needsDownload = tabState.models?.find(model => tabState.from === model.from && tabState.to === model.to)?.models?.some(({model}) => !model.local);
 
 	const name = (code) => {
 		if (!code)
@@ -102,15 +102,15 @@ compat.tabs.query({active: true, currentWindow: true}).then(tabs => {
 			// TODO this assumes tabState.from and tabState.to reflect the current UI,
 			// which they should iff the UpdateRequest has been processed and
 			// broadcasted by backgroundScript.
-			data.models = tabState.models
-			              .find(({from, to}) => from === tabState.from && to === tabState.to)
-			              .models
-			              .map(({model}) => model.id)
-			              .slice(0, 1);
+			const models = tabState.models
+				.find(({from, to}) => from === tabState.from && to === tabState.to)
+		        .models
+		        .map(({model}) => model.id)
+		        .slice(0, 1);
 
 			backgroundScript.postMessage({
 				command: 'DownloadModels',
-				data
+				data: {models}
 			});
 		},
 		'click #abort-translate-btn': e => {
