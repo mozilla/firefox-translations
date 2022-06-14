@@ -155,21 +155,13 @@ class InPageTranslation {
         ])
 
         this.observer = new MutationObserver(mutationsList => {
-            // Little helper to always submit a full element.
-            const submitElement = (node) => {
-                while (node.nodeType !== Node.ELEMENT_NODE)
-                    node = node.parentNode;
-                
-                this.restartTreeWalker(node);
-            };
-
             for (const mutation of mutationsList) {
                 switch (mutation.type) {
                     case "childList":
-                        mutation.addedNodes.forEach(submitElement);
+                        mutation.addedNodes.forEach(this.restartTreeWalker.bind(this));
                         break;
                     case "characterData":
-                        submitElement(mutation.target);
+                        this.restartTreeWalker(mutation.target);
                         break;
                 }
             }
@@ -257,8 +249,6 @@ class InPageTranslation {
      * elements to enqueue for translation.
      */
     startTreeWalker(root) {
-        console.assert(root.nodeType === Node.ELEMENT_NODE);
-
         // If the parent itself is rejected, we don't translate any children.
         // However, if this is a specifically targeted node, we don't do this
         // check. Mainly so we can exclude <head>, but include <title>.
@@ -324,6 +314,9 @@ class InPageTranslation {
     }
 
     isElementInViewport(element) {
+        if (element.nodeType === Node.TEXT_NODE)
+            element = element.parentElement;
+
         const rect = element.getBoundingClientRect();
         return (
             rect.top >= 0 &&
@@ -337,6 +330,9 @@ class InPageTranslation {
      * Test whether the element is visible.
      */
     isElementVisible(element) {
+        if (element.nodeType === Node.TEXT_NODE)
+            element = element.parentElement;
+
         // Based on jQuery (talk about battle-tested...)
         // https://github.com/jquery/jquery/blob/main/src/css/hiddenVisibleSelectors.js
         return !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
@@ -372,6 +368,9 @@ class InPageTranslation {
      * split into smaller chunks of HTML for better latency.
      */
     hasInlineContent(node) {
+        if (node.nodeType === Node.TEXT_NODE)
+            return true;
+
         let inlineElements = 0;
         let blockElements = 0;
 
@@ -405,6 +404,9 @@ class InPageTranslation {
      *   - `<p><b>test</b></p>`: no
      */
     hasTextNodes(node) {
+        if (node.nodeType !== Node.ELEMENT_NODE)
+            return false;
+
         // TODO There is probably a quicker way to do this
         for (let child of node.childNodes) {
             switch (child.nodeType) {
@@ -424,6 +426,10 @@ class InPageTranslation {
      * and elements that have a `translate=no` attribute.
      */
     isExcludedNode(node) {
+        // Text nodes are never excluded
+        if (node.nodeType === Node.TEXT_NODE)
+            return false;
+
         // Exclude certain elements
         if (this.excludedTags.has(node.nodeName.toLowerCase()))
             return true;
@@ -449,7 +455,7 @@ class InPageTranslation {
     containsExcludedNode(node) {
         // TODO describe this in terms of the function above, but I assume
         // using querySelector is faster for now.
-        return node.querySelector(this.excludedNodeSelector);
+        return node.nodeType === Node.ELEMENT_NODE && node.querySelector(this.excludedNodeSelector);
     }
 
     /**
@@ -466,6 +472,11 @@ class InPageTranslation {
      *   - FILTER_REJECT: skip this node and everything beneath it.
      */
     validateNode(node) {
+        const mark = (value) => {
+            if (node.nodeType === Node.ELEMENT_NODE)
+                node.setAttribute('x-bergamot-translated', value);
+        };
+
         // Don't resubmit subtrees that are already in progress (unless their
         // contents have been changed
         if (this.queuedNodes.has(node) || this.isParentQueued(node)) {
@@ -475,23 +486,23 @@ class InPageTranslation {
 
         // Exclude nodes that we don't want to translate
         if (this.isExcludedNode(node)) {
-            node.setAttribute('x-bergamot-translated', 'rejected is-excluded-node');
+            mark('rejected is-excluded-node');
             return NodeFilter.FILTER_REJECT;
         }
 
         // Skip over subtrees that don't have text
         if (node.textContent.trim().length === 0) {
-            node.setAttribute('x-bergamot-translated', 'rejected empty-text-content');
+            mark('rejected empty-text-content');
             return NodeFilter.FILTER_REJECT;
         }
             
         if (!this.hasInlineContent(node)) {
-            node.setAttribute('x-bergamot-translated', 'skipped does-not-have-text-of-its-own');
+            mark('skipped does-not-have-text-of-its-own');
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper
         } 
 
         if (this.containsExcludedNode(node) && !this.hasTextNodes(node)) {
-            node.setAttribute('x-bergamot-translated', 'skipped contains-excluded-node');
+            mark('skipped contains-excluded-node');
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper  
         }
         
@@ -521,7 +532,8 @@ class InPageTranslation {
         this.translationsCounter += 1;
 
         // Debugging: mark the node so we can add CSS to see them
-        node.setAttribute('x-bergamot-translated', this.translationsCounter);
+        if (node.nodeType === Node.ELEMENT_NODE)
+            node.setAttribute('x-bergamot-translated', this.translationsCounter);
 
         let priority = 2;
         if (!this.isElementVisible(node))
@@ -543,15 +555,21 @@ class InPageTranslation {
     submitTranslation({priority, id}, node) {
         // Give each element an id that gets passed through the translation so
         // we can later on reunite it.
-        node.querySelectorAll('*').forEach((el, i) => {
-            el.dataset.xBergamotId = i;
-        });
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            node.querySelectorAll('*').forEach((el, i) => {
+                el.dataset.xBergamotId = i;
+            });
+        }
 
-        const text = node.innerHTML;
+        const text = node.nodeType === Node.ELEMENT_NODE ? node.innerHTML : node.textContent;
         if (text.trim().length === 0)
             return;
 
-        this.mediator.translate(text, {priority, id});
+        this.mediator.translate(text, {
+            priority,
+            id,
+            html: node.nodeType === Node.ELEMENT_NODE
+        });
 
         // Keep reference to this node for once we receive a translation response.
         this.pendingTranslations.set(id, node);
@@ -673,11 +691,24 @@ class InPageTranslation {
             merge(node, scratch.content);
         };
 
+        const updateTextNode = ({id, translated}, node) => {
+            node.textContent = translated;
+        };
+
         // Pause observing mutations
         this.stopMutationObserver();
 
         try {
-            this.translatedNodes.forEach(updateElement);
+            this.translatedNodes.forEach((message, node) => {
+                switch (node.nodeType) {
+                    case Node.TEXT_NODE:
+                        updateTextNode(message, node);
+                        break;
+                    case Node.ELEMENT_NODE:
+                        updateElement(message, node);
+                        break
+                }
+            });
             this.translatedNodes.clear();
             this.updateTimeout = null;
         } finally {

@@ -115,7 +115,7 @@ const inPageTranslation = new InPageTranslation({
                 // translation request
                 from: state.from,
                 to: state.to,
-                html: true,
+                html: user.html,
                 text,
 
                 // data useful for the response
