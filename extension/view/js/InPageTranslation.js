@@ -18,45 +18,45 @@ class InPageTranslation {
         this.started = false;
         this.language = null;
 
-        /* Timeout between First Translation Received -> Update DOM With Translations. */
+        /* timeout between First Translation Received -> Update DOM With Translations. */
         this.updateTimeout = null;
         this.UI_UPDATE_INTERVAL = 500;
 
         /*
-         * Table of [Element]:Object to be submitted, and some info about them.
+         * table of [Element]:Object to be submitted, and some info about them.
          * Filled by queueTranslation(), emptied by dispatchTranslation().
          */
         this.queuedNodes = new Map();
 
         /*
-         * Table of [Number]:Element of nodes that have been submitted, and are
+         * table of [Number]:Element of nodes that have been submitted, and are
          * waiting for a translation.
          */
         this.pendingTranslations = new Map();
 
-        /* 
-         * Table of [Element]:Number, inverse of pendingTranslations for easy
+        /*
+         * table of [Element]:Number, inverse of pendingTranslations for easy
          * cancelling of incoming responses when the node changed after
          * submission of the request.
          */
         this.submittedNodes = new Map();
 
         /*
-         * Queue with the translation text that they should
+         * queue with the translation text that they should
          * be filled with once updateTimeout is reached. Filled by
          * `queueTranslationResponse()` and emptied by `updateElements()`.
          */
         this.translatedNodes = new Map();
 
         /*
-         * Set of elements that have been translated and should not be submitted
+         * set of elements that have been translated and should not be submitted
          * again unless their contents changed.
          */
         this.processedNodes = new WeakSet();
 
-        // All elements we're actively trying to translate.
+        // all elements we're actively trying to translate.
         this.targetNodes = new Set();
-        
+
         this.initialWordsInViewportReported = false;
         this.withOutboundTranslation = null;
         this.withQualityEstimation = null;
@@ -165,7 +165,7 @@ class InPageTranslation {
         ])
 
         this.observer = new MutationObserver(mutationsList => {
-            // Little helper to always submit a full element.
+            // little helper to always submit a full element.
             const submitElement = (node) => {
                 while (node.nodeType !== Node.ELEMENT_NODE)
                     node = node.parentNode;
@@ -173,16 +173,18 @@ class InPageTranslation {
                 this.restartTreeWalker(node);
             };
 
-            for (const mutation of mutationsList) {
-                switch (mutation.type) {
-                    case "childList":
-                        mutation.addedNodes.forEach(submitElement);
-                        break;
-                    case "characterData":
-                        submitElement(mutation.target);
-                        break;
+            reportErrorsWrap(() => {
+                for (const mutation of mutationsList) {
+                    switch (mutation.type) {
+                        case "childList":
+                            mutation.addedNodes.forEach(submitElement);
+                            break;
+                        case "characterData":
+                            submitElement(mutation.target);
+                            break;
+                    }
                 }
-            }
+            });
         });
     }
 
@@ -232,7 +234,7 @@ class InPageTranslation {
     }
 
     /*
-     * Stops the InPageTranslation process, stopping observing and regard any
+     * stops the InPageTranslation process, stopping observing and regard any
      * in-flight translation request as lost.
      */
     stop() {
@@ -240,7 +242,7 @@ class InPageTranslation {
             return;
 
         /*
-         * TODO: cancel translation requests? Not really necessary at this level
+         * todo: cancel translation requests? Not really necessary at this level
          * because stop() is called on disconnect from the background-script,
          * and that script on its own will cancel translation requests from
          * pages it is no longer connected to.
@@ -249,7 +251,7 @@ class InPageTranslation {
         this.stopMutationObserver();
         
         /*
-         * Remove all elements for which we haven't received a translation yet
+         * remove all elements for which we haven't received a translation yet
          * from the 'sent' list.
          */
         this.submittedNodes.clear();
@@ -321,14 +323,14 @@ class InPageTranslation {
       }
 
     /*
-     * Start walking from `root` down through the DOM tree and decide which
+     * start walking from `root` down through the DOM tree and decide which
      * elements to enqueue for translation.
      */
     startTreeWalker(root) {
         console.assert(root.nodeType === Node.ELEMENT_NODE);
 
         /* 
-         * If the parent itself is rejected, we don't translate any children.
+         * if the parent itself is rejected, we don't translate any children.
          * However, if this is a specifically targeted node, we don't do this
          * check. Mainly so we can exclude <head>, but include <title>.
          */
@@ -340,17 +342,17 @@ class InPageTranslation {
         }
 
         /*
-         * Bit of added complicated logic to include `root` in the set
+         * bit of added complicated logic to include `root` in the set
          * of nodes that is being evaluated. Normally TreeWalker will only
          * look at the descendants.
          */
         switch (this.validateNodeForQueue(root)) {
-            // If even the root is already rejected, no need to look further
+            // if even the root is already rejected, no need to look further
             case NodeFilter.FILTER_REJECT:
                 return;
             
             /*
-             * If the root itself is accepted, we don't need to drill down
+             * if the root itself is accepted, we don't need to drill down
              * either. But we do want to call dispatchTranslations().
              */
             case NodeFilter.FILTER_ACCEPT:
@@ -358,7 +360,7 @@ class InPageTranslation {
                 break;
             
             /*
-             * If we skip the root (because it's a block element and we want to
+             * if we skip the root (because it's a block element and we want to
              * cut it into smaller chunks first) then start tree walking to
              * those smaller chunks.
              */
@@ -380,11 +382,11 @@ class InPageTranslation {
     }
 
     /*
-     * Like startTreeWalker, but without the "oh ignore this element if it has
+     * like startTreeWalker, but without the "oh ignore this element if it has
      * already been submitted" bit. Use this one for submitting changed elements.
      */
     restartTreeWalker(root) {
-        // Remove node from sent map: if it was send, we don't want it to update
+        // remove node from sent map: if it was send, we don't want it to update
         // with an old translation once the translation response comes in.
         const id = this.submittedNodes.get(root);
         if (id) {
@@ -392,10 +394,10 @@ class InPageTranslation {
             this.pendingTranslations.delete(id);
         }
 
-        // Remove node from processed list: we want to reprocess it.
+        // remove node from processed list: we want to reprocess it.
         this.processedNodes.delete(root);
 
-        // Start submitting it again
+        // start submitting it again
         this.startTreeWalker(root);
     }
 
@@ -417,7 +419,7 @@ class InPageTranslation {
     }
 
     /*
-     * Test whether any of the parent nodes are already in the process of being
+     * test whether any of the parent nodes are already in the process of being
      * translated. If the parent of the node is already translating we should 
      * reject it since we already sent it to translation.
      */
@@ -440,7 +442,7 @@ class InPageTranslation {
     }
 
     /*
-     * Test whether this node should be treated as a wrapper of text, e.g.
+     * test whether this node should be treated as a wrapper of text, e.g.
      * a `<p>`, or as a wrapper for block elements, e.g. `<div>`, based on
      * its contents. The first we submit for translation, the second we try to
      * split into smaller chunks of HTML for better latency.
@@ -469,7 +471,7 @@ class InPageTranslation {
     }
 
     /*
-     * Test whether any of the direct text nodes of this node are non-whitespace
+     * test whether any of the direct text nodes of this node are non-whitespace
      * text nodes.
      * 
      * For example:
@@ -493,7 +495,7 @@ class InPageTranslation {
     }
 
     /*
-     * Test whether this is an element we do not want to translate. These
+     * test whether this is an element we do not want to translate. These
      * are things like `<code>`, elements with a different `lang` attribute,
      * and elements that have a `translate=no` attribute.
      */
@@ -508,7 +510,7 @@ class InPageTranslation {
         if (node.lang && node.lang.substr(0,2) !== this.language) return true;
 
         /*
-         * Exclude elements that have an translate=no attribute
+         * exclude elements that have an translate=no attribute
          * (See https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/translate)
          */
         if (node.translate === false || node.getAttribute('translate') === 'no') return true;
@@ -520,7 +522,7 @@ class InPageTranslation {
     }
 
     /*
-     * Like `isExcludedNode` but looks at the full subtree. Used to see whether
+     * like `isExcludedNode` but looks at the full subtree. Used to see whether
      * we can submit a subtree, or whether we should split it into smaller
      * branches first to try to exclude more of the non-translatable content.
      */
@@ -529,7 +531,7 @@ class InPageTranslation {
     }
 
     /*
-     * Used by TreeWalker to determine whether to ACCEPT, REJECT or SKIP a
+     * used by TreeWalker to determine whether to ACCEPT, REJECT or SKIP a
      * subtree. Only checks if the element is acceptable. It does not check
      * whether the element has been translated already, which makes it usable
      * on parent nodes to validate whether a child node is in a translatable
@@ -542,20 +544,20 @@ class InPageTranslation {
      *   - FILTER_REJECT: skip this node and everything beneath it.
      */
     validateNode(node) {
-        // Don't resubmit subtrees that are already in progress (unless their
+        // don't resubmit subtrees that are already in progress (unless their
         // contents have been changed
         if (this.queuedNodes.has(node) || this.isParentQueued(node)) {
             // node.setAttribute("x-bergamot-translated", "rejected is-parent-translating");
             return NodeFilter.FILTER_REJECT;
         }
 
-        // Exclude nodes that we don't want to translate
+        // exclude nodes that we don't want to translate
         if (this.isExcludedNode(node)) {
             node.setAttribute("x-bergamot-translated", "rejected is-excluded-node");
             return NodeFilter.FILTER_REJECT;
         }
 
-        // Skip over subtrees that don"t have text
+        // skip over subtrees that don"t have text
         if (node.textContent.trim().length === 0) {
             node.setAttribute("x-bergamot-translated", "rejected empty-text-content");
             return NodeFilter.FILTER_REJECT;
@@ -575,25 +577,25 @@ class InPageTranslation {
     }
 
     /*
-     * Used by TreeWalker to determine whether to ACCEPT, REJECT or SKIP a
+     * used by TreeWalker to determine whether to ACCEPT, REJECT or SKIP a
      * subtree. Checks whether element is acceptable, and hasn't been
      * translated already.
      */
     validateNodeForQueue(node) {
-        // Skip nodes already seen (for the partial subtree change, or restart of the whole InPageTranslation process.)
+        // skip nodes already seen (for the partial subtree change, or restart of the whole InPageTranslation process.)
         if (this.processedNodes.has(node)) return NodeFilter.FILTER_REJECT;
 
         return this.validateNode(node);
     }
 
     /*
-     * Enqueue a node for translation. Called during startTreeWalker. Queues
+     * enqueue a node for translation. Called during startTreeWalker. Queues
      * are emptied by dispatchTranslation().
      */
     queueTranslation(node) {
         this.translationsCounter += 1;
 
-        // Debugging: mark the node so we can add CSS to see them
+        // debugging: mark the node so we can add CSS to see them
         node.setAttribute('x-bergamot-translated', this.translationsCounter);
 
         let priority = 2;
@@ -639,7 +641,7 @@ class InPageTranslation {
     }
 
     submitTranslation({id}, node) {
-        // Give each element an id that gets passed through the translation so we can later on reunite it.
+        // give each element an id that gets passed through the translation so we can later on reunite it.
         node.querySelectorAll('*').forEach((el, i) => {
             el.dataset.xBergamotId = i;
         });
@@ -655,11 +657,11 @@ class InPageTranslation {
             attrId: [id],
         });
 
-        // Keep reference to this node for once we receive a translation response.
+        // keep reference to this node for once we receive a translation response.
         this.pendingTranslations.set(id, node);
         this.submittedNodes.set(node, id);
 
-        // Also mark this node as not to be translated again unless the contents are changed (which the observer will pick up on)
+        // also mark this node as not to be translated again unless the contents are changed (which the observer will pick up on)
         this.processedNodes.add(node);
     }
 
@@ -787,7 +789,7 @@ class InPageTranslation {
                             console.warn(`[InPlaceTranslation] ${this.computePath(child, scratch)} Child ${child.outerHTML} has no text but counterpart ${counterpart.outerHTML} does`);
                             
                             /*
-                             * TODO: This scenario might be caused by one of two
+                             * todo: This scenario might be caused by one of two
                              * causes: 1) element was duplicated by translation
                              * but then not given text content. This happens on
                              * Wikipedia articles for example.
@@ -795,7 +797,7 @@ class InPageTranslation {
                             if (clonedNodes.has(counterpart.dataset.xBergamotId)) this.removeTextNodes(counterpart);
 
                             /*
-                             * Or 2) the translator messed up and could not
+                             * or 2) the translator messed up and could not
                              * translate the text. This happens on Youtube in the
                              * language selector. In that case, having the original
                              * text is much better than no text at all.
@@ -871,20 +873,20 @@ class InPageTranslation {
         const [id] = translationMessage.attrId;
         const translatedHTML = translationMessage.translatedParagraph;
         
-        // Look up node by message id. This can fail 
+        // look up node by message id. This can fail 
         const node = this.pendingTranslations.get(id);
         if (node === undefined) {
             console.debug('[in-page-translation] Message',id,'is not found in pendingTranslations');
             return;
         }
 
-        // Prune it.
+        // prune it.
         this.pendingTranslations.delete(id);
 
-        // Node still exists! Remove node -> (pending) message mapping
+        // node still exists! Remove node -> (pending) message mapping
         this.submittedNodes.delete(node);
         
-        // Queue node to be populated with translation next update.
+        // queue node to be populated with translation next update.
         this.translatedNodes.set(node, {id, translatedHTML});
 
         // we schedule the UI update
