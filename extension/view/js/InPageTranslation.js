@@ -249,6 +249,11 @@ class InPageTranslation {
      * elements to enqueue for translation.
      */
     startTreeWalker(root) {
+        // We're only interested in elements and maybe text. Ignore things like
+        // comments and possibly weird XML instructions.
+        if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.TEXT_NODE)
+            return;
+        
         // If the parent itself is rejected, we don't translate any children.
         // However, if this is a specifically targeted node, we don't do this
         // check. Mainly so we can exclude <head>, but include <title>.
