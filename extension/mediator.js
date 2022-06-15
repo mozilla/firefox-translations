@@ -255,7 +255,8 @@ class Mediator {
             this.languageDetection.pageLanguage,
             message.payload.attrId,
             message.payload.withOutboundTranslation,
-            message.payload.withQualityEstimation
+            message.payload.withQualityEstimation,
+            message.payload.isHTML
         );
         this.translation.translate(translationMessage);
         // console.log("new translation message sent:", translationMessage, "msg sender lookuptable size:", this.messagesSenderLookupTable.size);

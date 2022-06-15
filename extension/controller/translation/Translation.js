@@ -170,7 +170,8 @@ class Translation {
         pageLanguage,
         attrId,
         withOutboundTranslation,
-        withQualityEstimation
+        withQualityEstimation,
+        isHTML
     ) {
 
         /*
@@ -182,7 +183,7 @@ class Translation {
         translationMessage.messageID = this.translationsMessagesCounter;
         translationMessage.sourceParagraph = sourceParagraph;
         // let's revisit this later, since passing false here when there's plain text is breaking
-        translationMessage.isHTML = true; // this.htmlRegex.test(sourceParagraph);
+        translationMessage.isHTML = isHTML;
         switch (type) {
             case "outbound":
                 translationMessage.sourceLanguage = navigatorLanguage;

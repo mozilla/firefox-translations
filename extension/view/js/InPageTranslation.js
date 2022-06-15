@@ -165,22 +165,14 @@ class InPageTranslation {
         ])
 
         this.observer = new MutationObserver(mutationsList => {
-            // little helper to always submit a full element.
-            const submitElement = (node) => {
-                while (node.nodeType !== Node.ELEMENT_NODE)
-                    node = node.parentNode;
-                
-                this.restartTreeWalker(node);
-            };
-
             reportErrorsWrap(() => {
                 for (const mutation of mutationsList) {
                     switch (mutation.type) {
                         case "childList":
-                            mutation.addedNodes.forEach(submitElement);
+                            mutation.addedNodes.forEach(this.restartTreeWalker.bind(this));
                             break;
                         case "characterData":
-                            submitElement(mutation.target);
+                            this.restartTreeWalker(mutation.target);
                             break;
                     }
                 }
@@ -327,8 +319,6 @@ class InPageTranslation {
      * elements to enqueue for translation.
      */
     startTreeWalker(root) {
-        console.assert(root.nodeType === Node.ELEMENT_NODE);
-
         /* 
          * if the parent itself is rejected, we don't translate any children.
          * However, if this is a specifically targeted node, we don't do this
@@ -402,6 +392,9 @@ class InPageTranslation {
     }
 
     isElementInViewport(element) {
+        // eslint-disable-next-line no-param-reassign
+        if (element.nodeType === Node.TEXT_NODE) element = element.parentElement;
+
         const rect = element.getBoundingClientRect();
         return (
             rect.top >= 0 &&
@@ -412,6 +405,9 @@ class InPageTranslation {
     }
 
     isElementHidden(element) {
+        // eslint-disable-next-line no-param-reassign
+        if (element.nodeType === Node.TEXT_NODE) element = element.parentElement;
+
         const computedStyle = window.getComputedStyle(element);
         return computedStyle.display === "none" ||
                 computedStyle.visibility === "hidden" ||
@@ -448,6 +444,8 @@ class InPageTranslation {
      * split into smaller chunks of HTML for better latency.
      */
     hasInlineContent(node) {
+        if (node.nodeType === Node.TEXT_NODE) return true;
+
         let inlineElements = 0;
         let blockElements = 0;
 
@@ -480,6 +478,7 @@ class InPageTranslation {
      *   - `<p><b>test</b></p>`: no
      */
     hasTextNodes(node) {
+        if (node.nodeType !== Node.ELEMENT_NODE) return false;
         // there is probably a quicker way to do this
         for (let child of node.childNodes) {
             switch (child.nodeType) {
@@ -500,6 +499,9 @@ class InPageTranslation {
      * and elements that have a `translate=no` attribute.
      */
     isExcludedNode(node) {
+        // text nodes are never excluded
+        if (node.nodeType === Node.TEXT_NODE) return false;
+
         // exclude certain elements
         if (this.excludedTags.has(node.nodeName.toLowerCase())) return true;
 
@@ -527,7 +529,7 @@ class InPageTranslation {
      * branches first to try to exclude more of the non-translatable content.
      */
     containsExcludedNode(node) {
-        return node.querySelector(this.excludedNodeSelector);
+        return node.nodeType === Node.ELEMENT_NODE && node.querySelector(this.excludedNodeSelector);
     }
 
     /*
@@ -544,6 +546,11 @@ class InPageTranslation {
      *   - FILTER_REJECT: skip this node and everything beneath it.
      */
     validateNode(node) {
+        // little helper to add markings to elements for debugging
+        const mark = (value) => {
+            if (node.nodeType === Node.ELEMENT_NODE) node.setAttribute("x-bergamot-translated", value);
+        };
+
         // don't resubmit subtrees that are already in progress (unless their
         // contents have been changed
         if (this.queuedNodes.has(node) || this.isParentQueued(node)) {
@@ -553,23 +560,23 @@ class InPageTranslation {
 
         // exclude nodes that we don't want to translate
         if (this.isExcludedNode(node)) {
-            node.setAttribute("x-bergamot-translated", "rejected is-excluded-node");
+            mark("rejected is-excluded-node");
             return NodeFilter.FILTER_REJECT;
         }
 
         // skip over subtrees that don"t have text
         if (node.textContent.trim().length === 0) {
-            node.setAttribute("x-bergamot-translated", "rejected empty-text-content");
+            mark("rejected empty-text-content");
             return NodeFilter.FILTER_REJECT;
         }
 
         if (!this.hasInlineContent(node)) {
-            node.setAttribute("x-bergamot-translated", "skipped does-not-have-text-of-its-own");
+            mark("skipped does-not-have-text-of-its-own");
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper
         }
 
         if (this.containsExcludedNode(node) && !this.hasTextNodes(node)) {
-            node.setAttribute("x-bergamot-translated", "skipped contains-excluded-node");
+            mark("skipped contains-excluded-node");
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper
         }
 
@@ -596,7 +603,7 @@ class InPageTranslation {
         this.translationsCounter += 1;
 
         // debugging: mark the node so we can add CSS to see them
-        node.setAttribute('x-bergamot-translated', this.translationsCounter);
+        if (node.nodeType === Node.ELEMENT_NODE) node.setAttribute("x-bergamot-translated", this.translationsCounter);
 
         let priority = 2;
         if (this.isElementHidden(node)) priority = 3;
@@ -642,15 +649,18 @@ class InPageTranslation {
 
     submitTranslation({id}, node) {
         // give each element an id that gets passed through the translation so we can later on reunite it.
-        node.querySelectorAll('*').forEach((el, i) => {
-            el.dataset.xBergamotId = i;
-        });
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            node.querySelectorAll('*').forEach((el, i) => {
+                el.dataset.xBergamotId = i;
+            });
+        }
 
-        const text = node.innerHTML;
+        const text = node.nodeType === Node.ELEMENT_NODE ? node.innerHTML : node.textContent;
         if (text.trim().length === 0) return;
 
         this.notifyMediator("translate", {
             text,
+            isHTML: node.nodeType === Node.ELEMENT_NODE,
             type: "inpage",
             withOutboundTranslation: this.withOutboundTranslation,
             withQualityEstimation: this.withQualityEstimation,
@@ -829,14 +839,44 @@ class InPageTranslation {
             };
 
             merge(node, scratch);
+
+            return node;
+        };
+
+        const updateTextNode = ({id, translatedHTML}, node) => {
+            // when we're getting quality estimations back, translatedHTML is
+            // indeed actual HTML with font tags containing that info.
+            if (this.withQualityEstimation) {
+                const nonLiveDomContainer = document.createElement("template");
+                nonLiveDomContainer.innerHTML = translatedHTML;
+
+                const fragment = document.createDocumentFragment();
+                for (let child of nonLiveDomContainer.content.childNodes) {
+                    if (this.hasOnlyQEAttributes(child)) {
+                        fragment.appendChild(child);
+                    }
+                }
+                node.parentNode.replaceChild(fragment, node);
+                return fragment;
+            } else {
+                node.textContent = translatedHTML;
+                return node;
+            }
         };
 
         // pause observing mutations
         this.stopMutationObserver();
 
         try {
-            this.translatedNodes.forEach(updateElement);
-            if (this.withQualityEstimation) this.reportQualityEstimation(this.translatedNodes.keys());
+            const touchedNodes = Array.from(this.translatedNodes, ([node, message]) => {
+                switch (node.nodeType) {
+                    case Node.TEXT_NODE:
+                        return updateTextNode(message, node);
+                    case Node.ELEMENT_NODE:
+                        return updateElement(message, node);
+                }
+            });
+            if (this.withQualityEstimation) this.reportQualityEstimation(touchedNodes);
             this.translatedNodes.clear();
             this.updateTimeout = null;
             if (this.withQualityEstimation) this.addQualityClasses();
