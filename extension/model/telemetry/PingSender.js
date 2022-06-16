@@ -2,7 +2,7 @@
  * sends telemetry pings to telemetry API
  */
 
-/* global settings, browser, Sentry */
+/* global settings, browser, Sentry, uuidv4 */
 
 const DELETION_REQUEST_PING = "deletion-request";
 const TELEMETRY_APP_ID = "firefox-translations";
@@ -36,7 +36,7 @@ class PingSender {
                 this._firstRunDate = state[STORAGE_FIRST_RUN];
             } else {
                 // this information is generated once for a user
-                this._clientId = self.crypto.randomUUID();
+                this._clientId = uuidv4();
                 this._seq = {};
                 this._firstRunDate = new Date().toISOString()
                 await this._save();
@@ -95,7 +95,7 @@ class PingSender {
             if ((!this._uploadEnabled && pingName !== DELETION_REQUEST_PING) || !settings.uploadTelemetry) {
                 this._log("uploading is disabled, ping is not sent")
             } else {
-                let uuid = self.crypto.randomUUID();
+                let uuid = uuidv4();
                 // we imitate behavior of glean.js 0.15.0
                 let headers = {
                     "Content-Type": "application/json; charset=utf-8",

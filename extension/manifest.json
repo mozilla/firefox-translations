@@ -36,6 +36,7 @@
       "settings.js",
       "controller/translation/bergamotTranslatorVersion.js",
       "model/telemetry/schema.js",
+      "model/uuid.js",
       "model/telemetry/PingSender.js",
       "controller/languageDetection/LanguageDetection.js",
       "controller/languageDetection/fasttext_wasm.js",
@@ -72,6 +73,7 @@
         "controller/languageDetection/LanguageDetection.js",
         "view/js/OutboundTranslation.js",
         "view/js/InPageTranslation.js",
+        "model/uuid.js",
         "mediator.js"
       ],
       "css": [
