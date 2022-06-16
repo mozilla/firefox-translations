@@ -35,6 +35,8 @@ class TranslationHelper {
                 "lex": 64,
                 "vocab": 64,
                 "qualityModel": 64,
+                "srcvocab": 64,
+                "trgvocab": 64,
             }
         }
 
