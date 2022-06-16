@@ -143,8 +143,9 @@ const messageListener = function(message, sender) {
            * call the cld experiment to detect the language of the snippet
            * extracted from the page
            */
+          const cleanedWords = message.languageDetection.wordsToDetect.toLowerCase().trim().replace(/(\r\n|\n|\r)/gm, " ");
           let pageLanguage = modelFastText
-            .predict(message.languageDetection.wordsToDetect.trim().replace(/(\r\n|\n|\r)/gm, ""), 1, 0.0)
+            .predict(cleanedWords, 1, 0.0)
             .get(0)[1]
             .replace("__label__", "");
 
