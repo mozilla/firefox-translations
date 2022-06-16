@@ -11,45 +11,16 @@
 window.MozTranslationNotification = class extends MozElements.Notification {
   static get markup() {
     return `
-      <hbox anonid="details" align="center" flex="1">
-        <image  anonid="logoIcon" class="messageImage"/>
-        <deck anonid="translationStates" selectedIndex="0">
-          <hbox class="translate-offer-box" align="center">
-            <label value="&translation.thisPageIsIn.label;"/>
-            <menulist class="notification-button" anonid="detectedLanguage" oncommand="this.closest('notification').fromLanguageChanged();">
-              <menupopup/>
-            </menulist>
-            <button class="notification-button primary" label="&translation.translate.button;" anonid="translate" oncommand="this.closest('notification').onTranslate();"/>
-            <checkbox anonid="outboundtranslations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onOutboundClick();" />
-            <checkbox anonid="qualityestimations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onQeClick();"/>
-          </hbox>
-          <vbox class="translating-box" pack="center">
-            <hbox class="translate-offer-box" align="center">
-              <label value="&translation.translatingContent.label;" style="display:none"/>
-              <label anonid="progress-label" value="" style="padding-left:5px;"/>
-            </hbox>
-          </vbox>
-        </deck>
-        <spacer flex="1"/>
-        <hbox anonid="aftertranslatedOptions" class="translating-box" pack="center" style="display:none">
-          <button class="notification-button" label="" anonid="translateAsBrowse" oncommand="this.closest('notification').translateAsBrowse();"/>
-          <button class="notification-button" label="" anonid="survey" oncommand="this.closest('notification').onSurveyClick();"/>
-        </hbox>
-        <button type="menu" class="notification-button" anonid="options" label="&translation.options.menu;">
-          <menupopup class="translation-menupopup" onpopupshowing="this.closest('notification').optionsShowing();">
-            <menuitem anonid="neverForLanguage" oncommand="this.closest('notification').neverForLanguage();"/>
-            <menuitem anonid="neverForSite" oncommand="this.closest('notification').neverForSite();" label="&translation.options.neverForSite.label;" accesskey="&translation.options.neverForSite.accesskey;"/>
-            <menuseparator/>
-            <menuitem oncommand="openPreferences('paneGeneral');" label="&translation.options.preferences.label;" accesskey="&translation.options.preferences.accesskey;"/>
-            <menuseparator/>
-            <menuitem anonid="displayStatistics" oncommand="this.closest('notification').displayStatistics();" label=""/>
-            </menupopup>
-        </button>
-      </hbox>
-      <toolbarbutton anonid="closeButton" ondblclick="event.stopPropagation();"
-                     class="messageCloseButton close-icon tabbable"
-                     tooltiptext="&closeNotification.tooltip;"
-                     oncommand="this.parentNode.closeCommand();"/>
+    <hbox class="messageDetails" align="center" flex="1"
+    oncommand="this.parentNode._doButtonCommand(event);">
+<image class="messageImage"/>
+<description value="Hello HelloHello HelloHello HelloHello HelloHello HelloHello HelloHello HelloHello HelloHello HelloHello HelloHello HelloHello HelloHello HelloHello HelloHello HelloHello HelloHello Hello" class="messageText" flex="1"/>
+<spacer flex="1"/>
+</hbox>
+<toolbarbutton ondblclick="event.stopPropagation();"
+             class="messageCloseButton close-icon tabbable"
+             tooltiptext="&closeNotification.tooltip;"
+             oncommand="this.parentNode.dismiss();"/>
     `;
   }
 
