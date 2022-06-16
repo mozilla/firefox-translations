@@ -4,7 +4,7 @@ on:
     branches: [ main ]
   schedule:
     - cron: '30 1 * * *'
-  pull_request:  
+  pull_request:
 jobs:
   build:
     runs-on: macos-latest
@@ -16,5 +16,7 @@ jobs:
           node-version: '17.x'
       - run: npm install
       - run: brew install git-cinnabar
-      - name: Run test
+      - name: Run e2e test on master
         run: python3 scripts/tests/e2e-tests.py
+      - name: Run e2e test on esr91
+        run: python3 scripts/tests/e2e-tests-esr91.py
