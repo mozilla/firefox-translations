@@ -4,7 +4,7 @@
  */
 
 /* global LanguageDetection, OutboundTranslation, Translation , browser,
-InPageTranslation, browser, modelRegistryVersion, reportErrorsWrap */
+InPageTranslation, browser, modelRegistryVersion, reportErrorsWrap, uuidv4 */
 
 /* eslint-disable max-lines */
 
@@ -126,7 +126,7 @@ class Mediator {
                     }
 
                     if (message.payload.type === "outbound") {
-                        if (!sender.selectedTextArea.id) sender.selectedTextArea.id = self.crypto.randomUUID();
+                        if (!sender.selectedTextArea.id) sender.selectedTextArea.id = uuidv4();
                         browser.runtime.sendMessage({
                             command: "reportOutboundStats",
                             tabId: this.tabId,
