@@ -17,6 +17,7 @@ subprocess.call("rm -rf mozilla-esr91".split(), cwd=root)
 subprocess.call("npm run build-test".split(), cwd=root)
 # then we clone gecko
 subprocess.call("git clone hg::https://hg.mozilla.org/mozilla-unified mozilla-esr91".split(), cwd=root)
+subprocess.check_output("./mach bootstrap", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="mozilla-esr91")
 subprocess.call("git checkout bookmarks/esr91".split(), cwd="mozilla-esr91")
 # create the folder for the extension
 subprocess.call("rm -rf mozilla-esr91/browser/extensions/translations/extension".split(), cwd=root)
@@ -78,7 +79,6 @@ print("****** Test with fallback gemm ******")
 
 try:
     print("Building mozilla-esr91")
-    subprocess.check_output("./mach bootstrap", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="mozilla-esr91")
     subprocess.check_output("./mach build", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="mozilla-esr91")
     print("Running test with fallback gemm")
     subprocess.check_output("./mach test --setpref=fxtranslations.running.mochitest=true browser/extensions/translations/test/browser/browser_translation_test.js", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="mozilla-esr91")
