@@ -16,7 +16,7 @@ subprocess.call("rm -rf gecko".split(), cwd=root)
 subprocess.call("npm run build-test".split(), cwd=root)
 # then we clone gecko
 subprocess.call("git clone hg::https://hg.mozilla.org/mozilla-central gecko".split(), cwd=root)
-# We then remove the old extension
+# create the folder for the extension
 subprocess.call("mkdir -p gecko/browser/extensions/translations/extension".split(), cwd=root)
 # and extract the newly one built there
 subprocess.call("unzip web-ext-artifacts/firefox_translations.xpi -d gecko/browser/extensions/translations/extension/".split(), cwd=root)
