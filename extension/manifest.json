@@ -81,6 +81,9 @@
 		"32": "/view/icons/translation.32x32.png"
 	},
 	"web_accessible_resources": [
+		"view/fonts/FlowBlock-Regular.woff2",
+		"view/fonts/FlowCircular-Regular.woff2",
+		"view/fonts/FlowRounded-Regular.woff2",
 		"view/static/benchmark.html",
 		"view/static/benchmark.js",
 		"view/static/benchmark.css",

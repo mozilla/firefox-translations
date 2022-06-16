@@ -35,6 +35,17 @@
         <p>Mainly useful for benchmarking and debugging. <a data-bind:href="benchmarkURL" target="blank_">Benchmark page</a></p>
       </div>
     </div>
+    <div class="panel-section panel-section-formElements">
+      <div class="panel-formElements-item">
+        <label for="progress-indicator">Progress indicator:</label>
+        <select id="progress-indicator" data-bind:value="progressIndicator">
+          <option value="">None (default)</option>
+          <option value="flow-block">Hide text (block)</option>
+          <option value="flow-rounded">Hide text (rounded)</option>
+          <option value="flow-circular">Hide text (circular)</option>
+        </select>
+      </div>
+    </div>
     <script src="../../controller/translation/compat.js"></script>
     <script src="common.js"></script>
     <script src="options.js"></script>

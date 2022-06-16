@@ -33,6 +33,16 @@ for (let i = 0; i < 4; ++i) {
     loadingRings.appendChild(document.createElement('div'));
 }
 
+// Loading indicator for html element translation
+compat.storage.local.get({progressIndicator:''}).then(state => {
+    document.body.setAttribute('x-bergamot-indicator', state.progressIndicator);
+});
+
+compat.storage.local.onChanged.addListener(changes => {
+    if ('progressIndicator' in changes)
+        document.body.setAttribute('x-bergamot-indicator', changes.progressIndicator.newValue);
+});
+
 function on(command, callback) {
     if (!listeners.has(command))
         listeners.set(command, []);
