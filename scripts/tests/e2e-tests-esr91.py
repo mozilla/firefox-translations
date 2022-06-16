@@ -78,6 +78,7 @@ print("****** Test with fallback gemm ******")
 
 try:
     print("Building mozilla-esr91")
+    subprocess.check_output("./mach bootstrap", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="mozilla-esr91")
     subprocess.check_output("./mach build", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="mozilla-esr91")
     print("Running test with fallback gemm")
     subprocess.check_output("./mach test --setpref=fxtranslations.running.mochitest=true browser/extensions/translations/test/browser/browser_translation_test.js", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="mozilla-esr91")
