@@ -122,15 +122,43 @@ const translationNotificationManagers = new Map();
                 }
 
                 const notificationBox = tab.browser.ownerGlobal.gBrowser.getNotificationBox(tab.browser);
-                let notif = notificationBox.appendNotification("fxtranslation-notification", {
-                    priority: notificationBox.PRIORITY_INFO_HIGH,
-                    eventCallback() {
-                      // removed / dismissed / disconnected in any way.
-                      translationNotificationManagers.delete(tabId);
-                      // ^ may also happen when the tab is navigated.
-                    },
-                    notificationIs: TRANSLATION_NOTIFICATION_ELEMENT_ID,
-                });
+                let notif = null;
+
+                /*
+                 * we need to check if the notificationBox.appendNotification
+                 * requires 7 positional arguments and instantiate it differently
+                 * in order to keep it compatible with older Fx versions
+                 * see: https://github.com/mozilla/firefox-translations/issues/363#issuecomment-1151022189
+                 */
+                const notificationId = "fxtranslation-notification";
+                const priority = notificationBox.PRIORITY_INFO_HIGH;
+                const eventCallback = () => {
+                  // removed / dismissed / disconnected in any way.
+                  translationNotificationManagers.delete(tabId);
+                  // ^ may also happen when the tab is navigated.
+                 };
+                const notificationIs = TRANSLATION_NOTIFICATION_ELEMENT_ID;
+
+                if (notificationBox.appendNotification.length === 7) {
+                  // firefox 93 and earlier
+                  notif = notificationBox.appendNotification(
+                    null,
+                    notificationId,
+                    null,
+                    priority,
+                    null,
+                    eventCallback,
+                    notificationIs
+                  );
+                } else {
+                  // firefox 94 and later
+                  notif = notificationBox.appendNotification(notificationId, {
+                    priority,
+                    eventCallback,
+                    notificationIs,
+                  });
+                }
+
                 let translationNotificationManager = new TranslationNotificationManager(
                   this,
                   modelRegistry,

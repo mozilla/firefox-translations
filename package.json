@@ -1,7 +1,9 @@
 {
   "name": "firefox_translations",
   "scripts": {
-    "test": "if [[ -z \"${MOZ_AUTOMATION}\" ]]; then python scripts/tests/e2e-tests.py; fi",
+    "test": "if [[ -z \"${MOZ_AUTOMATION}\" ]]; then npm run test-esr; npm run test-master; fi",
+    "test-esr":  "python scripts/tests/e2e-tests-esr91.py",
+    "test-master":  "python scripts/tests/e2e-tests.py",
     "lint:js": "eslint -c  .eslintrc.js extension",
     "build": "cp extension/settings/prod.js extension/settings.js; npm run update-localization; web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
     "build-test": "cp extension/settings/test.js extension/settings.js; npm run update-localization; web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
