@@ -738,10 +738,13 @@ class InPageTranslation {
                  * an (indexed) reference to them since we will be adding them
                  * back, but possibly in a different order.
                  */
-                const dstChildNodes = Object.fromEntries(Array.from(dst.childNodes)
-                    .map(child => dst.removeChild(child))
+                const nodes = Array.from(dst.childNodes).map(child => dst.removeChild(child));
+
+                const dstChildNodes = Object.fromEntries(nodes
                     .filter(child => child.nodeType === Node.ELEMENT_NODE)
                     .map(child => [child.dataset.xBergamotId, child]));
+
+                const dstTextNodes = nodes.filter(child => child.nodeType === Node.TEXT_NODE);
 
                 const srcChildNodes = new Set(Array.from(src.childNodes)
                     .filter(child => child.nodeType === Node.ELEMENT_NODE)
@@ -819,9 +822,15 @@ class InPageTranslation {
                          * it has been synced with the translated text and order.
                          */
                         dst.appendChild(counterpart);
-                    } else {
-                        // all other node types we just copy in directly
-                        dst.appendChild(child);
+                    } else if (child.nodeType === Node.TEXT_NODE) {
+                        let counterpart = dstTextNodes.shift();
+
+                        if (counterpart !== undefined)
+                            counterpart.data = child.data;
+                        else
+                            counterpart = child;
+
+                        dst.appendChild(counterpart);
                     }
                 });
 
