@@ -621,8 +621,12 @@ class InPageTranslation {
                 // Remove all live nodes at this branch of the tree, but keep
                 // an (indexed) reference to them since we will be adding them
                 // back, but possibly in a different order.
-                const dstChildNodes = Object.fromEntries(Array.from(dst.childNodes)
-                    .map(child => dst.removeChild(child))
+                const dstNodes = Array.from(dst.childNodes)
+                    .map(child => dst.removeChild(child));
+
+                const dstTextNodes = dstNodes.filter(child => child.nodeType === Node.TEXT_NODE);
+
+                const dstChildNodes = Object.fromEntries(dstNodes
                     .filter(child => child.nodeType === Node.ELEMENT_NODE)
                     .map(child => [child.dataset.xBergamotId, child]));
 
@@ -673,8 +677,20 @@ class InPageTranslation {
                         // Put the live node back in the live branch. But now
                         // it has been synced with the translated text and order.
                         dst.appendChild(counterpart);
+                    } else if (child.nodeType === Node.TEXT_NODE) {
+                        // Reuse a text node
+                        let counterpart = dstTextNodes.shift();
+
+                        // If no more text nodes were available to reuse, just
+                        // take the child node we'd have copied otherwise.
+                        if (counterpart !== undefined)
+                            counterpart.data = child.data;
+                        else
+                            counterpart = child;
+
+                        dst.appendChild(counterpart);
                     } else {
-                        // All other node types we just copy in directly
+                        // Maybe a comment or something, not particularly interesting
                         dst.appendChild(child);
                     }
                 });
@@ -697,7 +713,7 @@ class InPageTranslation {
         };
 
         const updateTextNode = ({id, translated}, node) => {
-            node.textContent = translated;
+            node.data = translated;
         };
 
         // Pause observing mutations
