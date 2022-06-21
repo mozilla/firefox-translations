@@ -8,7 +8,7 @@ Firefox Translations is a WebExtension that enables client side in-page translat
 
 The current release version is available for installation on Mozilla Add-ons 
 
-[![AMO](https://ffp4g1ylyit3jdyti1hqcvtb-wpengine.netdna-ssl.com/addons/files/2015/11/get-the-addon-small.png)](https://addons.mozilla.org/en-US/firefox/addon/firefox-translations/)
+[![AMO](https://ffp4g1ylyit3jdyti1hqcvtb-wpengine.netdna-ssl.com/addons/files/2015/11/get-the-addon-small.png)](https://addons.mozilla.org/firefox/addon/firefox-translations/)
 
 ## Supported languages
 
