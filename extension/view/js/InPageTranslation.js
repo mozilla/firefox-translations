@@ -751,7 +751,7 @@ class InPageTranslation {
                     .map(child => child.dataset.xBergamotId));
 
                 // src (translated) dictates the order.
-                Array.from(src.childNodes).forEach(child => {
+                Array.from(src.childNodes).forEach((child, index, siblings) => {
                     // element nodes we try to use the already existing DOM nodes
                     if (child.nodeType === Node.ELEMENT_NODE) {
 
@@ -806,15 +806,14 @@ class InPageTranslation {
                              * causes: 1) element was duplicated by translation
                              * but then not given text content. This happens on
                              * Wikipedia articles for example.
-                             */
-                            if (clonedNodes.has(counterpart.dataset.xBergamotId)) this.removeTextNodes(counterpart);
-
-                            /*
-                             * or 2) the translator messed up and could not
+                             * Or 2) the translator messed up and could not
                              * translate the text. This happens on Youtube in the
                              * language selector. In that case, having the original
                              * text is much better than no text at all.
+                             * To make sure it is this case, and not option 2
+                             * we check whether this is the only occurrence.
                              */
+                            if (siblings.some((sibling, i) => sibling.nodeType === Node.ELEMENT_NODE && index !== i && child.dataset.xBergamotId === sibling.dataset.xBergamotId)) removeTextNodes(counterpart);
                         }
 
                         /*
