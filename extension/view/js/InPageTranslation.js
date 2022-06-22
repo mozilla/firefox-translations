@@ -631,7 +631,7 @@ class InPageTranslation {
                     .map(child => [child.dataset.xBergamotId, child]));
 
                 // src (translated) dictates the order.
-                Array.from(src.childNodes).forEach(child => {
+                Array.from(src.childNodes).forEach((child, index, siblings) => {
                     // Element nodes we try to use the already existing DOM nodes
                     if (child.nodeType === Node.ELEMENT_NODE) {
                         // Find an element in the live tree that matches the
@@ -665,13 +665,14 @@ class InPageTranslation {
                             // causes: 1) element was duplicated by translation
                             // but then not given text content. This happens on
                             // Wikipedia articles for example.
-                            if (clonedNodes.has(counterpart.dataset.xBergamotId))
-                                removeTextNodes(counterpart);
-
                             // Or 2) the translator messed up and could not
                             // translate the text. This happens on Youtube in the
                             // language selector. In that case, having the original
                             // text is much better than no text at all.
+                            // To make sure it is this case, and not option 2
+                            // we check whether this is the only occurrence.
+                            if (siblings.some((sibling, i) => sibling.nodeType === Node.ELEMENT_NODE && index !== i && child.dataset.xBergamotId === sibling.dataset.xBergamotId))
+                                removeTextNodes(counterpart);
                         }
 
                         // Put the live node back in the live branch. But now
