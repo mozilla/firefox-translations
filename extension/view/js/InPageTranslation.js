@@ -855,6 +855,13 @@ class InPageTranslation {
         };
 
         const updateTextNode = ({id, translatedHTML}, node) => {
+            // regardless of withQualityEstimation, if translatedHTML is empty
+            // we have an empty string as output. Which is useless.
+            if (translatedHTML.trim().length === 0) {
+                console.warn('[InPlaceTranslation] text node', node, 'translated to <empty string>');
+                return node;
+            }
+
             // when we're getting quality estimations back, translatedHTML is
             // indeed actual HTML with font tags containing that info.
             if (this.withQualityEstimation) {
