@@ -733,7 +733,10 @@ class InPageTranslation {
         };
 
         const updateTextNode = ({id, translated}, node) => {
-            node.data = translated;
+            if (translated.trim().length === 0)
+                console.warn('[InPlaceTranslation] text node', node, 'translated to', translated);
+            else
+                node.data = translated;
         };
 
         // Pause observing mutations
