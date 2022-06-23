@@ -631,7 +631,16 @@ class InPageTranslation {
                 const dstNodes = Array.from(dst.childNodes)
                     .map(child => dst.removeChild(child));
 
-                const dstTextNodes = dstNodes.filter(child => child.nodeType === Node.TEXT_NODE);
+                const dstTextNodes = dstNodes.filter(child => {
+                    if (child.nodeType !== Node.TEXT_NODE)
+                        return false;
+
+                    // because of how bad bergamot-translator is with putting
+                    // whitespace back in the right place, don't reuse these,
+                    // they'll only cause mismatches between textual text nodes.
+                    if (child.data.trim().length == 0)
+                        return false;
+                });
 
                 const dstChildNodes = Object.fromEntries(dstNodes
                     .filter(child => child.nodeType === Node.ELEMENT_NODE)
@@ -702,6 +711,9 @@ class InPageTranslation {
                         dst.appendChild(child);
                     }
                 });
+
+                if (dstTextNodes.length)
+                    console.warn(`[InPageTranslation] ${computePath(src, scratch)} Not all text nodes re-used, left:`, dstTextNodes);
 
                 const lost = Object.values(dstChildNodes)
                     .filter(child => !child.parentNode);
