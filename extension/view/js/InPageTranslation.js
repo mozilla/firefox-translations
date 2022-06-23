@@ -74,7 +74,6 @@ class InPageTranslation {
         // tags that are treated as "meh inline tags just send them to the translator"
         this.inlineTags = new Set([
             "abbr",
-            "a",
             "b",
             "em",
             "i",
@@ -101,7 +100,14 @@ class InPageTranslation {
             "th",
             "td",
             "li",
-            "br"
+            "br",
+        ]);
+
+        // Tags that give no hint about the inline-ness of their contents
+        // because of how they are used in modern web development.
+        this.genericTags = new Set([
+            "a",
+            "span",
         ]);
 
         // tags that we do not want to translate
@@ -454,13 +460,10 @@ class InPageTranslation {
                 case Node.TEXT_NODE:
                     if (child.textContent.trim().length > 0) inlineElements+=1;
                     break;
-
                 case Node.ELEMENT_NODE: // element
-                    if (this.inlineTags.has(child.nodeName.toLowerCase()) ||
-                        (child.nodeName.toLowerCase() === "span" && this.hasInlineContent(child))) inlineElements+=1;
-                    else blockElements+=1;
-                    break;
-                default:
+                    if (this.inlineTags.has(child.nodeName.toLowerCase())) inlineElements++;
+                    else if (this.genericTags.has(child.nodeName.toLowerCase()) && this.hasInlineContent(child)) inlineElements++;
+                    else blockElements++;
                     break;
             }
         }
