@@ -816,7 +816,7 @@ class InPageTranslation {
                              * To make sure it is this case, and not option 2
                              * we check whether this is the only occurrence.
                              */
-                            if (siblings.some((sibling, i) => sibling.nodeType === Node.ELEMENT_NODE && index !== i && child.dataset.xBergamotId === sibling.dataset.xBergamotId)) removeTextNodes(counterpart);
+                            if (siblings.some((sibling, i) => sibling.nodeType === Node.ELEMENT_NODE && index !== i && child.dataset.xBergamotId === sibling.dataset.xBergamotId)) this.removeTextNodes(counterpart);
                         }
 
                         /*
