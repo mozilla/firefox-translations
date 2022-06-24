@@ -21,6 +21,8 @@ The current release version is available for installation on Mozilla Add-ons
 - Bulgarian
 - Portuguese
 - Italian
+- French
+- Polish
 
 #### Development
 - Russian
@@ -28,6 +30,7 @@ The current release version is available for installation on Mozilla Add-ons
 - Icelandic
 - Norwegian Nynorsk
 - Norwegian Bokmål 
+- Ukrainian
 
 ## Testing
 
