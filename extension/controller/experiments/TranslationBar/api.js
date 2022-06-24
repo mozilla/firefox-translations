@@ -191,7 +191,7 @@ const translationNotificationManagers = new Map();
               return Services.intl.getLanguageDisplayNames(undefined, [languageCode,])[0];
             },
             isMochitest: function isMochitest() {
-              const isMochitest = Services.prefs.getBoolPref("fxtranslations.running.mochitest");
+              const isMochitest = Services.prefs.getBoolPref("fxtranslations.running.mochitest", false);
               return isMochitest;
             },
            onTranslationRequest: new ExtensionCommon.EventManager({
