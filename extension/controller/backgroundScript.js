@@ -140,13 +140,13 @@ const messageListener = function(message, sender) {
           }
 
           /*
-           * call the cld experiment to detect the language of the snippet
+           * call fasttext to detect the language of the snippet
            * extracted from the page
            */
           const cleanedWords = message.languageDetection.wordsToDetect
-                      .toLowerCase()
-                      .trim()
-                      .replace(/(\r\n|\n|\r)/gm, " ");
+            .toLowerCase()
+            .trim()
+            .replace(/(\r\n|\n|\r)/gm, " ");
           let pageLanguage = modelFastText
             .predict(cleanedWords, 1, 0.0)
             .get(0)[1]
