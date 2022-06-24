@@ -72,7 +72,7 @@ let translationRequestsByTab = new Map();
 let outboundRequestsByTab = new Map();
 const translateAsBrowseMap = new Map();
 let isMochitest = false;
-const languageModelFileTypes = ["model", "lex", "vocab", "qualityModel"];
+const languageModelFileTypes = ["model", "lex", "vocab", "qualityModel", "srcvocab", "trgvocab"];
 const CACHE_NAME = "fxtranslations";
 
 const init = () => {
@@ -509,6 +509,9 @@ const getLanguageModels = async (tabId, languagePairs) => {
   languageModels.forEach((languageModel, index) => {
     let clonedLanguagePair = { ...languagePairs[index] };
     clonedLanguagePair.languageModelBlobs = languageModel;
+    clonedLanguagePair.precision = modelRegistry[clonedLanguagePair.name].model.name.endsWith("intgemm8.bin")
+      ? "int8shiftAll"
+      : "int8shiftAlphaAll";
     result.push(clonedLanguagePair);
   });
   return result;
@@ -516,17 +519,17 @@ const getLanguageModels = async (tabId, languagePairs) => {
 
 const getLanguageModel = async (tabId, languagePair) => {
   let languageModelPromise = [];
-  languageModelFileTypes
+  let filesToLoad = languageModelFileTypes
       .filter(fileType => fileType !== "qualityModel" || languagePair.withQualityEstimation)
-      .filter(fileType => Reflect.apply(Object.prototype.hasOwnProperty, modelRegistry[languagePair.name], [fileType]))
-      .forEach(fileType => languageModelPromise.push(downloadFile(tabId, fileType, languagePair.name))); // eslint-disable-line no-use-before-define
+      .filter(fileType => fileType in modelRegistry[languagePair.name]);
+  filesToLoad.forEach(fileType => languageModelPromise.push(downloadFile(tabId, fileType, languagePair.name))); // eslint-disable-line no-use-before-define
 
   let buffers = await Promise.all(languageModelPromise);
 
   // create Blobs from buffers and return
   let files = {};
   buffers.forEach((buffer, index) => {
-    files[languageModelFileTypes[index]] = new Blob([buffer]);
+    files[filesToLoad[index]] = new Blob([buffer]);
   });
   return files;
 };

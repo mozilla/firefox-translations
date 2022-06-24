@@ -35,6 +35,8 @@ class TranslationHelper {
                 "lex": 64,
                 "vocab": 64,
                 "qualityModel": 64,
+                "srcvocab": 64,
+                "trgvocab": 64,
             }
         }
 
@@ -381,17 +383,11 @@ class TranslationHelper {
             }
         }
 
-        getLanguageModelForPair(languageModels, languagePair) {
-            let languageModel = languageModels.find(languageModel => {
-                return languageModel.name === languagePair;
-            });
-            return languageModel.languageModelBlobs;
-        }
-
         // eslint-disable-next-line max-lines-per-function
         async constructTranslationModelHelper(languageModels, languagePair, withQualityEstimation) {
             console.log(`Constructing translation model ${languagePair}`);
             const modelConfigQualityEstimation = !withQualityEstimation;
+            let languageModel = languageModels.find(lm => lm.name === languagePair);
 
             /*
              * for available configuration options,
@@ -410,33 +406,46 @@ class TranslationHelper {
             cpu-threads: 0
             quiet: true
             quiet-translation: true
-            gemm-precision: int8shiftAlphaAll
+            gemm-precision: ${languageModel.precision}
             alignment: soft
             `;
 
             // download files into buffers
-            let languageModelBlobs = this.getLanguageModelForPair(languageModels, languagePair);
+            let languageModelBlobs = languageModel.languageModelBlobs;
             let downloadedBuffersPromises = [];
-            Object.entries(this.modelFileAlignments)
+
+            let filesToLoad = Object.entries(this.modelFileAlignments)
                 .filter(([fileType]) => fileType !== "qualityModel" || withQualityEstimation)
-                .filter(([fileType]) => Reflect.apply(Object.prototype.hasOwnProperty, languageModelBlobs, [fileType]))
-                .map(([fileType, fileAlignment]) => downloadedBuffersPromises.push(this.fetchFile(fileType, fileAlignment, languageModelBlobs)));
+                .filter(([fileType]) => fileType in languageModelBlobs);
+            filesToLoad.map(([fileType, fileAlignment]) => downloadedBuffersPromises.push(this.fetchFile(fileType, fileAlignment, languageModelBlobs)));
 
             let downloadedBuffers = await Promise.all(downloadedBuffersPromises);
 
             // prepare aligned memories from buffers
-            let alignedMemories = [];
-            downloadedBuffers.forEach(entry => alignedMemories.push(this.prepareAlignedMemoryFromBuffer(entry.buffer, entry.fileAlignment)));
+            let alignedMemories = Object.assign({}, ...filesToLoad.map(([name, alignment], index) => (
+                { [name]: this.prepareAlignedMemoryFromBuffer(downloadedBuffers[index].buffer, alignment) })));
 
-            const alignedModelMemory = alignedMemories[0];
-            const alignedShortlistMemory = alignedMemories[1];
+            const alignedModelMemory = alignedMemories.model;
+            const alignedShortlistMemory = alignedMemories.lex;
+            let alignedMemoryLogMessage = `Aligned memory sizes: Model:${alignedModelMemory.size()}, Shortlist:${alignedShortlistMemory.size()}, `;
+
             const alignedVocabMemoryList = new this.WasmEngineModule.AlignedMemoryList();
-            alignedVocabMemoryList.push_back(alignedMemories[2]);
+            if ("vocab" in alignedMemories) {
+                alignedVocabMemoryList.push_back(alignedMemories.vocab);
+                alignedMemoryLogMessage += ` Vocab: ${alignedMemories.vocab.size()}`;
+            } else if (("srcvocab" in alignedMemories) && ("trgvocab" in alignedMemories)) {
+                alignedVocabMemoryList.push_back(alignedMemories.srcvocab);
+                alignedVocabMemoryList.push_back(alignedMemories.trgvocab);
+                alignedMemoryLogMessage += ` Src Vocab: ${alignedMemories.srcvocab.size()}`;
+                alignedMemoryLogMessage += ` Trg Vocab: ${alignedMemories.trgvocab.size()}`;
+            } else {
+                throw new Error("vocabulary key is not found");
+            }
+
             let alignedQEMemory = null;
-            let alignedMemoryLogMessage = `Aligned memory sizes: Model:${alignedModelMemory.size()}, Shortlist:${alignedShortlistMemory.size()}, Vocab:${alignedMemories[2].size()}, `;
-            if (alignedMemories.length === Object.entries(this.modelFileAlignments).length) {
-                alignedQEMemory = alignedMemories[3];
-                alignedMemoryLogMessage += `QualityModel: ${alignedQEMemory.size()}`;
+            if ("qualityModel" in alignedMemories) {
+                alignedQEMemory = alignedMemories.qualityModel;
+                alignedMemoryLogMessage += ` QualityModel: ${alignedQEMemory.size()}`;
             }
             console.log(`Translation Model config: ${modelConfig}`);
             console.log(alignedMemoryLogMessage);
