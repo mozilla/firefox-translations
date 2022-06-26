@@ -4,9 +4,11 @@
 # Firefox Translations
 Firefox Translations is a WebExtension that enables client side in-page translations for web browsers.
 
+Firefox Translations was developed with The Bergamot Project Consortium, coordinated by the University of Edinburgh with partners Charles University in Prague, the University of Sheffield, University of Tartu, and Mozilla. This project has received funding from the European Union’s Horizon 2020 research and innovation programme under grant agreement No 825303.
+
 ## Release version
 
-The current release version is available for installation on Mozilla Add-ons 
+The current release version is available for installation on Mozilla Add-ons
 
 [![AMO](https://ffp4g1ylyit3jdyti1hqcvtb-wpengine.netdna-ssl.com/addons/files/2015/11/get-the-addon-small.png)](https://addons.mozilla.org/firefox/addon/firefox-translations/)
 
@@ -29,7 +31,7 @@ The current release version is available for installation on Mozilla Add-ons
 - Persian (Farsi)
 - Icelandic
 - Norwegian Nynorsk
-- Norwegian Bokmål 
+- Norwegian Bokmål
 - Ukrainian
 
 ## Testing
@@ -62,10 +64,11 @@ The extension does not utilize any npm modules, and the only vendored dependenci
 
 - Sentry
     - We bundle [Sentry Javascript's SDK](https://github.com/getsentry/sentry-javascript) for error reporting.
-  
+
 - serialize-error
   - code of [serialize-error npm package](https://github.com/sindresorhus/serialize-error) is bundled for serialization of exceptions to
     report errors from content scripts to background script
+
 ### How to run
 - Install Firefox Nightly
 - Clone this repo and run `npm install`
