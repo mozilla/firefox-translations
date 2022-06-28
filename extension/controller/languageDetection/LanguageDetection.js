@@ -22,7 +22,7 @@ class LanguageDetection {
             supported
             ? document.body.innerText.substring(0, 4096)
             : "";
-        const htmlElementLanguage = document.documentElement.lang;
+        const htmlElementLanguage = document.documentElement?.lang;
         return { supported, wordsToDetect, htmlElementLanguage };
     }
 
