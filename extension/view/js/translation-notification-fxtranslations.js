@@ -192,7 +192,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         this._getAnonElt("qualityestimations-check").checked
     );
     this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATING;
-    this._getAnonElt("closeButton").disabled = true;
+    this._getAnonElt("closeButton").style.display = "none";
     this._getAnonElt("options").disabled = true;
     this._getAnonElt("aftertranslatedOptions").style.display = "block";
   }
