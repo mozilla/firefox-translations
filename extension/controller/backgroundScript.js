@@ -74,6 +74,7 @@ const translateAsBrowseMap = new Map();
 let isMochitest = false;
 const languageModelFileTypes = ["model", "lex", "vocab", "qualityModel", "srcvocab", "trgvocab"];
 const CACHE_NAME = "fxtranslations";
+const FT_SCORE_THRESHOLD = 0.75;
 
 const init = () => {
   Sentry.wrap(async () => {
@@ -140,13 +141,25 @@ const messageListener = function(message, sender) {
           }
 
           /*
-           * call the cld experiment to detect the language of the snippet
+           * call fasttext to detect the language of the snippet
            * extracted from the page
            */
-          let pageLanguage = modelFastText
-            .predict(message.languageDetection.wordsToDetect.trim().replace(/(\r\n|\n|\r)/gm, ""), 1, 0.0)
-            .get(0)[1]
-            .replace("__label__", "");
+          const cleanedWords = message.languageDetection.wordsToDetect
+            .toLowerCase()
+            .trim()
+            .replace(/(\r\n|\n|\r)/gm, " ");
+          const [score, ftLanguage] = modelFastText
+            .predict(cleanedWords, 1, 0.0)
+            .get(0);
+          let pageLanguage = "";
+
+          if (score > FT_SCORE_THRESHOLD) {
+            pageLanguage = ftLanguage.replace("__label__", "");
+          } else if (message.languageDetection.htmlElementLanguage.length > 0) {
+            pageLanguage = message.languageDetection.htmlElementLanguage.substring(0,2);
+          } else {
+            break;
+          }
 
           /*
            * language detector returns "no" for Norwegian Bokmål ("nb")

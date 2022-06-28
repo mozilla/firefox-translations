@@ -22,7 +22,8 @@ class LanguageDetection {
             supported
             ? document.body.innerText.substring(0, 4096)
             : "";
-        return { supported, wordsToDetect };
+        const htmlElementLanguage = document.documentElement?.lang;
+        return { supported, wordsToDetect, htmlElementLanguage };
     }
 
     /*
@@ -33,7 +34,7 @@ class LanguageDetection {
     }
 
     /*
-     * return if the page mets the conditiions to display
+     * return if the page meets the conditiions to display
      * or not the translation bar
      */
     shouldDisplayTranslation() {
@@ -44,7 +45,6 @@ class LanguageDetection {
         return this.isLangMismatch() &&
             this.languagePairsSupportedSet.has(from) &&
             this.languagePairsSupportedSet.has(to);
-
     }
 
     /*
