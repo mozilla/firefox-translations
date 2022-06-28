@@ -40,7 +40,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             <menuitem anonid="neverForLanguage" oncommand="this.closest('notification').neverForLanguage();"/>
             <menuitem anonid="neverForSite" oncommand="this.closest('notification').neverForSite();" label="&translation.options.neverForSite.label;" accesskey="&translation.options.neverForSite.accesskey;"/>
             <menuseparator/>
-            <menuitem oncommand="openPreferences('paneGeneral');" label="&translation.options.preferences.label;" accesskey="&translation.options.preferences.accesskey;"/>
+            <menuitem oncommand="openPreferences('paneGeneral-fxtranslations');" label="&translation.options.preferences.label;" accesskey="&translation.options.preferences.accesskey;"/>
             <menuseparator/>
             <menuitem anonid="displayStatistics" oncommand="this.closest('notification').displayStatistics();" label=""/>
             </menupopup>
