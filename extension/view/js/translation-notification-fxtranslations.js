@@ -37,13 +37,13 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         </hbox>
         <button type="menu" class="notification-button" anonid="options" label="&translation.options.menu;">
           <menupopup class="translation-menupopup" onpopupshowing="this.closest('notification').optionsShowing();">
+            <checkbox anonid="neverForSite" oncommand="this.closest('notification').neverForSite();" label="&translation.options.neverForSite.label;" accesskey="&translation.options.neverForSite.accesskey;"/>
             <menuitem anonid="neverForLanguage" oncommand="this.closest('notification').neverForLanguage();"/>
-            <menuitem anonid="neverForSite" oncommand="this.closest('notification').neverForSite();" label="&translation.options.neverForSite.label;" accesskey="&translation.options.neverForSite.accesskey;"/>
             <menuseparator/>
             <menuitem oncommand="openPreferences('paneGeneral');" label="&translation.options.preferences.label;" accesskey="&translation.options.preferences.accesskey;"/>
             <menuseparator/>
             <menuitem anonid="displayStatistics" oncommand="this.closest('notification').displayStatistics();" label=""/>
-            </menupopup>
+          </menupopup>
         </button>
       </hbox>
       <toolbarbutton anonid="closeButton" ondblclick="event.stopPropagation();"
@@ -311,7 +311,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     const principal = this.translationNotificationManager.browser.contentPrincipal;
     const perms = Services.perms;
     item = this._getAnonElt("neverForSite");
-    item.disabled =
+    item.checked =
       perms.testExactPermissionFromPrincipal(principal, "translate") ===
       perms.DENY_ACTION;
   }
@@ -336,8 +336,16 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this.translationNotificationManager.reportInfobarMetric("event","never_translate_site");
     const principal = this.translationNotificationManager.browser.contentPrincipal;
     const perms = Services.perms;
-    perms.addFromPrincipal(principal, "translate", perms.DENY_ACTION);
-    this.closeCommand();
+    const sitePermGranted =
+      perms.testExactPermissionFromPrincipal(principal, "translate") ===
+      perms.ALLOW_ACTION
+
+    if (sitePermGranted) {
+      perms.addFromPrincipal(principal, "translate", perms.DENY_ACTION);
+      this.closeCommand();
+    } else {
+      perms.addFromPrincipal(principal, "translate", perms.ALLOW_ACTION);
+    }
   }
 
   displayStatistics() {
