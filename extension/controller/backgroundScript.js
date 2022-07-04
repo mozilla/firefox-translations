@@ -4,13 +4,6 @@ function isSameDomain(url1, url2) {
     return url1 && url2 && new URL(url1).host === new URL(url2).host;
 }
 
-// Temporary fix around few models, bad classified, and similar looking languages.
-// From https://github.com/bitextor/bicleaner/blob/3df2b2e5e2044a27b4f95b83710be7c751267e5c/bicleaner/bicleaner_hardrules.py#L50
-const SimilarLanguages = [
-    new Set(['es', 'ca', 'gl', 'pt']),
-    new Set(['no', 'nb', 'nn', 'da']) // no == nb for bicleaner
-];
-
 // Just a little test to run in the web inspector for debugging
 async function test(provider) {
     console.log(await Promise.all([
@@ -29,9 +22,28 @@ async function test(provider) {
 }
 
 /**
+ * Temporary fix around few models, bad classified, and similar looking languages.
+ * From https://github.com/bitextor/bicleaner/blob/3df2b2e5e2044a27b4f95b83710be7c751267e5c/bicleaner/bicleaner_hardrules.py#L50
+ * @type {Set<String>[]}
+ */
+const SimilarLanguages = [
+    new Set(['es', 'ca', 'gl', 'pt']),
+    new Set(['no', 'nb', 'nn', 'da']) // no == nb for bicleaner
+];
+
+/**
+ * @typedef {Object} TranslationModel
+ * @property {String} from
+ * @property {String} to
+ * @property {Boolean} local
+ */
+
+/**
  * Language detection function that also provides a sorted list of
  * from->to language pairs, based on the detected language, the preferred
  * target language, and what models are available.
+ * @param {{sample:String, suggested:{[lang:String]: Number}}}
+ * @return {Promise<{from:String|Undefined, to:String|Undefined, models: TranslationModel[]}>}
  */
 async function detectLanguage({sample, suggested}, provider) {
     if (!sample)

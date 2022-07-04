@@ -4,12 +4,20 @@
  * translation bar should be displayed
  */
 
-// eslint-disable-next-line no-unused-vars
 class LanguageDetection {
+    /**
+     * Extracts a bit of sample text from the page. Will only resolve once
+     * there is some actual text.
+     * @return {Promise<String>}
+     */
     extractPageContent() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, _) => {
             const extract = () => {
-                const sample = document.body.innerText.substr(0, 2048);
+                // TODO: this gives a strong preference to whatever appears at
+                // the top of the page. If that is English navigation or boiler-
+                // plate this might not be great. Should we do something like
+                // Readability.js to try to detect the meaty bit of the page?
+                const sample = document.body.innerText.slice(0, 2048);
                 
                 // If the sample is good, resolve our promise.
                 if (sample.trim() !== '') {
@@ -27,7 +35,7 @@ class LanguageDetection {
             // Otherwise, we wait for mutations until we get a good sample.
             // This happens a lot in PWAs that just load a blank page, and then
             // start loading a lot of Javascript.
-            const observer = new MutationObserver((mutations, observer) => {
+            const observer = new MutationObserver((_, observer) => {
                 if (extract())
                     observer.disconnect();
             });
@@ -36,6 +44,10 @@ class LanguageDetection {
         });
     }
 
+    /**
+     * Extracts hints of the page language from HTML lang attributes.
+     * @return { [lang: string]: number }
+     */
     extractSuggestedLanguages() {
         const suggestions = {};
 
@@ -44,8 +56,8 @@ class LanguageDetection {
             suggestions[document.querySelector('html[lang]').lang] = 1.0;
 
         // TODO: look at individual elements with lang attributes, and how much
-        // of the content they cover? Or should we handle those in a special
-        // way anyway! Would fix pretty much all issues of Wikipedia in one go.
+        // of the content they cover? E.g. some website with English navigation
+        // but local content. But would they annotate the content anyway?
         return suggestions;
     }
 }
