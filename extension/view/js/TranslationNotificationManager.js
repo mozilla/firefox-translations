@@ -46,16 +46,6 @@ class TranslationNotificationManager {
         return this._notificationBox;
     }
 
-    get TranslationInfoBarStates() {
-        return {
-            STATE_OFFER: 0,
-            STATE_TRANSLATING: 1,
-            STATE_TRANSLATED: 2,
-            STATE_ERROR: 3,
-            STATE_UNAVAILABLE: 4,
-        };
-    }
-
     set localizedLabels(val) {
         this._localizedLabels = val;
     }
