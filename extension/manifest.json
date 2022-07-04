@@ -61,7 +61,7 @@
 				"controller/LanguageDetection.js",
 				"view/js/InPageTranslation.js",
 				"view/js/SelectionTranslation.js",
-				"contentScript.js"
+				"controller/contentScript.js"
 			],
 			"css":
 			[
