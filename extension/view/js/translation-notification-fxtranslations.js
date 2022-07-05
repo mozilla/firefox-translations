@@ -6,50 +6,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-/* global MozElements, Translation, Services */
+/* global MozElements, Services */
 
 window.MozTranslationNotification = class extends MozElements.Notification {
   static get markup() {
     return `
-      <hbox anonid="details" align="center" flex="1">
-        <image  anonid="logoIcon" class="messageImage"/>
-        <deck anonid="translationStates" selectedIndex="0">
-          <hbox class="translate-offer-box" align="center">
-            <label value="&translation.thisPageIsIn.label;"/>
-            <menulist class="notification-button" anonid="detectedLanguage" oncommand="this.closest('notification').fromLanguageChanged();">
-              <menupopup/>
-            </menulist>
-            <button class="notification-button primary" label="&translation.translate.button;" anonid="translate" oncommand="this.closest('notification').onTranslate();"/>
-            <checkbox anonid="outboundtranslations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onOutboundClick();" />
-            <checkbox anonid="qualityestimations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onQeClick();"/>
-          </hbox>
-          <vbox class="translating-box" pack="center">
-            <hbox class="translate-offer-box" align="center">
-              <label value="&translation.translatingContent.label;" style="display:none"/>
-              <label anonid="progress-label" value="" style="padding-left:5px;"/>
-            </hbox>
-          </vbox>
-        </deck>
-        <spacer flex="1"/>
-        <hbox anonid="aftertranslatedOptions" class="translating-box" pack="center" style="display:none">
-          <button class="notification-button" label="" anonid="translateAsBrowse" oncommand="this.closest('notification').translateAsBrowse();"/>
-          <button class="notification-button" label="" anonid="survey" oncommand="this.closest('notification').onSurveyClick();"/>
-        </hbox>
-        <button type="menu" class="notification-button" anonid="options" label="&translation.options.menu;">
-          <menupopup class="translation-menupopup" onpopupshowing="this.closest('notification').optionsShowing();">
-            <checkbox anonid="neverForSite" oncommand="this.closest('notification').neverForSite();" label="&translation.options.neverForSite.label;" accesskey="&translation.options.neverForSite.accesskey;"/>
-            <menuitem anonid="neverForLanguage" oncommand="this.closest('notification').neverForLanguage();"/>
-            <menuseparator/>
-            <menuitem oncommand="openPreferences('paneGeneral-fxtranslations');" label="&translation.options.preferences.label;" accesskey="&translation.options.preferences.accesskey;"/>
-            <menuseparator/>
-            <menuitem anonid="displayStatistics" oncommand="this.closest('notification').displayStatistics();" label=""/>
-          </menupopup>
-        </button>
-      </hbox>
-      <toolbarbutton anonid="closeButton" ondblclick="event.stopPropagation();"
-                     class="messageCloseButton close-icon tabbable"
-                     tooltiptext="&closeNotification.tooltip;"
-                     oncommand="this.parentNode.closeCommand();"/>
+    <image anonid="logoIcon" class="messageImage"/>
+    <description flex="1">
+      <label style="vertical-align: middle;" anonid="labelTranslate" value="&translation.thisPageIsIn.label;"/>
+      <label anoind="ddlLanguage" style="vertical-align: middle;">
+        <menulist anonid="detectedLanguage" oncommand="this.closest('notification').fromLanguageChanged();">
+        </menulist>
+      </label>
+      <button class="notification-button primary" label="&translation.translate.button;" anonid="translate" oncommand="this.closest('notification').onTranslate();"/>
+      <label anoind="cbOutbondTranslation" style="vertical-align: middle;">
+        <checkbox anonid="outboundtranslations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onOutboundClick();" />
+      </label>
+      <label anoind="cbQualityEstimation" style="vertical-align: middle;">
+        <checkbox anonid="qualityestimations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onQeClick();"/>
+      </label>
+      <button class="notification-button" label="" anonid="translateAsBrowse" style="display:none" oncommand="this.closest('notification').translateAsBrowse();"/>
+    </description>
+    <button type="menu" class="notification-button" style="height: 50%" anonid="options" label="&translation.options.menu;">
+    <menupopup class="translation-menupopup" onpopupshowing="this.closest('notification').optionsShowing();">
+      <menuitem anonid="neverForLanguage" oncommand="this.closest('notification').neverForLanguage();"/>
+      <menuitem anonid="neverForSite" oncommand="this.closest('notification').neverForSite();" label="&translation.options.neverForSite.label;" accesskey="&translation.options.neverForSite.accesskey;"/>
+      <menuseparator/>
+      <menuitem oncommand="openPreferences('paneGeneral-fxtranslations');" label="&translation.options.preferences.label;" accesskey="&translation.options.preferences.accesskey;"/>
+      <menuitem anonid="displayStatistics" oncommand="this.closest('notification').displayStatistics();" label=""/>
+    </menupopup>
+    </button>
+    <toolbarbutton anonid="closeButton" ondblclick="event.stopPropagation();"
+    class="messageCloseButton close-icon"
+    tooltiptext="&closeNotification.tooltip;"
+    oncommand="this.parentNode.closeCommand();"/>
     `;
   }
 
@@ -61,33 +51,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   updateTranslationProgress(localizedMessage) {
-    this._getAnonElt("progress-label").setAttribute(
+    this._getAnonElt("labelTranslate").setAttribute(
       "value",
       localizedMessage,
     );
-  }
-
-  set state(val) {
-    const deck = this._getAnonElt("translationStates");
-
-    const activeElt = document.activeElement;
-    if (activeElt && deck.contains(activeElt)) {
-      activeElt.blur();
-    }
-
-    let stateName;
-    for (const name of ["OFFER", "TRANSLATING", "TRANSLATED", "ERROR"]) {
-      if (Translation[`STATE_${name}`] === val) {
-        stateName = name.toLowerCase();
-        break;
-      }
-    }
-    this.setAttribute("state", stateName);
-    deck.selectedIndex = val;
-  }
-
-  get state() {
-    return this._getAnonElt("translationStates").selectedIndex;
   }
 
   init(translationNotificationManager) {
@@ -96,7 +63,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this._getAnonElt("outboundtranslations-check").setAttribute("label", translationNotificationManager.localizedLabels.outboundTranslationsMessage);
     this._getAnonElt("qualityestimations-check").setAttribute("label", translationNotificationManager.localizedLabels.qualityEstimationMessage);
     this._getAnonElt("displayStatistics").setAttribute("label", translationNotificationManager.localizedLabels.displayStatisticsMessage);
-    this._getAnonElt("survey").setAttribute("label", translationNotificationManager.localizedLabels.surveyMessage);
     this._getAnonElt("outboundtranslations-check").checked = translationNotificationManager.infobarSettings.outboundtranslations["outboundtranslations-check"];
     this._getAnonElt("qualityestimations-check").checked = translationNotificationManager.infobarSettings.qualityestimations["qualityestimations-check"];
     this._getAnonElt("translateAsBrowse").setAttribute("label", translationNotificationManager.localizedLabels.translateAsBrowseOn);
@@ -137,7 +103,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
       this.localizedLanguagesByCode[code] = name;
     }
 
-    this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_OFFER;
     this.translationNotificationManager.reportInfobarMetric("event", "displayed");
     this.translationNotificationManager.reportInfobarMetric(
         "boolean", "outbound_enabled",
@@ -191,10 +156,18 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         this._getAnonElt("outboundtranslations-check").checked,
         this._getAnonElt("qualityestimations-check").checked
     );
-    this.state = this.translationNotificationManager.TranslationInfoBarStates.STATE_TRANSLATING;
     this._getAnonElt("closeButton").style.display = "none";
     this._getAnonElt("displayStatistics").style.display = "none";
-    this._getAnonElt("aftertranslatedOptions").style.display = "block";
+    this._getAnonElt("detectedLanguage").style.display = "none";
+    this._getAnonElt("translate").style.display = "none";
+    this._getAnonElt("outboundtranslations-check").style.display = "none";
+    this._getAnonElt("qualityestimations-check").style.display = "none";
+    this._getAnonElt("translate").style.display = "none";
+    this._getAnonElt("translateAsBrowse").style.display = "inline";
+    this._getAnonElt("labelTranslate").setAttribute(
+      "value",
+      "",
+    );
   }
 
   onOutboundClick() {
