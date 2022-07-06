@@ -1,3 +1,4 @@
+/* eslint-disable no-case-declarations */
 /* eslint-disable max-lines */
 /* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL,
 Telemetry, loadFastText, FastText, Sentry, settings, deserializeError,
@@ -213,6 +214,14 @@ const messageListener = function(message, sender) {
           /*
            * request the experiments API do display the infobar
            */
+
+          let from = "en".concat(message.languageDetection.pageLanguage);
+          let to = message.languageDetection.navigatorLanguage.substring(0,2).concat("en");
+          if (from === "enen") from = to;
+          if (to === "enen") to = from;
+          const isOutboundTranslationSupported = message.languageDetection.languagePairsSupportedSet.has(from) &&
+            message.languageDetection.languagePairsSupportedSet.has(to);
+
           await browser.experiments.translationbar.show(
             sender.tab.id,
             message.languageDetection.pageLanguage,
@@ -230,7 +239,8 @@ const messageListener = function(message, sender) {
               outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
               qualityestimations: await browser.storage.local.get("qualityestimations-check")
             },
-            translateAsBrowseMap.get(sender.tab.id)?.translatingAsBrowse
+            translateAsBrowseMap.get(sender.tab.id)?.translatingAsBrowse,
+            isOutboundTranslationSupported
           );
 
           // we then ask the api for the localized version of the language codes

@@ -42,6 +42,11 @@
               "name": "autoTranslate",
               "type": "any",
               "description": "determines if the auto translate is set"
+            },
+            {
+              "name": "otSupported",
+              "type": "any",
+              "description": "represents if outbound translations is supported"
             }
           ]
         },

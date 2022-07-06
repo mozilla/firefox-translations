@@ -60,12 +60,16 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   init(translationNotificationManager) {
     // set icon in the infobar. we should move this to a css file.
     this._getAnonElt("logoIcon").setAttribute("src", translationNotificationManager.logoIcon);
-    this._getAnonElt("outboundtranslations-check").setAttribute("label", translationNotificationManager.localizedLabels.outboundTranslationsMessage);
     this._getAnonElt("qualityestimations-check").setAttribute("label", translationNotificationManager.localizedLabels.qualityEstimationMessage);
     this._getAnonElt("displayStatistics").setAttribute("label", translationNotificationManager.localizedLabels.displayStatisticsMessage);
-    this._getAnonElt("outboundtranslations-check").checked = translationNotificationManager.infobarSettings.outboundtranslations["outboundtranslations-check"];
     this._getAnonElt("qualityestimations-check").checked = translationNotificationManager.infobarSettings.qualityestimations["qualityestimations-check"];
     this._getAnonElt("translateAsBrowse").setAttribute("label", translationNotificationManager.localizedLabels.translateAsBrowseOn);
+    if (translationNotificationManager.otSupported) {
+      this._getAnonElt("outboundtranslations-check").setAttribute("label", translationNotificationManager.localizedLabels.outboundTranslationsMessage);
+      this._getAnonElt("outboundtranslations-check").checked = translationNotificationManager.infobarSettings.outboundtranslations["outboundtranslations-check"];
+    } else {
+      this._getAnonElt("outboundtranslations-check").style.display = "none";
+    }
 
     this.translationNotificationManager = translationNotificationManager;
     this.localizedLanguagesByCode = {};
