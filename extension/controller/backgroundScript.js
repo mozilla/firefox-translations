@@ -478,6 +478,7 @@ browser.pageAction.onClicked.addListener(tab => {
                   outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
                   qualityestimations: await browser.storage.local.get("qualityestimations-check")
                 },
+                false,
                 false
             );
           } else {
