@@ -764,3 +764,15 @@ const getItemFromWeb = async (tabId, itemURL, fileSize, fileChecksum) => {
   }
   return fetchResponse;
 };
+
+const retrievelastVersionFromStorage = browser.storage.local.get("lastVersion");
+Promise.allSettled([retrievelastVersionFromStorage]).then(values => {
+  const lastVersionDisplayed = values[0].value?.lastVersion;
+  if (extensionVersion !== lastVersionDisplayed) {
+    browser.tabs.create({
+      active: true,
+      url: browser.extension.getURL("view/static/CHANGELOG.html"),
+    });
+    browser.storage.local.set({ lastVersion: extensionVersion });
+  }
+});
