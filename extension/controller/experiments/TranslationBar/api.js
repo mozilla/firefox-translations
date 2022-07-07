@@ -82,7 +82,7 @@ const translationNotificationManagers = new Map();
       return {
         experiments: {
           translationbar: {
-            show: function show(tabId, detectedLanguage, navigatorLanguage, localizedLabels, pageActionRequest, infobarSettings, autoTranslate) {
+            show: function show(tabId, detectedLanguage, navigatorLanguage, localizedLabels, pageActionRequest, infobarSettings, autoTranslate, otSupported) {
               try {
 
                 const { tabManager } = context.extension;
@@ -173,6 +173,7 @@ const translationNotificationManagers = new Map();
                 translationNotificationManager.localizedLabels = localizedLabels;
                 translationNotificationManager.infobarSettings = infobarSettings;
                 translationNotificationManager.autoTranslate = autoTranslate;
+                translationNotificationManager.otSupported = otSupported;
 
                 notif.init(translationNotificationManager);
                 translationNotificationManagers.set(tabId, translationNotificationManager);
