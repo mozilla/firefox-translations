@@ -357,6 +357,19 @@ class Mediator {
                 this.localizedPageLanguage = message.localizedPageLanguage;
                 this.localizedNavigatorLanguage = message.localizedNavigatorLanguage;
                 break;
+            case "onDetached":
+
+                /*
+                 * whenever we receive an event that our tab was detached, we
+                 * should call detectPageLanguage in order to
+                 * have the infobar re-displayed.
+                 */
+               this.translationBarDisplayed = false;
+               browser.runtime.sendMessage({
+                    command: "detectPageLanguage",
+                    languageDetection: this.languageDetection.extractPageContent(),
+                });
+                break;
             default:
           // ignore
         }

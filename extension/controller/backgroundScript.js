@@ -498,6 +498,15 @@ browser.tabs.onRemoved.addListener(tabId => {
   submitPing(tabId);
 });
 
+browser.tabs.onDetached.addListener(tabId => {
+  translateAsBrowseMap.delete(tabId);
+  browser.experiments.translationbar.onDetached(tabId);
+  browser.tabs.sendMessage(
+    tabId,
+    { command: "onDetached" }
+  );
+});
+
 browser.webNavigation.onCommitted.addListener(details => {
   // only send pings if the top frame navigates.
   if (details.frameId === 0) submitPing(details.tabId);
