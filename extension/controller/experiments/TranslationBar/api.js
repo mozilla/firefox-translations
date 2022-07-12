@@ -195,6 +195,9 @@ const translationNotificationManagers = new Map();
               const isMochitest = Services.prefs.getBoolPref("fxtranslations.running.mochitest", false);
               return isMochitest;
             },
+            onDetached: function onDetached(tabId) {
+              translationNotificationManagers.delete(tabId);
+            },
            onTranslationRequest: new ExtensionCommon.EventManager({
               context,
               name: "experiments.translationbar.onTranslationRequest",

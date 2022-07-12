@@ -87,6 +87,19 @@
           "description": "Returns if we are running a mochitest.",
           "async": true,
           "parameters": []
+        },
+        {
+          "name": "onDetached",
+          "type": "function",
+          "description": "Raised when the tab holding the translatedbar is detached.",
+          "async": true,
+          "parameters": [
+            {
+              "name": "tabId",
+              "type": "integer",
+              "description": "id of the detached tab"
+            }
+          ]
         }
       ],
       "events": [
