@@ -324,20 +324,26 @@ const messageListener = function(message, sender) {
             break;
 
         case "translationRequested":
-            translationRequestsByTab.set(message.tabId, message);
-            // requested for translation received. let's inform the mediator
-            browser.tabs.sendMessage(
-                message.tabId,
-                {
-                    command: "translationRequested",
-                    tabId: message.tabId,
-                    from: message.from,
-                    to: message.to,
-                    withOutboundTranslation: message.withOutboundTranslation,
-                    withQualityEstimation: message.withQualityEstimation
-                }
-            );
-            break;
+          translationRequestsByTab.set(message.tabId, message);
+          // requested for translation received. let's inform the mediator
+          browser.tabs.sendMessage(
+              message.tabId,
+              {
+                  command: "translationRequested",
+                  tabId: message.tabId,
+                  from: message.from,
+                  to: message.to,
+                  withOutboundTranslation: message.withOutboundTranslation,
+                  withQualityEstimation: message.withQualityEstimation
+              }
+          ).catch(error => {
+            // eslint-disable-next-line no-use-before-define
+            sendUpdateProgress(message.tabId, ["updateProgress", "errorLoadingWasm"]);
+            getTelemetry(message.tabId).record("counter", "errors", "translation");
+            console.warn("Reporting error to Sentry");
+            Sentry.captureException(error);
+          });
+          break;
         case "downloadLanguageModels":
           try {
             // eslint-disable-next-line no-use-before-define
@@ -356,7 +362,7 @@ const messageListener = function(message, sender) {
             // eslint-disable-next-line no-use-before-define
             sendUpdateProgress(message.tabId, ["updateProgress", "errorLoadingWasm"]);
             getTelemetry(message.tabId).record("counter", "errors", "model_load");
-            console.warn("Reporting content script error to Sentry");
+            console.warn("Reporting error to Sentry");
             Sentry.captureException(error);
           }
           break;
