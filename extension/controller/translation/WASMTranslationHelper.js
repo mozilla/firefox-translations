@@ -227,26 +227,30 @@ class WorkerChannel {
         entries.sort(({model: a}, {model: b}) => (a.shortName.indexOf('tiny') === -1 ? 1 : 0) - (b.shortName.indexOf('tiny') === -1 ? 1 : 0));
 
         if (!entries)
-            throw new Error(`No model for ${from} -> ${to}`);
+            throw new Error(`No model for '${from}' -> '${to}'`);
 
         const entry = first(entries).model;
 
-        const compressedArchive = await this.getItemFromCacheOrWeb(entry.url, undefined, entry.checksum);
+        const compressedArchive = await this.getItemFromCacheOrWeb(entry.url, entry.checksum);
 
         const archive = pako.inflate(compressedArchive);
 
         const files = await untar(archive.buffer);
 
-        // Find the config yml file
-        const configFile = files.find(file => file.name.endsWith('config.intgemm8bitalpha.yml'));
+        const find = (filename) => {
+            const found = files.find(file => file.name.match(/(?:^|\/)([^\/]+)$/)[1] === filename)
+            if (found === undefined)
+                throw new Error(`Could not find '${filename}' in model archive`);
+            return found;
+        };
 
-        const config = YAML.parse(configFile.readAsString());
+        const config = YAML.parse(find('config.intgemm8bitalpha.yml').readAsString());
 
-        const model = files.find(file => file.name.endsWith(config.models[0])).buffer;
+        const model = find(config.models[0]).buffer;
 
-        const vocabs = config.vocabs.map(vocab => files.find(file => file.name.endsWith(vocab)).buffer);
+        const vocabs = config.vocabs.map(vocab => find(vocab).buffer);
 
-        const shortlist = files.find(file => file.name.endsWith(config.shortlist[0])).buffer;
+        const shortlist = find(config.shortlist[0]).buffer;
 
         performance.measure('loadTranslationModel', `loadTranslationModule.${JSON.stringify({from, to})}`);
 
@@ -261,24 +265,25 @@ class WorkerChannel {
      * @param {String} checksum sha256 checksum as hexadecimal string
      * @returns {Promise<ArrayBuffer>}
      */
-    async getItemFromCacheOrWeb(url, size, checksum) {
-        const cache = await caches.open(CACHE_NAME);
-        const match = await cache.match(url);
+    async getItemFromCacheOrWeb(url, checksum) {
+        try {
+            const cache = await caches.open(CACHE_NAME);
+            const match = await cache.match(url);
 
-        // It's not already in the cache? Then return the downloaded version
-        // (but also put it in the cache)
-        if (!match)
-            return this.getItemFromWeb(url, size, checksum, cache);
+            if (match) {
+                // Found it in the cache, let's check whether it (still) matches the
+                // checksum. If not, redownload it.
+                const buffer = await match.arrayBuffer();
+                if (await this.digestSha256AsHex(buffer) === checksum)
+                    return buffer;
+                else
+                    cache.delete(url);
+            }
 
-        // Found it in the cache, let's check whether it (still) matches the
-        // checksum.
-        const buffer = await match.arrayBuffer();
-        if (await this.digestSha256AsHex(buffer) !== checksum) {
-            cache.delete(url);
-            throw new Error("Error downloading translation engine. (checksum)")
+            return await this.getItemFromWeb(url, checksum, cache);
+        } catch (e) {
+            throw new Error(`Failed to download '${url}': ${e.message}`);
         }
-
-        return buffer;
     }
 
     /**
@@ -289,7 +294,7 @@ class WorkerChannel {
      * @param {Cache?} cache optional cache to save response into
      * @returns {Promise<ArrayBuffer>}
      */
-    async getItemFromWeb(url, size, checksum, cache) {
+    async getItemFromWeb(url, checksum, cache) {
         try {
             // Rig up a timeout cancel signal for our fetch
             const abort = new AbortController();
@@ -398,7 +403,7 @@ class WorkerChannel {
         );
 
         if (!shared.size)
-            throw new Error(`No model available to translate from ${from} to ${to}`);
+            throw new Error(`No model available to translate from '${from}' to '${to}'`);
 
         return [
             outbound.find(model => shared.has(model.to)),
@@ -442,7 +447,11 @@ class WorkerChannel {
 
             // Put this worker to work, marking as busy
             worker.idle = false;
-            await this.consumeBatch(batch, worker.worker);
+            try {
+                await this.consumeBatch(batch, worker.worker);
+            } catch (e) {
+                batch.requests.forEach(({reject}) => reject(e));
+            }
             worker.idle = true;
 
             // Is there more work to be done? Do another idleRequest
@@ -469,19 +478,23 @@ class WorkerChannel {
         const {from, to, html, priority} = request;
 
         return new Promise(async (resolve, reject) => {
-            // Batching key: only requests with the same key can be batched
-            // together. Think same translation model, same options.
-            const key = JSON.stringify({from, to});
+            try {
+                // Batching key: only requests with the same key can be batched
+                // together. Think same translation model, same options.
+                const key = JSON.stringify({from, to});
 
-            // (Fetching models first because if we would do it between looking
-            // for a batch and making a new one, we end up with a race condition.)
-            const models = await this.getModels(from, to);
-            
-            // Put the request and its callbacks into a fitting batch
-            this.enqueue({key, models, request, resolve, reject, priority});
+                // (Fetching models first because if we would do it between looking
+                // for a batch and making a new one, we end up with a race condition.)
+                const models = await this.getModels(from, to);
+                
+                // Put the request and its callbacks into a fitting batch
+                this.enqueue({key, models, request, resolve, reject, priority});
 
-            // Tell a worker to pick up the work at some point.
-            this.notify();
+                // Tell a worker to pick up the work at some point.
+                this.notify();
+            } catch (e) {
+                reject(e);
+            }
         });
     }
 

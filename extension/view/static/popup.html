@@ -67,7 +67,11 @@
 			</div>
 			<div data-state="translation-error">
 				<p>Error during translation:</p>
-				<p><code id="error-message" data-bind:text-content="error"></code></p>
+				<p><code data-bind:text-content="error"></code></p>
+			</div>
+			<div data-state="page-error">
+				<p>Error:</p>
+				<p><code data-bind:text-content="error"></code></p>
 			</div>
 			<div data-state="page-loading">
 				<!-- tab noticed by webRequest, but its content-script didn't connect -->

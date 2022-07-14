@@ -124,6 +124,7 @@ async function detectLanguage({sample, suggested}, provider) {
 const State = {
     PAGE_LOADING: 'page-loading',
     PAGE_LOADED: 'page-loaded',
+    PAGE_ERROR: 'page-error',
     TRANSLATION_NOT_AVAILABLE: 'translation-not-available',
     TRANSLATION_AVAILABLE: 'translation-available',
     DOWNLOADING_MODELS: 'downloading-models',
@@ -350,8 +351,6 @@ const state = {
     developer: false // should we show the option to record page translation requests?
 };
 
-state.provider = 'translatelocally'; // For testing in Chrome
-
 // State per tab
 const tabs = new Map();
 
@@ -495,6 +494,11 @@ function connectContentScript(contentScript) {
                             ? State.TRANSLATION_AVAILABLE
                             : State.TRANSLATION_NOT_AVAILABLE
                     }));
+                }).catch(error => {
+                    tab.update(state => ({
+                        state: State.PAGE_ERROR,
+                        error
+                    }));
                 });
                 break;
 
@@ -529,8 +533,10 @@ function connectContentScript(contentScript) {
                         if (e && e.message && e.message === 'removed by filter' && e.request && e.request._abortSignal.aborted)
                             return;
                         
-                        // rethrow any other error
-                        throw e;
+                        tab.update(state => ({
+                            state: State.TRANSLATION_ERROR,
+                            error: e.message
+                        }));
                     })
                     .finally(() => {
                         tab.update(state => ({
