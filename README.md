@@ -97,3 +97,7 @@ bash scripts/update-bergamot-translator.sh
 ```
 
 to regenerate JS version file. This version is reported in telemetry.
+
+### Discussions
+[Firefox translations channel on Matrix](https://matrix.to/#/#firefoxtranslations:mozilla.org)
+
