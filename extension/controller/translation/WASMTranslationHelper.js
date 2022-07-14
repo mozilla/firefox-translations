@@ -2,9 +2,14 @@
 /* eslint-disable no-native-reassign */
 /* eslint-disable max-lines */
 
-/* global engineRegistryRootURL, engineRegistryRootURLTest, engineRegistry, loadEmscriptenGlueCode, Queue */
-/* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts */
-
+/**
+ * @typedef {Object} TranslationRequest
+ * @property {String} from
+ * @property {String} to
+ * @property {String} text
+ * @property {Boolean} html
+ * @property {Integer?} priority
+ */
 
 const CACHE_NAME = "bergamot-translations";
 
@@ -55,44 +60,85 @@ class WorkerChannel {
  class WASMTranslationHelper {
     
     /**
-     * options:
-     *   cacheSize: 0
-     *   useNativeIntGemm: false
-     *   workers: 1
-     *   batchSize: 8
+     * @param {{
+     *  cacheSize: Number?,
+     *  useNativeIntGemm: Boolean?,
+     *  workers: Number?,
+     *  batchSize: Number?
+     * }} options
      */
     constructor(options) {
         this.options = options || {};
 
         // registry of all available models and their urls: Promise<List<Model>>
-        this.registry = lazy(this.loadModelRegistery.bind(this));
+        this.registry = lazy(async () => {
+            try {
+                return await this.loadModelRegistery();
+            } catch (error) {
+                throw new Error(`Could not download model registry: ${error.message}`);
+            }
+        });
 
-        // Map<{from:str,to:str}, Promise<Map<name:str,buffer:ArrayBuffer>>>
+        /**
+         * Map of downloaded model data files as buffers per model.
+         * @type {Map<{from:String,to:String}, Promise<Map<String,ArrayBuffer>>>}
+         */
         this.buffers = new Map();
         
-        // a map of language-pairs to a list of models you need for it: Map<{from:str,to:str}, Promise<List<{from:str,to:str}>>>
+        /**
+         * A map of language-pairs to a list of models you need for it.
+         * @type {Map<{from:String,to:String}, Promise<{from:String,to:String}[]>>}
+         */
         this.models = new Map();
 
-        // List of active workers (and a flag to mark them idle or not)
+        /**
+         * @type {Array<{idle:Boolean, worker:Proxy}>} List of active workers
+         * (and a flag to mark them idle or not)
+         */
         this.workers = [];
 
-        // Maximum number of workers
+        /**
+         * Maximum number of workers
+         * @type {Number} 
+         */
         this.workerLimit = Math.max(this.options.workers || 0, 1);
 
-        // List of batches we push() to & shift() from
+        /**
+         * List of batches we push() to & shift() from using `enqueue`.
+         * @type {{
+         *    id: Number,
+         *    key: String,
+         *    priority: Number,
+         *    models: TranslationModel[],
+         *    requests: Array<{
+         *      request: TranslationRequest,
+         *      resolve: (response: TranslationResponse),
+         *      reject: (error: Error)
+         *    }>
+         * }}
+         */
         this.queue = [];
 
-        // batch serial to help keep track of batches when debugging
+        /**
+         * batch serial to help keep track of batches when debugging
+         * @type {Number}
+         */
         this.batchSerial = 0;
 
-        // Number of requests in a batch before it is ready to be translated in
-        // a single call. Bigger is better for throughput (better matrix packing)
-        // but worse for latency since you'll have to wait for the entire batch
-        // to be translated.
+        /**
+         * Number of requests in a batch before it is ready to be translated in
+         * a single call. Bigger is better for throughput (better matrix packing)
+         * but worse for latency since you'll have to wait for the entire batch
+         * to be translated.
+         * @type {Number}
+         */
         this.batchSize = Math.max(this.options.batchSize || 8, 1);
 
-        // Error handler for all errors that are async, not tied to a specific
-        // call and that are unrecoverable.
+        /**
+         * Error handler for all errors that are async, not tied to a specific
+         * call and that are unrecoverable.
+         * @type {(error: Error)}
+         */
         this.onerror = err => console.error('WASM Translation Worker error:', err);
     }
 
@@ -210,7 +256,10 @@ class WorkerChannel {
 
     /**
      * Helper to either get a URL remote or from cache. Downloaded file is
-     * always checked against checksum. Returns Promise<ArrayBuffer>.
+     * always checked against checksum.
+     * @param {String} url
+     * @param {String} checksum sha256 checksum as hexadecimal string
+     * @returns {Promise<ArrayBuffer>}
      */
     async getItemFromCacheOrWeb(url, size, checksum) {
         const cache = await caches.open(CACHE_NAME);
@@ -235,7 +284,10 @@ class WorkerChannel {
     /**
      * Helper to download file from the web (and store it in the cache if that
      * is passed in as well). Verifies the checksum.
-     * Returns Promise<ArrayBuffer>.
+     * @param {String} url
+     * @param {String} checksum sha256 checksum as hexadecimal string
+     * @param {Cache?} cache optional cache to save response into
+     * @returns {Promise<ArrayBuffer>}
      */
     async getItemFromWeb(url, size, checksum, cache) {
         try {
@@ -272,6 +324,8 @@ class WorkerChannel {
 
     /**
      * Expects ArrayBuffer, returns String.
+     * @param {ArrayBuffer} buffer
+     * @returns {Promise<String>} SHA256 checksum as hexadecimal string
      */
     async digestSha256AsHex(buffer) {
         // hash the message
@@ -295,6 +349,9 @@ class WorkerChannel {
      *   [TranslationWorker].loadTranslationModel({from,to}, buffers)
      * });
      * ```
+     * @param {String} from
+     * @param {String} to
+     * @returns {Promise<TranslationModel[]>}
      */
     getModels(from, to) {
         const key = JSON.stringify({from, to});
@@ -304,12 +361,18 @@ class WorkerChannel {
         // return the same promise, and the actual lookup is only done once.
         // The lookup is async because we need to await `this.registry`
         if (!this.models.has(key))
-            this.models.set(key, this.loadModels(from, to));
+            this.models.set(key, this.findModels(from, to));
 
         return this.models.get(key);
     }
 
-    async loadModels(from, to) {
+    /**
+     * Find model (or model pair) to translate from `from` to `to`.
+     * @param {String} from
+     * @param {String} to
+     * @returns {Promise<TranslationModel[]>}
+     */
+    async findModels(from, to) {
         const registry = await this.registry;
 
         // TODO: This all scales really badly.
@@ -399,6 +462,8 @@ class WorkerChannel {
      *   priority: 0 // optional, like `nice` lower numbers are translated first
      * })
      * ```
+     * @param {TranslationRequest} request
+     * @returns {Promise<TranslationResponse>}
      */
     translate(request) {
         const {from, to, html, priority} = request;
@@ -424,6 +489,7 @@ class WorkerChannel {
      * Prune pending requests by testing each one of them to whether they're
      * still relevant. Used to prune translation requests from tabs that got
      * closed.
+     * @param {(request:TranslationRequest) => boolean} filter evaluates to true if request should be removed
      */
     remove(filter) {
         const queue = this.queue;
@@ -456,6 +522,7 @@ class WorkerChannel {
      * Internal function used to put a request in a batch that still has space.
      * Also responsible for keeping the batches in order of priority. Called by
      * `translate()` but also used when filtering pending requests.
+     * @param {{request:TranslateRequest, models:TranslationModel[], key:String, priority:Number?, resolve:(TranslateResponse)=>any, reject:(Error)=>any}}
      */
     enqueue({key, models, request, resolve, reject, priority}) {
         if (priority === undefined)
