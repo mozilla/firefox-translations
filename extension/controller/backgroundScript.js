@@ -209,7 +209,8 @@ class Tab extends EventTarget {
                                  // language. We leave to selected as is
                     pendingTranslationRequests: 0,
                     totalTranslationRequests: 0,
-                    state: State.PAGE_LOADING
+                    state: State.PAGE_LOADING,
+                    error: null
                 };
             }
         });
@@ -381,6 +382,11 @@ let provider = new class {
 
         this.#provider.onerror = err => {
             console.error('Translation provider error:', err);
+
+            tabs.forEach(tab => tab.update(() => ({
+                state: State.PAGE_ERROR,
+                error: `Translation provider error: ${err.message}`,
+            })));
 
             // Try falling back to WASM is the current provider doesn't work
             // out. Might lose some translations the process but

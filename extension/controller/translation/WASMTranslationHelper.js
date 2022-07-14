@@ -428,11 +428,15 @@ class WorkerChannel {
 
             // No worker free, but space for more?
             if (!worker && this.workers.length < this.workerLimit) {
-                worker = {
-                    idle: true,
-                    worker: this.loadWorker()
-                };
-                this.workers.push(worker);
+                try {
+                    worker = {
+                        idle: true,
+                        worker: this.loadWorker()
+                    };
+                    this.workers.push(worker);
+                } catch (e) {
+                    this.onerror(new Error(`Could not initialise translation worker: ${e.message}`));
+                }
             }
 
             // If no worker, that's the end of it.
