@@ -1,11 +1,12 @@
 {
   "name": "firefox_translations",
   "scripts": {
+    "build-html-changelog": "md2html CHANGELOG.md | cat scripts/changelog.tpl - > extension/view/static/CHANGELOG.html",
     "test": "if [[ -z \"${MOZ_AUTOMATION}\" ]]; then npm run test-esr; npm run test-master; fi",
     "test-esr":  "python scripts/tests/e2e-tests-esr91.py",
     "test-master":  "python scripts/tests/e2e-tests.py",
     "lint:js": "eslint -c  .eslintrc.js extension",
-    "build": "cp extension/settings/prod.js extension/settings.js; npm run update-localization; web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
+    "build": "npm run build-html-changelog; cp extension/settings/prod.js extension/settings.js; npm run update-localization; web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
     "build-test": "cp extension/settings/test.js extension/settings.js; npm run update-localization; web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
     "lint:extension": "web-ext lint -s extension",
     "once": "cp extension/settings/dev.js extension/settings.js; npm run update-localization; web-ext run -s extension --verbose --firefox nightly  --no-config-discovery --pref=extensions.experiments.enabled=true",
@@ -18,7 +19,8 @@
   },
   "devDependencies": {
     "eslint": "^7.32.0",
-    "web-ext": "^6.8.0"
+    "web-ext": "^6.8.0",
+    "markdown": "^0.5.0"
   },
   "version": "1.1.3"
 }
