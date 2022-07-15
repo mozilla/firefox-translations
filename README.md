@@ -3,7 +3,7 @@
 # Firefox Translations
 Firefox Translations is a WebExtension that enables client side in-page translations for web browsers.
 
-Firefox Translations was developed with The Bergamot Project Consortium, coordinated by the University of Edinburgh with partners Charles University in Prague, the University of Sheffield, University of Tartu, and Mozilla. This project has received funding from the European Union’s Horizon 2020 research and innovation programme under grant agreement No 825303.
+Firefox Translations was developed with The Bergamot Project Consortium, coordinated by the University of Edinburgh with partners Charles University in Prague, the University of Sheffield, University of Tartu, and Mozilla. This project has received funding from the European Union’s Horizon 2020 research and innovation programme under grant agreement No 825303. 🇪🇺
 
 ## Release version
 
