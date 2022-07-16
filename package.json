@@ -3,8 +3,8 @@
   "scripts": {
     "build-html-changelog": "md2html CHANGELOG.md | cat scripts/changelog.tpl - > extension/view/static/CHANGELOG.html",
     "test": "if [[ -z \"${MOZ_AUTOMATION}\" ]]; then npm run test-esr; npm run test-master; fi",
-    "test-esr":  "python3 scripts/tests/e2e-tests-esr91.py",
-    "test-master":  "python3 scripts/tests/e2e-tests.py",
+    "test-esr":  "if [[ -z \"${MOZ_AUTOMATION}\" ]]; then python3 scripts/tests/e2e-tests-esr91.py; fi",
+    "test-master":  "if [[ -z \"${MOZ_AUTOMATION}\" ]]; then python3 scripts/tests/e2e-tests.py; fi",
     "lint:js": "eslint -c  .eslintrc.js extension",
     "build": "npm run build-html-changelog; cp extension/settings/prod.js extension/settings.js; npm run update-localization; web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
     "build-test": "cp extension/settings/test.js extension/settings.js; npm run update-localization; web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
