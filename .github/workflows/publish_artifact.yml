@@ -2,8 +2,6 @@ name: Build release
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*.*.*"
   pull_request:
