@@ -32,6 +32,7 @@ The current release version is available for installation on Mozilla Add-ons
 - Norwegian Nynorsk
 - Norwegian Bokmål
 - Ukrainian
+- Dutch
 
 ## Testing
 
