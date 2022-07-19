@@ -53,7 +53,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   updateTranslationProgress(localizedMessage) {
-    this._getAnonElt("labelTranslate").innerHTML = localizedMessage;
+    this._getAnonElt("labelTranslate").textContent = localizedMessage;
   }
 
   init(translationNotificationManager) {
