@@ -520,14 +520,27 @@ browser.webNavigation.onCommitted.addListener(details => {
 
 const displayedConsentPromise = browser.storage.local.get("displayedConsent");
 const isMochitestPromise = browser.experiments.translationbar.isMochitest();
+const retrievelastVersionFromStorage = browser.storage.local.get("lastVersion");
 
-Promise.allSettled([displayedConsentPromise, isMochitestPromise]).then(values => {
+Promise.allSettled([
+                    displayedConsentPromise,
+                    isMochitestPromise,
+                    retrievelastVersionFromStorage
+                  ]).then(values => {
   const displayedConsent = values[0].value?.displayedConsent;
+  const lastVersionDisplayed = values[2].value?.lastVersion;
   isMochitest = values[1].value;
 
   if (!displayedConsent && !isMochitest) {
     browser.tabs.create({ url: browser.runtime.getURL("view/static/dataConsent.html") });
     browser.storage.local.set({ displayedConsent: true });
+    browser.storage.local.set({ lastVersion: extensionVersion });
+  } else if (displayedConsent && extensionVersion !== lastVersionDisplayed) {
+    browser.tabs.create({
+      active: true,
+      url: browser.extension.getURL("view/static/CHANGELOG.html"),
+    });
+    browser.storage.local.set({ lastVersion: extensionVersion });
   }
 });
 
@@ -764,15 +777,3 @@ const getItemFromWeb = async (tabId, itemURL, fileSize, fileChecksum) => {
   }
   return fetchResponse;
 };
-
-const retrievelastVersionFromStorage = browser.storage.local.get("lastVersion");
-Promise.allSettled([retrievelastVersionFromStorage]).then(values => {
-  const lastVersionDisplayed = values[0].value?.lastVersion;
-  if (extensionVersion !== lastVersionDisplayed) {
-    browser.tabs.create({
-      active: true,
-      url: browser.extension.getURL("view/static/CHANGELOG.html"),
-    });
-    browser.storage.local.set({ lastVersion: extensionVersion });
-  }
-});
