@@ -15,6 +15,8 @@ You can send suggestions or report issues to the team via any of the channels be
 - Ukrainian models
 - French models
 - Polish models
+- English to Dutch model
+- Changelog (this page!)
 
 ### Changed
 - Improved language detection that now takes into account the language set in the page's markup
