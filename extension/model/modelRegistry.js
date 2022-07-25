@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable max-lines */
 
-const modelRegistryVersion = "0.3.2";
+const modelRegistryVersion = "0.3.3";
 let modelRegistryRootURL = `https://storage.googleapis.com/bergamot-models-sandbox/${modelRegistryVersion}`;
 const modelRegistryRootURLTest = "https://example.com/browser/browser/extensions/translations/test/browser";
 
@@ -606,6 +606,29 @@ const modelRegistry = {
       "size": 820367,
       "estimatedCompressedSize": 416849,
       "expectedSha256Hash": "67020a6ce013f06a1fca8b1f4c1a65c4fb8c679b231a236e7c6988570cbc8e06",
+      "modelType": "dev"
+    }
+  },
+  "nlen": {
+    "model": {
+      "name": "model.nlen.intgemm.alphas.bin",
+      "size": 17140899,
+      "estimatedCompressedSize": 13117435,
+      "expectedSha256Hash": "187f9c8f1ffbcc8ecf0724b608ffed9f15bde262b9de5c4754f8d763b585969d",
+      "modelType": "dev"
+    },
+    "lex": {
+      "name": "lex.50.50.nlen.s2t.bin",
+      "size": 4940304,
+      "estimatedCompressedSize": 2744604,
+      "expectedSha256Hash": "15c473e6e5aef1fa3fe5cc804844e19a2c671d2e39169dcbc06f456ca4f9b2c0",
+      "modelType": "dev"
+    },
+    "vocab": {
+      "name": "vocab.nlen.spm",
+      "size": 807730,
+      "estimatedCompressedSize": 411834,
+      "expectedSha256Hash": "48a6331cb8a69d21dd24c6c2a15de44a07bcfd4a4470eaf4616849d77945f6b9",
       "modelType": "dev"
     }
   },
