@@ -10,6 +10,15 @@ You can send suggestions or report issues to the team via any of the channels be
 
 [You can also rate and leave us a comment on Mozilla Addons.](https://addons.mozilla.org/en-US/firefox/addon/firefox-translations/)
 
+## [[v1.1.4]](https://github.com/mozilla/firefox-translations/tree/v1.1.4) - 2022-07-27
+### Added
+- Full Dutch support
+
+### Changed
+- Fixed caching of assets across updates that was breaking updates.
+- Fixed changelog issues
+
+
 ## [[1.1.3]](https://github.com/mozilla/firefox-translations/tree/v1.1.3) - 2022-07-14
 ### Added
 - Ukrainian models
@@ -21,7 +30,7 @@ You can send suggestions or report issues to the team via any of the channels be
 ### Changed
 - Improved language detection that now takes into account the language set in the page's markup
 - UI is now responsive which fix issues that was extrapolating and cutting the window and breaking Firefox controls.
-- "Translation Preferences" in the options button now redirects to the Fireefox Translations panel in about:preferences
+- "Translation Preferences" in the options button now redirects to the Firefox Translations panel in about:preferences
 -  Fixed the stopgap solution of translating in permanent private browsing mode
 - New high resolution icon
 - "Never translate this site" in the options button is now a checkbox
