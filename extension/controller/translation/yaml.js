@@ -34,7 +34,7 @@ class YAML {
             let valstr = '';
             if (Array.isArray(value))
                 valstr = value.map(val => `\n  - ${val}`).join('');
-            else if (typeof value === 'number' || value.match(/^\d*(\.\d+)?$/))
+            else if (typeof value === 'number' || typeof value === 'boolean' || value.match(/^\d*(\.\d+)?$/))
                 valstr = `${value}`;
             else
                 valstr = `${value}`; // Quote?
