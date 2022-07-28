@@ -45,18 +45,6 @@
 			],
 			"js":
 			[
-				"view/js/MutationObserver.js"
-			],
-			"run_at": "document_start",
-			"all_frames": true
-		},
-		{
-			"matches":
-			[
-				"<all_urls>"
-			],
-			"js":
-			[
 				"controller/translation/compat.js",
 				"controller/LanguageDetection.js",
 				"view/js/InPageTranslation.js",
