@@ -67,6 +67,10 @@ class InPageTranslation {
 
         // All elements we're actively trying to translate.
         this.targetNodes = new Set();
+
+        // Per Element we store a list of the original children, or per TextNode
+        // we store the original text.
+        this.originalContent = new Map();
         
         // Reference for all tags:
         // https://developer.mozilla.org/en-US/docs/Web/HTML/Element
@@ -223,7 +227,8 @@ class InPageTranslation {
 
     /**
      * Stops the InPageTranslation process, stopping observing and regard any
-     * in-flight translation request as lost.
+     * in-flight translation request as lost. All queued requests are still
+     * in the queue though, so you can resume.
      */
     stop() {
         if (!this.started)
@@ -248,6 +253,24 @@ class InPageTranslation {
         this.pendingTranslations.clear();
 
         this.started = false;
+    }
+
+    /**
+     * Stop the process and restore the page back to its original content.
+     */
+    restore() {
+        // Can't restore without stopping.
+        this.stop();
+
+        // Start restoring at each of the target nodes
+        this.targetNodes.forEach(node => this.restoreElement(node));
+
+        // All nodes are now unprocessed again
+        this.processedNodes = new WeakSet(); // `new` because WeakSet has no `clear()`
+        
+        // Similarly, nothing is queued anymore since we need to start over
+        // from the beginning.
+        this.queuedNodes.clear();
     }
 
     /**
@@ -641,6 +664,17 @@ class InPageTranslation {
                 const dstNodes = Array.from(dst.childNodes)
                     .map(child => dst.removeChild(child));
 
+                if (!this.originalContent.has(dst)) {
+                    // Save the original order of the children
+                    this.originalContent.set(dst, Array.from(dstNodes));
+
+                    // And save the contents of the text nodes we might override
+                    dstNodes.forEach(child => {
+                        if (child.nodeType === Node.TEXT_NODE)
+                            this.originalContent.set(child, child.data);
+                    });
+                }
+
                 const dstTextNodes = dstNodes.filter(child => {
                     if (child.nodeType !== Node.TEXT_NODE)
                         return false;
@@ -743,6 +777,9 @@ class InPageTranslation {
         };
 
         const updateTextNode = ({id, translated}, node) => {
+            if (!this.originalContent.has(node))
+                this.originalContent.set(node, node.data);
+
             if (translated.trim().length === 0)
                 console.warn('[InPlaceTranslation] text node', node, 'translated to', translated);
             else
@@ -767,6 +804,47 @@ class InPageTranslation {
             this.updateTimeout = null;
         } finally {
             this.startMutationObserver();
+        }
+    }
+
+    /**
+     * Restores an element and its children to the last known content.
+     */
+    restoreElement(node) {
+        // If we don't have the original content, it might be because that node
+        // itself was skipped. Lets just scan its contents for now then.
+        if (!this.originalContent.has(node))
+            return node.childNodes.forEach(child => this.restoreElement(child));
+
+        // Take the original content and remove it from the map because when we
+        // are done, it is as if this element was never translated. If it is
+        // reprocessed, it will be added again with any changes that happened
+        // in the mean time.
+        const original = this.originalContent.get(node);
+        this.originalContent.delete(node);
+
+        switch (node.nodeType) {
+            case Node.ELEMENT_NODE:
+                // Remove all current children
+                Array.from(node.childNodes).forEach(child => node.removeChild(child));
+
+                // Restore and re-insert the original children which might well
+                // be the ones we just removed, but they could be in a different
+                // order or contain extra text nodes added for the translation
+                // to fit.
+                original.forEach(child => {
+                    this.restoreElement(child);
+                    node.appendChild(child);
+                });
+                break;
+
+            case Node.TEXT_NODE:
+                node.data = original;
+                break;
+
+            default:
+                // Do nothing? Just leave comments and processing instructions as is.
+                break;
         }
     }
 

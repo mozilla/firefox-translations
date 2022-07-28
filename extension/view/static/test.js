@@ -94,5 +94,11 @@ document.querySelectorAll('#controls').forEach(section => {
 		render();
 	});
 
+	section.querySelector('#restore').addEventListener('click', e => {
+		ipt.restore();
+		queue = []; // because restore() involves stop()
+		render();
+	})
+
 	render();
 })
