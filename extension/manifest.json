@@ -4,12 +4,6 @@
   "description": "__MSG_extensionDescription__",
   "version": "1.1.3",
   "default_locale": "en_US",
-  "applications": {
-    "gecko": {
-      "id": "firefox-translations-addon@mozilla.org",
-      "strict_min_version": "90.0"
-    }
-  },
   "browser_specific_settings": {
     "gecko": {
       "id": "firefox-translations-addon@mozilla.org",
