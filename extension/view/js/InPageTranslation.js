@@ -228,7 +228,7 @@ class InPageTranslation {
          * pre-construct the excluded node selector. Doing it here since it
          * needs to know `language`. See `containsExcludedNode()`.
          */
-        this.excludedNodeSelector = `[lang]:not([lang|="${this.language}"]),[translate=no],${Array.from(this.excludedTags).join(",")},#OTapp`;
+        this.excludedNodeSelector = `[lang]:not([lang|="${this.language}"]),[translate=no],.notranslate,[contenteditable],${Array.from(this.excludedTags).join(",")},#OTapp`;
 
         for (let node of this.targetNodes) this.startTreeWalker(node);
 
@@ -536,6 +536,18 @@ class InPageTranslation {
 
         // we should explicitly exclude the outbound translations widget
         if (node.id === "OTapp") return true;
+
+        /*
+         * exclude elements with the notranslate class which is also honoured
+         * by Google Translate
+         */
+        if (node.classList.contains("notranslate")) return true;
+
+        /*
+         * exclude editable elements for the same reason we don't translate the
+         * contents of form input fields.
+         */
+        if (node.contenteditable) return true;
 
         return false;
     }
