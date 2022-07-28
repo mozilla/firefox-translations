@@ -58,6 +58,16 @@ document.querySelectorAll('#controls').forEach(section => {
 		section.querySelector('#toggle').textContent = ipt.started ? 'Restart' : 'Start';
 		section.querySelector('#translate-head').disabled = queue.length === 0;
 		section.querySelector('#translate-tail').disabled = queue.length === 0;
+
+		const ol = document.querySelector('#queue');
+		ol.innerHTML = '';
+
+		queue.forEach(request => {
+			const li = ol.appendChild(document.createElement('li'));
+			const pre = li.appendChild(document.createElement('pre'));
+			const json = JSON.stringify(request, null, 2);
+			pre.appendChild(document.createTextNode(json));
+		});
 	};
 
 	section.querySelector('#translate-head').addEventListener('click', e => {
