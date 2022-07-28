@@ -541,7 +541,7 @@ class InPageTranslation {
          * exclude elements with the notranslate class which is also honoured
          * by Google Translate
          */
-        if (node.classList.contains('notranslate')) return true;
+        if (node.classList.contains("notranslate")) return true;
 
         /*
          * exclude editable elements for the same reason we don't translate the
