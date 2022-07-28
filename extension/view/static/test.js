@@ -50,6 +50,9 @@ document.querySelectorAll('#controls').forEach(section => {
 
 	window.$ipt = ipt; // for debugging
 
+	ipt.addElement(document.querySelector('head > title'));
+	ipt.addElement(document.body);
+
 	function render() {
 		section.querySelector('#status').textContent = `There are ${queue.length} translation requests`;
 		section.querySelector('#toggle').textContent = ipt.started ? 'Restart' : 'Start';
