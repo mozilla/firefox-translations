@@ -10,6 +10,16 @@ You can send suggestions or report issues to the team via any of the channels be
 
 [You can also rate and leave us a comment on Mozilla Addons.](https://addons.mozilla.org/en-US/firefox/addon/firefox-translations/)
 
+## [[v1.1.4]](https://github.com/mozilla/firefox-translations/tree/v1.1.4) - 2022-07-28
+### Added
+- Full Dutch support
+
+### Changed
+- Fixed caching of assets across updates that was breaking updates.
+- Fixed changelog issues
+- Remove obsolete key (applications) from manifest
+- Fixed issues where editable elements were being translated and breaking sites like Twitter
+
 ## [[1.1.3]](https://github.com/mozilla/firefox-translations/tree/v1.1.3) - 2022-07-14
 ### Added
 - Ukrainian models
