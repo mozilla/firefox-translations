@@ -65,13 +65,21 @@ const translationNotificationManagers = new Map();
 
     getAPI(context) {
 
+      const { extension } = context;
+      // ignore the cached scripts if either updateReason is defined or startupReason is set to upgrade or downgrade.
+      const ignoreCache = Boolean(extension.updateReason) ||
+        ["ADDON_UPGRADE", "ADDON_DOWNGRADE"].includes(extension.startupReadon)
+
       const { ExtensionUtils } = ChromeUtils.import("resource://gre/modules/ExtensionUtils.jsm");
       const { ExtensionError } = ExtensionUtils;
-
-      Services.scriptloader.loadSubScript(`${context.extension.getURL("/view/js/TranslationNotificationManager.js",)}`
-      ,);
-      Services.scriptloader.loadSubScript(`${context.extension.getURL("/model/modelRegistry.js",)}`
-      ,);
+      Services.scriptloader.loadSubScriptWithOptions(
+        `${context.extension.getURL("/view/js/TranslationNotificationManager.js",)}`,
+        { ignoreCache }
+      );
+      Services.scriptloader.loadSubScriptWithOptions(
+        `${context.extension.getURL("/model/modelRegistry.js",)}`,
+        { ignoreCache }
+      );
 
       /*
        * variable responsible for holding a reference to the backgroundscript
@@ -115,9 +123,12 @@ const translationNotificationManagers = new Map();
                 if (!windowsWithCustomElement.has(chromeWin)) {
                   windowsWithCustomElement.add(chromeWin);
                   chromeWin.TRANSLATION_NOTIFICATION_ELEMENT_ID = TRANSLATION_NOTIFICATION_ELEMENT_ID;
-                  Services.scriptloader.loadSubScript(
+                  Services.scriptloader.loadSubScriptWithOptions(
                     context.extension.getURL("view/js/translation-notification-fxtranslations.js"),
-                    chromeWin
+                    {
+                      target: chromeWin,
+                      ignoreCache
+                    }
                   );
                 }
 
