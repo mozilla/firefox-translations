@@ -496,7 +496,7 @@ class InPageTranslation {
 
         // Based on jQuery (talk about battle-tested...)
         // https://github.com/jquery/jquery/blob/main/src/css/hiddenVisibleSelectors.js
-        return !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+        return element && !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
     }
 
     /**
