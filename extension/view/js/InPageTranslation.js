@@ -168,9 +168,39 @@ class InPageTranslation {
             for (const mutation of mutationsList) {
                 switch (mutation.type) {
                     case "childList":
+                        if (this.originalContent.has(mutation.target)) {
+                            const children = this.originalContent.get(mutation.target);
+
+                            // console.log({mutation, children: Array.from(children)});
+
+                            mutation.removedNodes.forEach(child => {
+                                let index = children.indexOf(child);
+                                console.assert(index !== -1, 'could not find removed node among children', index, children[0] === child);
+                                if (index !== -1) children.splice(index, 1);
+                            });
+
+                            if (mutation.addedNodes) {
+                                if (mutation.previousSibling) {
+                                    let index = children.indexOf(mutation.previousSibling)
+                                    console.assert(index !== -1, 'index of previous sibling not found');
+                                    children.splice(index + 1, 0, ...mutation.addedNodes);
+                                }
+                                else if (mutation.nextSibling) {
+                                    let index = children.indexOf(mutation.nextSibling);
+                                    console.assert(index !== -1, 'index of next sibling not found');
+                                    children.splice(index, 0, ...mutation.addedNodes);
+                                }
+                                else {
+                                    console.assert(children.length === 0, 'no next/prev sibling but the original node had children')
+                                    children.splice(0, 0, ...mutation.addedNodes);
+                                }
+                            }
+                        }
                         mutation.addedNodes.forEach(this.restartTreeWalker.bind(this));
                         break;
                     case "characterData":
+                        if (this.originalContent.has(mutation.target))
+                            this.originalContent.set(mutation.target, mutation.target.data);
                         this.restartTreeWalker(mutation.target);
                         break;
                 }
@@ -586,6 +616,9 @@ class InPageTranslation {
         else if (this.isElementInViewport(node))
             priority = 1;
 
+        // Record it?
+        this.recordElement(node);
+
         this.queuedNodes.set(node, {
             id: this.translationsCounter,
             priority
@@ -663,17 +696,6 @@ class InPageTranslation {
                 // back, but possibly in a different order.
                 const dstNodes = Array.from(dst.childNodes)
                     .map(child => dst.removeChild(child));
-
-                if (!this.originalContent.has(dst)) {
-                    // Save the original order of the children
-                    this.originalContent.set(dst, Array.from(dstNodes));
-
-                    // And save the contents of the text nodes we might override
-                    dstNodes.forEach(child => {
-                        if (child.nodeType === Node.TEXT_NODE)
-                            this.originalContent.set(child, child.data);
-                    });
-                }
 
                 const dstTextNodes = dstNodes.filter(child => {
                     if (child.nodeType !== Node.TEXT_NODE)
@@ -777,9 +799,6 @@ class InPageTranslation {
         };
 
         const updateTextNode = ({id, translated}, node) => {
-            if (!this.originalContent.has(node))
-                this.originalContent.set(node, node.data);
-
             if (translated.trim().length === 0)
                 console.warn('[InPlaceTranslation] text node', node, 'translated to', translated);
             else
@@ -804,6 +823,19 @@ class InPageTranslation {
             this.updateTimeout = null;
         } finally {
             this.startMutationObserver();
+        }
+    }
+
+    recordElement(node) {
+        switch (node.nodeType) {
+            case Node.ELEMENT_NODE:
+                const children = Array.from(node.childNodes);
+                children.forEach(this.recordElement.bind(this))
+                this.originalContent.set(node, children);
+                break;
+            case Node.TEXT_NODE:
+                this.originalContent.set(node, node.data);
+                break;
         }
     }
 
