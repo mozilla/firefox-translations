@@ -175,7 +175,7 @@ class InPageTranslation {
 
                             mutation.removedNodes.forEach(child => {
                                 let index = children.indexOf(child);
-                                console.assert(index !== -1, 'could not find removed node among children', index, children[0] === child);
+                                console.assert(index !== -1, 'could not find removed node among children', child, Array.from(children));
                                 if (index !== -1) children.splice(index, 1);
                             });
 
@@ -191,7 +191,7 @@ class InPageTranslation {
                                     children.splice(index, 0, ...mutation.addedNodes);
                                 }
                                 else {
-                                    console.assert(children.length === 0, 'no next/prev sibling but the original node had children')
+                                    console.assert(children.length === 0, 'no next/prev sibling but the original node had children', Array.from(children))
                                     children.splice(0, 0, ...mutation.addedNodes);
                                 }
                             }
