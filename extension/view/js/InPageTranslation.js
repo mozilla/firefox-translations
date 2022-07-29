@@ -706,6 +706,8 @@ class InPageTranslation {
                     // they'll only cause mismatches between textual text nodes.
                     if (child.data.trim().length == 0)
                         return false;
+
+                    return true;
                 });
 
                 const dstChildNodes = Object.fromEntries(dstNodes
