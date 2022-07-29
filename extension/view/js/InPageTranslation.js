@@ -126,9 +126,8 @@ class InPageTranslation {
         this.targetNodes = new Set();
 
         // Per Element we store a list of the original children, or per TextNode
-        // we store the original text.
-        this.originalContent = new Map(); //new EnumerableWeakMap();
-
+        // we store the original text. Needs to be enumerable, so no WeakMap.
+        this.originalContent = new Map(); //new EnumerableWeakMap(); but that doesn't work because of a privilege boundary.
         // Reference for all tags:
         // https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 
