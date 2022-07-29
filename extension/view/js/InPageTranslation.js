@@ -329,6 +329,8 @@ class InPageTranslation {
         if (!this.started)
             return;
 
+        this.started = false;
+
         // TODO: cancel translation requests? Not really necessary at this level
         // because stop() is called on disconnect from the background-script,
         // and that script on its own will cancel translation requests from
@@ -347,7 +349,15 @@ class InPageTranslation {
 
         this.pendingTranslations.clear();
 
-        this.started = false;
+        // Remove any pending node updates for which we just received a
+        // translation but haven't update the node yet.
+        this.translatedNodes.clear();
+
+        // Also make sure we don't attempt to update pending nodes anymore.
+        if (this.updateTimeout) {
+            clearTimeout(this.updateTimeout)
+            this.updateTimeout = null;
+        }
     }
 
     /**
@@ -893,6 +903,8 @@ class InPageTranslation {
             else
                 node.data = translated;
         };
+
+        console.assert(this.started, 'Called updateElements while InPageTranslation.started is false');
 
         // Pause observing mutations
         this.stopMutationObserver();
