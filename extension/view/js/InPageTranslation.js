@@ -241,12 +241,12 @@ class InPageTranslation {
                             if (mutation.addedNodes) {
                                 if (mutation.previousSibling) {
                                     let index = children.indexOf(mutation.previousSibling)
-                                    console.assert(index !== -1, 'index of previous sibling not found');
+                                    console.assert(index !== -1, 'index of previous sibling', mutation.previousSibling, 'not found in', Array.from(children));
                                     children.splice(index + 1, 0, ...mutation.addedNodes);
                                 }
                                 else if (mutation.nextSibling) {
                                     let index = children.indexOf(mutation.nextSibling);
-                                    console.assert(index !== -1, 'index of next sibling not found');
+                                    console.assert(index !== -1, 'index of next sibling', mutation.nextSibling, 'not found in', Array.from(children));
                                     children.splice(index, 0, ...mutation.addedNodes);
                                 }
                                 else {
