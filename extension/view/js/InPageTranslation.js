@@ -385,6 +385,13 @@ class InPageTranslation {
 
         return retval;
     }
+
+    hasContent(node) {
+        // Method a (seems to be faster in general?)
+        return node.textContent.trim().length !== 0;
+
+        // Alternative method
+        // return document.createTreeWalker(node, NodeFilter.SHOW_TEXT, (node) => node.data.trim() !== '').nextNode() !== null;
     }
 
     /**
@@ -403,7 +410,7 @@ class InPageTranslation {
         for (let child of node.childNodes) {
             switch (child.nodeType) {
                 case Node.TEXT_NODE: // TextNode
-                    if (child.textContent.trim().length > 0)
+                    if (child.data.trim().length > 0)
                         inlineElements++;
                     break;
 
@@ -528,7 +535,7 @@ class InPageTranslation {
         }
 
         // Skip over subtrees that don't have text
-        if (node.textContent.trim().length === 0) {
+        if (!this.hasContent(node)) {
             mark('rejected empty-text-content');
             return NodeFilter.FILTER_REJECT;
         }
