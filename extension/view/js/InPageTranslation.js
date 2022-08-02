@@ -547,12 +547,15 @@ class InPageTranslation {
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper
         } 
 
+        // Dig down deeper if we would otherwise also submit an excluded node
+        // to the translator. Unless we would lose a text node that is a direct
+        // child of `node` if we did that.
         if (this.containsExcludedNode(node) && !this.hasTextNodes(node)) {
             mark('skipped contains-excluded-node');
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper  
         }
         
-        return NodeFilter.FILTER_ACCEPT; // send whole node as 1 block
+        return NodeFilter.FILTER_ACCEPT; // send whole node as a single block
     }
 
     /**
