@@ -409,6 +409,9 @@ class InPageTranslation {
         let inlineElements = 0;
         let blockElements = 0;
 
+        // Number of elements of one class to have a majority
+        const threshold = node.childNodes.length / 2;
+
         for (let child of node.childNodes) {
             switch (child.nodeType) {
                 case Node.TEXT_NODE: // TextNode
@@ -425,6 +428,9 @@ class InPageTranslation {
                         blockElements++;
                     break;
             }
+
+            if (inlineElements > threshold || blockElements > threshold)
+                break;
         }
 
         return inlineElements >= blockElements;
