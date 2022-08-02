@@ -261,13 +261,13 @@ class InPageTranslation {
         // comments and possibly weird XML instructions.
         if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.TEXT_NODE)
             return;
-        
+
         // If the parent itself is rejected, we don't translate any children.
         // However, if this is a specifically targeted node, we don't do this
         // check. Mainly so we can exclude <head>, but include <title>.
         if (!this.targetNodes.has(root)) {
             for (let parent of ancestors(root)) {
-                if (this.validateNode(parent) === NodeFilter.FILTER_REJECT)
+                if (this.isExcludedNode(parent))
                     return;
             }
         }
