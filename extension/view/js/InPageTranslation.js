@@ -288,6 +288,9 @@ class InPageTranslation {
      * Add element to translate and keep translated when changed by the page.
      */
     addElement(node) {
+        if (!(node instanceof Element))
+            return;
+
         if (this.targetNodes.has(node))
             return;
 
