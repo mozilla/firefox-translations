@@ -32,12 +32,12 @@ You can send suggestions or report issues to the team via any of the channels be
 - Improved language detection that now takes into account the language set in the page's markup
 - UI is now responsive which fix issues that was extrapolating and cutting the window and breaking Firefox controls.
 - "Translation Preferences" in the options button now redirects to the Firefox Translations panel in about:preferences
--  Fixed the stopgap solution of translating in permanent private browsing mode
+- Fixed the stopgap solution of translating in permanent private browsing mode
 - New high resolution icon
 - "Never translate this site" in the options button is now a checkbox
 - PageAction icon is now white
 - Restrict minimum version to what's compatible with the wasm engine
-- Fixes crypto uuid issues preventing telemetry from being submitted on Fx earlier than 93
+- Fixes crypto UUID issues preventing telemetry from being submitted on Fx earlier than 93
 - Makes translation bar compatible with Fx versions earlier than 95
 - Improved in-page translation
 - Issues when translation of forms is incompatible with the page are fixed
@@ -47,7 +47,7 @@ You can send suggestions or report issues to the team via any of the channels be
 
 ### Removed
 - Survey button.
-- Womrhole artifacts
+- Wormhole artifacts
 
 ## [[1.1.2]](https://github.com/mozilla/firefox-translations/tree/v1.1.2) - 2022-05-20
 ### Added
@@ -82,8 +82,8 @@ You can send suggestions or report issues to the team via any of the channels be
 - Fixes and improvements on user interface
 - Improved translation worker
 - Improved translation engine
-- Improved portuguese models
-- Improved italian models
+- Improved Portuguese models
+- Improved Italian models
 - Improved translation of frames
 - Ship translation engine instead of download it
 
