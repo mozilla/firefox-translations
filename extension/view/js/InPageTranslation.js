@@ -355,21 +355,36 @@ class InPageTranslation {
      * reject it since we already sent it to translation.
      */
     isParentQueued(node){
-        // if the immediate parent is the body we just allow it
-        if (node.parentNode === document.body) {
-            return false;
-        }
-
         // let's iterate until we find either the body or if the parent was sent
         let lastNode = node;
+        let retval = false;
         while (lastNode.parentNode) {
-            if (this.queuedNodes.has(lastNode.parentNode)) {
-                return lastNode.parentNode;
+            if (lastNode === document.body)
+                break;
+
+            // See if we've checked before
+            if (this.isParentQueuedCache.has(lastNode.parentNode)) {
+                retval = this.isParentQueuedCache.get(lastNode.parentNode);
+                break;
             }
+
+            // See if it is queued (the sole purpose of this function really)
+            if (this.queuedNodes.has(lastNode.parentNode)) {
+                retval = true;
+                break;
+            }
+
+            // Move one node up the tree
             lastNode = lastNode.parentNode;
         }
 
-        return false;
+        // Mark the whole path from child to ancestor with whether they're
+        // already queued or not.
+        for (let n = node; n.parentNode && n !== lastNode; n = n.parentNode)
+            this.isParentQueuedCache.set(n.parentNode, retval);
+
+        return retval;
+    }
     }
 
     /**
@@ -563,6 +578,11 @@ class InPageTranslation {
         else if (this.isElementInViewport(node))
             priority = 1;
 
+        // Remove all children from the isParentQueued call cache
+        const nodeIterator = document.createTreeWalker(node, NodeFilter.SHOW_ELEMENT);
+        for (let currentNode = nodeIterator.nextNode(); currentNode; currentNode = nodeIterator.nextNode())
+            this.isParentQueuedCache.delete(currentNode); // TODO: or set()?
+
         this.queuedNodes.set(node, {
             id: this.translationsCounter,
             priority
@@ -572,6 +592,7 @@ class InPageTranslation {
     dispatchTranslations() {
         this.queuedNodes.forEach(this.submitTranslation.bind(this));
         this.queuedNodes.clear();
+        this.isParentQueuedCache.clear();
     }
 
     submitTranslation({priority, id}, node) {
