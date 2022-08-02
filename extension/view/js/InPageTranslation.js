@@ -358,32 +358,32 @@ class InPageTranslation {
      */
     isParentQueued(node){
         // let's iterate until we find either the body or if the parent was sent
-        let lastNode = node;
+        let parent = node.parentNode;
         let retval = false;
-        while (lastNode.parentNode) {
-            if (lastNode === document.body)
+        while (parent) {
+            if (parent === document.body)
                 break;
 
             // See if we've checked before
-            if (this.isParentQueuedCache.has(lastNode.parentNode)) {
-                retval = this.isParentQueuedCache.get(lastNode.parentNode);
+            if (this.isParentQueuedCache.has(parent)) {
+                retval = this.isParentQueuedCache.get(parent);
                 break;
             }
 
             // See if it is queued (the sole purpose of this function really)
-            if (this.queuedNodes.has(lastNode.parentNode)) {
+            if (this.queuedNodes.has(parent)) {
                 retval = true;
                 break;
             }
 
             // Move one node up the tree
-            lastNode = lastNode.parentNode;
+            parent = parent.parentNode;
         }
 
         // Mark the whole path from child to ancestor with whether they're
         // already queued or not.
-        for (let n = node; n.parentNode && n !== lastNode; n = n.parentNode)
-            this.isParentQueuedCache.set(n.parentNode, retval);
+        for (let n = node.parentNode; n && n !== parent; n = n.parentNode)
+            this.isParentQueuedCache.set(n, retval);
 
         return retval;
     }
