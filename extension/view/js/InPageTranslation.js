@@ -172,6 +172,8 @@ class InPageTranslation {
                 }
             }
         });
+
+        this.isParentQueuedCache = new Map();
     }
 
     addElement(node) {
