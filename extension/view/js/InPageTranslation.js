@@ -311,6 +311,11 @@ class InPageTranslation {
      * already been submitted" bit. Use this one for submitting changed elements.
      */
     restartTreeWalker(root) {
+        // Optimisation: don't bother with translating whitespace. React sites
+        // seem trigger this a lot?
+        if (root.nodeType === Node.TEXT_NODE && root.data.trim() === '')
+            return;
+        
         // Remove node from sent map: if it was send, we don't want it to update
         // with an old translation once the translation response comes in.
         const id = this.submittedNodes.get(root);
