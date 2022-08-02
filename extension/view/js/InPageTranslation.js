@@ -100,6 +100,10 @@ class InPageTranslation {
         this.updateTimeout = null;
         this.UI_UPDATE_INTERVAL = 500;
 
+        // Timeout between first DOM mutation and us re-evaluating these nodes.
+        this.restartTimeout = null;
+        this.RESTART_INTERVAL = 100;
+
         // Table of [Element]:Object to be submitted, and some info about them.
         // Filled by enqueueTranslation(), emptied by dispatchTranslation().
         this.queuedNodes = new Map();
@@ -128,6 +132,11 @@ class InPageTranslation {
         // Per Element we store a list of the original children, or per TextNode
         // we store the original text. Needs to be enumerable, so no WeakMap.
         this.originalContent = new Map(); //new EnumerableWeakMap(); but that doesn't work because of a privilege boundary.
+
+        // Elements that have changed since we've started translating, and are
+        // waiting for updateTimeout to call restartTreeWalker again.
+        this.mutatedNodes = new Set();
+        
         // Reference for all tags:
         // https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 
@@ -257,7 +266,7 @@ class InPageTranslation {
                         }
 
                         // Start translating the new nodes
-                        mutation.addedNodes.forEach(this.restartTreeWalker.bind(this));
+                        mutation.addedNodes.forEach(this.enqueueMutatedNode.bind(this));
                         break;
                     case "characterData":
                         // If we're tracking the text content of this node,
@@ -266,17 +275,19 @@ class InPageTranslation {
                             this.originalContent.set(mutation.target, mutation.target.data);
                         
                         // Translate the text node.
-                        this.restartTreeWalker(mutation.target);
+                        this.enqueueMutatedNode(mutation.target);
                         break;
                 }
             }
         });
+
+        this.isParentQueuedCache = new Map();
     }
 
+    /**
+     * Add element to translate and keep translated when changed by the page.
+     */
     addElement(node) {
-        if (!(node instanceof Element))
-            return;
-
         if (this.targetNodes.has(node))
             return;
 
@@ -290,6 +301,40 @@ class InPageTranslation {
                 subtree: true
             });
         }
+    }
+
+    /**
+     * Mark a node for retranslation because it changed according to the
+     * MutationObserver. This will cancel any pending translations for this
+     * node, put it on the list to be re-evaluated, and schedule a call of
+     * restartTreeWalker().
+     */
+    enqueueMutatedNode(node) {
+        // Optimisation: don't bother with translating whitespace. React sites
+        // seem trigger this a lot?
+        if (node.nodeType === Node.TEXT_NODE && node.data.trim() === '')
+            return;
+        
+        // Remove node from sent map: if it was send, we don't want it to update
+        // with an old translation once the translation response comes in.
+        const id = this.submittedNodes.get(node);
+        if (id) {
+            this.submittedNodes.delete(node);
+            this.pendingTranslations.delete(id);
+        }
+
+        // Remove node from processed list: we want to reprocess it.
+        this.processedNodes.delete(node);
+
+        // Queue for next call to restartTreeWalker
+        for (let parent of ancestors(node))
+            if (this.mutatedNodes.has(parent))
+                return;
+        
+        this.mutatedNodes.add(node);
+
+        if (!this.restartTimeout)
+            this.restartTimeout = setTimeout(this.restartTreeWalker.bind(this), this.RESTART_INTERVAL);
     }
 
     /**
@@ -358,6 +403,13 @@ class InPageTranslation {
             clearTimeout(this.updateTimeout)
             this.updateTimeout = null;
         }
+
+        this.mutatedNodes.clear();
+
+        if (this.restartTimeout) {
+            clearTimeout(this.restartTimeout);
+            this.restartTimeout = null;
+        }
     }
 
     /**
@@ -405,17 +457,21 @@ class InPageTranslation {
      * elements to enqueue for translation.
      */
     startTreeWalker(root) {
+        // Don't bother translating elements that are not any part of the page.
+        if (!root.isConnected)
+            return;
+
         // We're only interested in elements and maybe text. Ignore things like
         // comments and possibly weird XML instructions.
         if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.TEXT_NODE)
             return;
-        
+
         // If the parent itself is rejected, we don't translate any children.
         // However, if this is a specifically targeted node, we don't do this
         // check. Mainly so we can exclude <head>, but include <title>.
         if (!this.targetNodes.has(root)) {
             for (let parent of ancestors(root)) {
-                if (this.validateNode(parent) === NodeFilter.FILTER_REJECT)
+                if (this.isExcludedNode(parent))
                     return;
             }
         }
@@ -455,23 +511,14 @@ class InPageTranslation {
     }
 
     /**
-     * Like startTreeWalker, but without the "oh ignore this element if it has
-     * already been submitted" bit. Use this one for submitting changed elements.
+     * Runs startTreeWalker on this.mutatedNodes and clears it.
      */
-    restartTreeWalker(root) {
-        // Remove node from sent map: if it was send, we don't want it to update
-        // with an old translation once the translation response comes in.
-        const id = this.submittedNodes.get(root);
-        if (id) {
-            this.submittedNodes.delete(root);
-            this.pendingTranslations.delete(id);
-        }
+    restartTreeWalker() {
+        this.restartTimeout = null;
 
-        // Remove node from processed list: we want to reprocess it.
-        this.processedNodes.delete(root);
+        this.mutatedNodes.forEach(this.startTreeWalker.bind(this));
 
-        // Start submitting it again
-        this.startTreeWalker(root);
+        this.mutatedNodes.clear();
     }
 
     isElementInViewport(element) {
@@ -505,21 +552,43 @@ class InPageTranslation {
      * reject it since we already sent it to translation.
      */
     isParentQueued(node){
-        // if the immediate parent is the body we just allow it
-        if (node.parentNode === document.body) {
-            return false;
-        }
-
         // let's iterate until we find either the body or if the parent was sent
-        let lastNode = node;
-        while (lastNode.parentNode) {
-            if (this.queuedNodes.has(lastNode.parentNode)) {
-                return lastNode.parentNode;
+        let parent = node.parentNode;
+        let retval = false;
+        while (parent) {
+            if (parent === document.body)
+                break;
+
+            // See if we've checked before
+            if (this.isParentQueuedCache.has(parent)) {
+                retval = this.isParentQueuedCache.get(parent);
+                break;
             }
-            lastNode = lastNode.parentNode;
+
+            // See if it is queued (the sole purpose of this function really)
+            if (this.queuedNodes.has(parent)) {
+                retval = true;
+                break;
+            }
+
+            // Move one node up the tree
+            parent = parent.parentNode;
         }
 
-        return false;
+        // Mark the whole path from child to ancestor with whether they're
+        // already queued or not.
+        for (let n = node.parentNode; n && n !== parent; n = n.parentNode)
+            this.isParentQueuedCache.set(n, retval);
+
+        return retval;
+    }
+
+    hasContent(node) {
+        // Method a (seems to be faster in general?)
+        return node.textContent.trim().length !== 0;
+
+        // Alternative method
+        // return document.createTreeWalker(node, NodeFilter.SHOW_TEXT, (node) => node.data.trim() !== '').nextNode() !== null;
     }
 
     /**
@@ -535,10 +604,13 @@ class InPageTranslation {
         let inlineElements = 0;
         let blockElements = 0;
 
+        // Number of elements of one class to have a majority
+        const threshold = node.childNodes.length / 2;
+
         for (let child of node.childNodes) {
             switch (child.nodeType) {
                 case Node.TEXT_NODE: // TextNode
-                    if (child.textContent.trim().length > 0)
+                    if (child.data.trim().length > 0)
                         inlineElements++;
                     break;
 
@@ -551,6 +623,9 @@ class InPageTranslation {
                         blockElements++;
                     break;
             }
+
+            if (inlineElements > threshold || blockElements > threshold)
+                break;
         }
 
         return inlineElements >= blockElements;
@@ -663,7 +738,7 @@ class InPageTranslation {
         }
 
         // Skip over subtrees that don't have text
-        if (node.textContent.trim().length === 0) {
+        if (!this.hasContent(node)) {
             mark('rejected empty-text-content');
             return NodeFilter.FILTER_REJECT;
         }
@@ -673,12 +748,15 @@ class InPageTranslation {
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper
         } 
 
+        // Dig down deeper if we would otherwise also submit an excluded node
+        // to the translator. Unless we would lose a text node that is a direct
+        // child of `node` if we did that.
         if (this.containsExcludedNode(node) && !this.hasTextNodes(node)) {
             mark('skipped contains-excluded-node');
             return NodeFilter.FILTER_SKIP; // otherwise dig deeper  
         }
         
-        return NodeFilter.FILTER_ACCEPT; // send whole node as 1 block
+        return NodeFilter.FILTER_ACCEPT; // send whole node as a single block
     }
 
     /**
@@ -716,6 +794,11 @@ class InPageTranslation {
         // Record it?
         this.recordElementTree(node);
 
+        // Remove all children from the isParentQueued call cache
+        const nodeIterator = document.createTreeWalker(node, NodeFilter.SHOW_ELEMENT);
+        for (let currentNode = nodeIterator.nextNode(); currentNode; currentNode = nodeIterator.nextNode())
+            this.isParentQueuedCache.delete(currentNode); // TODO: or set()?
+
         this.queuedNodes.set(node, {
             id: this.translationsCounter,
             priority
@@ -725,6 +808,7 @@ class InPageTranslation {
     dispatchTranslations() {
         this.queuedNodes.forEach(this.submitTranslation.bind(this));
         this.queuedNodes.clear();
+        this.isParentQueuedCache.clear();
     }
 
     submitTranslation({priority, id}, node) {
