@@ -43,6 +43,10 @@ class InPageTranslation {
         this.updateTimeout = null;
         this.UI_UPDATE_INTERVAL = 500;
 
+        // Timeout between first DOM mutation and us re-evaluating these nodes.
+        this.restartTimeout = null;
+        this.RESTART_INTERVAL = 100;
+
         // Table of [Element]:Object to be submitted, and some info about them.
         // Filled by enqueueTranslation(), emptied by dispatchTranslation().
         this.queuedNodes = new Map();
@@ -67,6 +71,10 @@ class InPageTranslation {
 
         // All elements we're actively trying to translate.
         this.targetNodes = new Set();
+
+        // Elements that have changed since we've started translating, and are
+        // waiting for updateTimeout to call restartTreeWalker again.
+        this.mutatedNodes = new Set();
         
         // Reference for all tags:
         // https://developer.mozilla.org/en-US/docs/Web/HTML/Element
@@ -164,10 +172,10 @@ class InPageTranslation {
             for (const mutation of mutationsList) {
                 switch (mutation.type) {
                     case "childList":
-                        mutation.addedNodes.forEach(this.restartTreeWalker.bind(this));
+                        mutation.addedNodes.forEach(this.enqueueMutatedNode.bind(this));
                         break;
                     case "characterData":
-                        this.restartTreeWalker(mutation.target);
+                        this.enqueueMutatedNode(mutation.target);
                         break;
                 }
             }
@@ -176,10 +184,10 @@ class InPageTranslation {
         this.isParentQueuedCache = new Map();
     }
 
+    /**
+     * Add element to translate and keep translated when changed by the page.
+     */
     addElement(node) {
-        if (!(node instanceof Element))
-            return;
-
         if (this.targetNodes.has(node))
             return;
 
@@ -193,6 +201,40 @@ class InPageTranslation {
                 subtree: true
             });
         }
+    }
+
+    /**
+     * Mark a node for retranslation because it changed according to the
+     * MutationObserver. This will cancel any pending translations for this
+     * node, put it on the list to be re-evaluated, and schedule a call of
+     * restartTreeWalker().
+     */
+    enqueueMutatedNode(node) {
+        // Optimisation: don't bother with translating whitespace. React sites
+        // seem trigger this a lot?
+        if (node.nodeType === Node.TEXT_NODE && node.data.trim() === '')
+            return;
+        
+        // Remove node from sent map: if it was send, we don't want it to update
+        // with an old translation once the translation response comes in.
+        const id = this.submittedNodes.get(node);
+        if (id) {
+            this.submittedNodes.delete(node);
+            this.pendingTranslations.delete(id);
+        }
+
+        // Remove node from processed list: we want to reprocess it.
+        this.processedNodes.delete(node);
+
+        // Queue for next call to restartTreeWalker
+        for (let parent of ancestors(node))
+            if (this.mutatedNodes.has(parent))
+                return;
+        
+        this.mutatedNodes.add(node);
+
+        if (!this.restartTimeout)
+            this.restartTimeout = setTimeout(this.restartTreeWalker.bind(this), this.RESTART_INTERVAL);
     }
 
     /**
@@ -249,6 +291,11 @@ class InPageTranslation {
 
         this.pendingTranslations.clear();
 
+        this.mutatedNodes.clear();
+
+        if (this.restartTimeout)
+            clearTimeout(this.restartTimeout);
+
         this.started = false;
     }
 
@@ -257,6 +304,10 @@ class InPageTranslation {
      * elements to enqueue for translation.
      */
     startTreeWalker(root) {
+        // Don't bother translating elements that are not any part of the page.
+        if (!root.isConnected)
+            return;
+
         // We're only interested in elements and maybe text. Ignore things like
         // comments and possibly weird XML instructions.
         if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.TEXT_NODE)
@@ -307,28 +358,14 @@ class InPageTranslation {
     }
 
     /**
-     * Like startTreeWalker, but without the "oh ignore this element if it has
-     * already been submitted" bit. Use this one for submitting changed elements.
+     * Runs startTreeWalker on this.mutatedNodes and clears it.
      */
-    restartTreeWalker(root) {
-        // Optimisation: don't bother with translating whitespace. React sites
-        // seem trigger this a lot?
-        if (root.nodeType === Node.TEXT_NODE && root.data.trim() === '')
-            return;
-        
-        // Remove node from sent map: if it was send, we don't want it to update
-        // with an old translation once the translation response comes in.
-        const id = this.submittedNodes.get(root);
-        if (id) {
-            this.submittedNodes.delete(root);
-            this.pendingTranslations.delete(id);
-        }
+    restartTreeWalker() {
+        this.restartTimeout = null;
 
-        // Remove node from processed list: we want to reprocess it.
-        this.processedNodes.delete(root);
+        this.mutatedNodes.forEach(this.startTreeWalker.bind(this));
 
-        // Start submitting it again
-        this.startTreeWalker(root);
+        this.mutatedNodes.clear();
     }
 
     isElementInViewport(element) {
