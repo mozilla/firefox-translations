@@ -13,6 +13,9 @@
 	box-sizing: border-box;
 	min-height: calc(40px + 14px);
 	min-width: 80px;
+
+	resize: both;
+	overflow: auto;
 }
 
 #x-bergamot-translation-popup > .translation {
