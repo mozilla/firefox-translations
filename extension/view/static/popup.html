@@ -57,8 +57,8 @@
 				<button id="translate-btn" class="primary" data-bind:hidden="needs-download">Translate page</button>
 			</div>
 			<div data-state="downloading-models">
-				<p>Downloading languages…</p>
-				<progress data-bind:value="modelDownloadRead" max="modelDownloadSize"></progress>
+				<p>Downloading language model…</p>
+				<progress data-bind:value="modelDownloadRead" data-bind:max="modelDownloadSize"></progress>
 			</div>
 			<div data-state="translation-in-progress">
 				<p id="progress-message">Translating page from <span data-bind:text-content="lang-from"></span> to <span data-bind:text-content="lang-to"></span>…</p>
