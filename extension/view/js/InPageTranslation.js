@@ -102,7 +102,7 @@ class InPageTranslation {
 
         // Timeout between first DOM mutation and us re-evaluating these nodes.
         this.restartTimeout = null;
-        this.RESTART_INTERVAL = 100;
+        this.RESTART_INTERVAL = 20;
 
         // Table of [Element]:Object to be submitted, and some info about them.
         // Filled by enqueueTranslation(), emptied by dispatchTranslation().
