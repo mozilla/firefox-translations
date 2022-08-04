@@ -55,13 +55,3 @@ function intersect(a, b) {
     const bSet = new Set(b);
     return new Set(Array.from(a).filter(item => bSet.has(item)));
 }
-
-/**
- * Converts the hexadecimal hashes from the registry to something we can use with
- * the fetch() method.
- */
-function hexToBase64(hexstring) {
-    return btoa(hexstring.match(/\w{2}/g).map(function(a) {
-        return String.fromCharCode(parseInt(a, 16));
-    }).join(""));
-}
