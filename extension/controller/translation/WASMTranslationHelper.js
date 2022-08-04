@@ -333,7 +333,7 @@ class WorkerChannel {
         try {
             // Rig up a timeout cancel signal for our fetch
             const abort = new AbortController();
-            const timeout = setTimeout(() => abort.abort(), MAX_DOWNLOAD_TIME);
+            let timeout = setTimeout(() => abort.abort(), MAX_DOWNLOAD_TIME);
 
             // Start downloading the url, will give us response headers.
             const response = await fetch(url, {signal: abort.signal});
@@ -364,6 +364,9 @@ class WorkerChannel {
                         read += value.length;
                         update({size, read});
 
+                        // Reset timeout because progress is good!
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => abort.abort(), MAX_DOWNLOAD_TIME);
                     }
 
                     buffer = body.buffer;
