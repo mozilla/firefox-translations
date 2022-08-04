@@ -180,8 +180,27 @@ class WorkerChannel {
      * with a TranslateLocally type registry. Returns Promise<List<Model>>
      */
     async loadModelRegistery() {
+        const cache = caches.open(CACHE_NAME);
         const response = await fetch('https://translatelocally.com/models.json');
         const {models} = await response.json();
+        let serial = 0;
+
+        // Check whether each of the models is already downloaded
+        models.forEach((model) => {
+            // Give the model an id for easy look-up
+            model.id = ++serial;
+            
+            // Async check whether the model is in cache
+            let modelInCache = false;
+            cache.then(cache => cache.match(model.url).then(response => {
+                modelInCache = response && response.ok;
+            }));
+
+            Object.defineProperty(model, 'local', {
+                enumerable: true,
+                get: () => modelInCache || this.hasTranslationModel(model)
+            });
+        });
 
         // Add 'from' and 'to' keys for each model. Since theoretically a model
         // can have multiple froms keys in TranslateLocally, we do a little
@@ -190,12 +209,17 @@ class WorkerChannel {
             try {
                 const to = first(Intl.getCanonicalLocales(model.trgTag));
                 for (let from of Intl.getCanonicalLocales(Object.keys(model.srcTags))) {
-                    yield {from, to, model: {...model, local: true}};
+                    yield {from, to, model};
                 }
             } catch (err) {
                 console.log('Skipped model', model, err);
             }
         }));
+    }
+
+    hasTranslationModel({from, to}) {
+        const key = JSON.stringify({from, to});
+        return this.buffers.has(key);
     }
 
     /**
