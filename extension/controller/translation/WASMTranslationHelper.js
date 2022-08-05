@@ -180,7 +180,7 @@ class WorkerChannel {
      * with a TranslateLocally type registry. Returns Promise<List<Model>>
      */
     async loadModelRegistery() {
-        const cache = caches.open(CACHE_NAME);
+        const cache = typeof caches !== 'undefined' ? caches.open(CACHE_NAME) : null;
         const response = await fetch('https://translatelocally.com/models.json');
         const {models} = await response.json();
         let serial = 0;
@@ -192,9 +192,11 @@ class WorkerChannel {
             
             // Async check whether the model is in cache
             let modelInCache = false;
-            cache.then(cache => cache.match(model.url).then(response => {
-                modelInCache = response && response.ok;
-            }));
+            if (cache) {
+                cache.then(cache => cache.match(model.url).then(response => {
+                    modelInCache = response && response.ok;
+                }));
+            }
 
             Object.defineProperty(model, 'local', {
                 enumerable: true,
@@ -302,17 +304,22 @@ class WorkerChannel {
      */
     async getItemFromCacheOrWeb(url, checksum, update) {
         try {
-            const cache = await caches.open(CACHE_NAME);
-            const match = await cache.match(url);
+            let cache = null;
 
-            if (match) {
-                // Found it in the cache, let's check whether it (still) matches the
-                // checksum. If not, redownload it.
-                const buffer = await match.arrayBuffer();
-                if (await this.digestSha256AsHex(buffer) === checksum)
-                    return buffer;
-                else
-                    cache.delete(url);
+            // Only check the cache if we're not running in private mode
+            if (typeof caches !== 'undefined') {
+                cache = await caches.open(CACHE_NAME);
+                const match = await cache.match(url);
+
+                if (match) {
+                    // Found it in the cache, let's check whether it (still) matches the
+                    // checksum. If not, redownload it.
+                    const buffer = await match.arrayBuffer();
+                    if (await this.digestSha256AsHex(buffer) === checksum)
+                        return buffer;
+                    else
+                        cache.delete(url);
+                }
             }
 
             return await this.getItemFromWeb(url, checksum, cache, update);
