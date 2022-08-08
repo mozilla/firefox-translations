@@ -23,6 +23,11 @@
 		</header>
 		<section>
 			<p>Physics is the natural science that studies matter, its fundamental constituents, its <em>motion</em> and <em>behaviour</em> through <a href="#">space and time</a>, and the related entities of energy and force. Physics is one of the most fundamental scientific disciplines, with its main goal being to understand how the universe behaves.</p>
+			<p class="notranslate">This paragraph should be skipped because it has the <em>notranslate</em> class.</p>
+			<p>This contains some <code>embedded(code)</code> that should be skipped.</p>
+			<code><pre>{
+  Section of code
+}</pre></code>
 		</section>
 		<section id="dynamic">
 			<p>This is a bit of a dynamic section. For example: <span id="counter">This is the first iteration of this sentence.</span> <button data-callback="increment" data-selector="#counter" translate="no">Increment!</button> After that, this text should stay the same.</p>
@@ -44,6 +49,7 @@
 				<button type="submit">Register</button>
 			</form>
 		</section>
+		<ol id="queue" translate="no"></ol>
 		<script src="../js/InPageTranslation.js"></script>
 		<script src="test.js"></script>
 	</body>

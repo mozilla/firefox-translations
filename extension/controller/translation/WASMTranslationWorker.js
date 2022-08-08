@@ -21,7 +21,17 @@ class WASMTranslationWorker {
     static NATIVE_INT_GEMM = 'mozIntGemm';
 
     /**
-     * options: {useNativeIntGemm: false, cacheSize: 0}
+     * Instantiates a new translation worker with optional options object.
+     * Available options are:
+     *   useNativeIntGemm: {true | false} defaults to false. If true, it will
+     *                     attempt to link to the intgemm module available in
+     *                     Firefox Nightly which makes translations much faster.
+     *          cacheSize: {Number} defaults to 0 which disables translation
+     *                     cache entirely. Note that this is a theoretical
+     *                     upper bound. In practice it will use about 1/3th of
+     *                     the cache specified here. 2^14 is not a bad starting
+     *                     value.
+     * @param {{useNativeIntGemm: boolean, cacheSize: number}} options
      */
     constructor(options) {
         this.options = options || {};
@@ -33,6 +43,14 @@ class WASMTranslationWorker {
         this.models = new Map(); // Map<str,Promise<TranslationModel>>
     }
 
+    /**
+     * Tries to load native IntGEMM module for bergamot-translator. If that
+     * fails because it or any of the expected functions is not available, it
+     * falls back to using the naive implementations that come with the wasm
+     * binary itself through `linkFallbackIntGemm()`.
+     * @param {{env: {memory: WebAssembly.Memory}}} info
+     * @return {{[method:string]: (...any) => any}}
+     */
     linkNativeIntGemm(info) {
         if (!WebAssembly['mozIntGemm']) {
             console.warn('Native gemm requested but not available, falling back to embedded gemm');
@@ -53,6 +71,13 @@ class WASMTranslationWorker {
         return instance.exports;
     }
 
+    /**
+     * Links intgemm functions that are already available in the wasm binary,
+     * but just exports them under the name that is expected by
+     * bergamot-translator.
+     * @param {{env: {memory: WebAssembly.Memory}}} info
+     * @return {{[method:string]: (...any) => any}}
+     */
     linkFallbackIntGemm(info) {
         const mapping = Object.entries(WASMTranslationWorker.GEMM_TO_FALLBACK_FUNCTIONS_MAP).map(([key, name]) => {
             return [key, (...args) => Module['asm'][name](...args)]
@@ -64,34 +89,46 @@ class WASMTranslationWorker {
     }
 
     /**
-     * Internal method. Reads and instantiates the WASM binary.
+     * Internal method. Reads and instantiates the WASM binary. Returns a
+     * promise for the exported Module object that contains all the classes
+     * and functions exported by bergamot-translator.
+     * @return {Promise<BergamotTranslator>}
      */
     loadModule() {
         return new Promise(async (resolve, reject) => {
-            const response = await fetch('bergamot-translator-worker.wasm');
+            try {
+                const response = await fetch('bergamot-translator-worker.wasm');
 
-            Object.assign(Module, {
-                instantiateWasm: (info, accept) => {
-                    WebAssembly.instantiateStreaming(response, {
-                        ...info,
-                        'wasm_gemm': this.options.useNativeIntGemm
-                            ? this.linkNativeIntGemm(info)
-                            : this.linkFallbackIntGemm(info)
-                    }).then(({instance}) => accept(instance));
-                    return {};
-                },
-                onRuntimeInitialized: () => {
-                    resolve(Module);
-                }
-            });
+                Object.assign(Module, {
+                    instantiateWasm: (info, accept) => {
+                        try {
+                            WebAssembly.instantiateStreaming(response, {
+                                ...info,
+                                'wasm_gemm': this.options.useNativeIntGemm
+                                    ? this.linkNativeIntGemm(info)
+                                    : this.linkFallbackIntGemm(info)
+                            }).then(({instance}) => accept(instance)).catch(reject);
+                        } catch (err) {
+                            reject(err);
+                        }
+                        return {};
+                    },
+                    onRuntimeInitialized: () => {
+                        resolve(Module);
+                    }
+                });
 
-            // Emscripten glue code
-            importScripts('bergamot-translator-worker.js');
+                // Emscripten glue code
+                importScripts('bergamot-translator-worker.js');
+            } catch (err) {
+                reject(err);
+            }
         });
     }
 
     /**
      * Internal method. Instantiates a BlockingService()
+     * @return {Promise<BergamotTranslator.BlockingService>}
      */
     async loadTranslationService() {
         const Module = await this.module;
@@ -101,6 +138,8 @@ class WASMTranslationWorker {
     /**
      * Returns whether a model has already been loaded in this worker. Marked
      * async because the message passing interface we use expects async methods.
+     * @param {{from:string, to:string}}
+     * @return boolean
      */ 
     async hasTranslationModel({from,to}) {
         const key = JSON.stringify({from,to});
@@ -111,12 +150,16 @@ class WASMTranslationWorker {
      * Loads a translation model from a set of file buffers. After this, the
      * model is available to translate with and `hasTranslationModel()` will
      * return true for this pair.
+     * @param {{from:string, to:string}}
+     * @param {{model: ArrayBuffer, shortlist:ArrayBuffer, vocabs: ArrayBuffer[], config?: {[key:string]: string}}} buffers
      */ 
     async loadTranslationModel({from, to}, buffers) {
         const Module = await this.module;
 
         // This because service_bindings.cpp:prepareVocabsSmartMemories :(
-        const uniqueVocabs = Array.from(new Set(buffers.vocabs));
+        const uniqueVocabs = buffers.vocabs.filter((vocab, index, vocabs) => {
+            return vocabs.slice(0, index).includes(vocab);
+        });
 
         const [modelMemory, shortlistMemory, ...vocabMemory] = await Promise.all([
             this.prepareAlignedMemoryFromBuffer(buffers.model, 256),
@@ -164,6 +207,9 @@ class WASMTranslationWorker {
     /**
      * Internal function. Copies the data from an ArrayBuffer into memory that
      * can be used inside the WASM vm by Marian.
+     * @param {{ArrayBuffer}} buffer
+     * @param {number} alignmentSize
+     * @return {BergamotTranslator.AlignedMemory}
      */
     async prepareAlignedMemoryFromBuffer(buffer, alignmentSize) {
         const Module = await this.module;
@@ -176,7 +222,9 @@ class WASMTranslationWorker {
     /**
      * Public. Does actual translation work. You have to make sure that the
      * models necessary for translating text are already loaded before calling
-     * this method.
+     * this method. Returns a promise with translation responses.
+     * @param {{models: {from:string, to:string}[], texts: {text: string, html: boolean}[]}}
+     * @return {Promise<{target: {text: string}}[]>}
      */
     async translate({models, texts}) {
         const Module = await this.module;
@@ -219,6 +267,7 @@ class WASMTranslationWorker {
     }
 }
 
+
 onmessage = ({data}) => {
     if (!data.options){
         console.warn('Did not receive initial message with options');
@@ -233,7 +282,7 @@ onmessage = ({data}) => {
             const result = await worker[message.name](...message.args);
             postMessage({id, message: result});
         } catch (err) {
-            console.error(err);
+            console.error('Worker runtime error', err);
             postMessage({
                 id,
                 error: {

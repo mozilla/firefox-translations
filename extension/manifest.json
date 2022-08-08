@@ -48,11 +48,13 @@
 				"controller/translation/compat.js",
 				"controller/LanguageDetection.js",
 				"view/js/InPageTranslation.js",
-				"contentScript.js"
+				"view/js/SelectionTranslation.js",
+				"controller/contentScript.js"
 			],
 			"css":
 			[
-				"view/InPageTranslation.css"
+				"view/InPageTranslation.css",
+				"view/SelectionTranslation.css"
 			],
 			"run_at": "document_idle",
 			"all_frames": true

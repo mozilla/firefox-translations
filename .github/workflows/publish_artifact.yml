@@ -2,8 +2,6 @@ name: Build release
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*.*.*"
   pull_request:
@@ -153,7 +151,7 @@ jobs:
           WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
         run: |
           npm run sign
-          mv web-ext-artifacts/experimental_bergamot_translations-*.xpi web-ext-artifacts/bergamot_translations-signed.xpi
+          mv web-ext-artifacts/*-*.*.*.xpi web-ext-artifacts/bergamot_translations-signed.xpi
       - name: Create release
         id: create_release
         if: startsWith(github.ref, 'refs/tags/v')

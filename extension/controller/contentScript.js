@@ -8,37 +8,15 @@ const state = {
     state: 'page-loaded'
 };
 
-// Panel for selection translation
-const panel = document.createElement('div');
-panel.id = 'x-bergamot-translation-popup';
-panel.translate = 'no'; // to prevent InPageTranslation to pick up on it
-panel.setAttribute('translate', 'no'); // (For old Firefox)
-
-const closeButton = document.createElement('button');
-panel.appendChild(closeButton);
-closeButton.className = 'close-button';
-closeButton.ariaLabel = 'Close';
-closeButton.addEventListener('click', e => {
-    document.body.removeChild(panel);
-});
-
-const panelText = document.createElement('p');
-panelText.className = 'translation';
-panel.appendChild(panelText);
-
-const loadingRings = document.createElement('div');
-loadingRings.className = 'lds-ring';
-panel.appendChild(loadingRings);
-for (let i = 0; i < 4; ++i) {
-    loadingRings.appendChild(document.createElement('div'));
-}
-
 // Loading indicator for html element translation
 compat.storage.local.get({progressIndicator:''}).then(state => {
     document.body.setAttribute('x-bergamot-indicator', state.progressIndicator);
 });
 
-compat.storage.local.onChanged.addListener(changes => {
+compat.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace !== 'local')
+        return;
+
     if ('progressIndicator' in changes)
         document.body.setAttribute('x-bergamot-indicator', changes.progressIndicator.newValue);
 });
@@ -115,34 +93,50 @@ const sessionID = new Date().getTime();
 // the response to an old request by accident.
 let selectionTranslationId = null;
 
+function translate(text, user) {
+    console.assert(state.from !== undefined && state.to !== undefined, "state.from or state.to is not set");
+    backgroundScript.postMessage({
+        command: "TranslateRequest",
+        data: {
+            // translation request
+            from: state.from,
+            to: state.to,
+            html: user.html,
+            text,
+
+            // data useful for the response
+            user: {
+                ...user,
+                
+            },
+            
+            // data useful for the scheduling
+            priority: user.priority || 0,
+
+            // data useful for recording
+            session: {
+                id: sessionID,
+                url: document.location.href
+            }
+        }
+    });
+}
+
 const inPageTranslation = new InPageTranslation({
     translate(text, user) {
-        console.assert(state.from !== undefined && state.to !== undefined,
-            "state.from or state.to is not set");
-        backgroundScript.postMessage({
-            command: "TranslateRequest",
-            data: {
-                // translation request
-                from: state.from,
-                to: state.to,
-                html: user.html,
-                text,
+        translate(text, {
+            ...user,
+            source: 'InPageTranslation'
+        });
+    }
+});
 
-                // data useful for the response
-                user: {
-                    ...user,
-                    source: 'InPageTranslation'
-                },
-                
-                // data useful for the scheduling
-                priority: user.priority || 0,
-
-                // data useful for recording
-                session: {
-                    id: sessionID,
-                    url: document.location.href
-                }
-            }
+const selectionTranslation = new SelectionTranslation({
+    translate(text, user) {
+        translate(text, {
+            ...user,
+            source: 'SelectionTranslation',
+            priority: 3
         });
     }
 });
@@ -152,11 +146,8 @@ on('TranslateResponse', data => {
         case 'InPageTranslation':
             inPageTranslation.enqueueTranslationResponse(data.target.text, data.request.user);
             break;
-        case 'TranslateSelection':
-            if (data.request.user.id === selectionTranslationId) {
-                panel.classList.remove('loading');
-                panelText.textContent = data.target.text;
-            }
+        case 'SelectionTranslation':
+            selectionTranslation.enqueueTranslationResponse(data.target.text, data.request.user);
             break;
     }
 });
@@ -229,57 +220,6 @@ on('TranslateClickedElement', () => {
 });
 
 on('TranslateSelection', () => {
-    let selection = document.getSelection();
-    let selRange = selection.getRangeAt(0);
-
-    // Unique id for this translation request so we know which one the popup
-    // is currently waiting for.
-    selectionTranslationId = `selection-panel-${new Date().getTime()}`;
-    
-    const text = selRange.toString();
-
-    // Get bounding box of selection (in position:fixed terms!)
-    const box = selRange.getBoundingClientRect();
-    
-    // Reset popup state, and show it in a loading state.
-    panelText.textContent = '';
-    panel.classList.add('loading');
-    document.body.appendChild(panel);
-
-    // Position popup directly under the selection
-    // TODO: Maybe above or right of selection if it is in one of the corners
-    //       of the screen?
-    Object.assign(panel.style, {
-        top: `${box.bottom+window.scrollY}px`, // scrollY to go from position:fixed to position:absolute
-        left: `${box.left+window.scrollX}px`,
-        width: `${box.width}px`
-    });
-
-    console.debug("Translate selection", text);
-
-    backgroundScript.postMessage({
-        command: "TranslateRequest",
-        data: {
-            // translation request
-            from: state.from,
-            to: state.to,
-            html: false,
-            text,
-
-            // Data to trace back the response
-            user: {
-                source: 'TranslateSelection',
-                id: selectionTranslationId
-            },
-            
-            // data useful for the scheduling
-            priority: 2,
-
-            // data useful for recording & debugging
-            session: {
-                id: sessionID,
-                url: document.location.href
-            }
-        }
-    });
+    const selection = document.getSelection();
+    selectionTranslation.start(selection);
 });

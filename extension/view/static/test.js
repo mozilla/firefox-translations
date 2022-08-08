@@ -50,11 +50,24 @@ document.querySelectorAll('#controls').forEach(section => {
 
 	window.$ipt = ipt; // for debugging
 
+	ipt.addElement(document.querySelector('head > title'));
+	ipt.addElement(document.body);
+
 	function render() {
 		section.querySelector('#status').textContent = `There are ${queue.length} translation requests`;
 		section.querySelector('#toggle').textContent = ipt.started ? 'Restart' : 'Start';
 		section.querySelector('#translate-head').disabled = queue.length === 0;
 		section.querySelector('#translate-tail').disabled = queue.length === 0;
+
+		const ol = document.querySelector('#queue');
+		ol.innerHTML = '';
+
+		queue.forEach(request => {
+			const li = ol.appendChild(document.createElement('li'));
+			const pre = li.appendChild(document.createElement('pre'));
+			const json = JSON.stringify(request, null, 2);
+			pre.appendChild(document.createTextNode(json));
+		});
 	};
 
 	section.querySelector('#translate-head').addEventListener('click', e => {
