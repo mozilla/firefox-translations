@@ -8,6 +8,19 @@ const state = {
     state: 'page-loaded'
 };
 
+// Loading indicator for html element translation
+compat.storage.local.get({progressIndicator:''}).then(state => {
+    document.body.setAttribute('x-bergamot-indicator', state.progressIndicator);
+});
+
+compat.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace !== 'local')
+        return;
+
+    if ('progressIndicator' in changes)
+        document.body.setAttribute('x-bergamot-indicator', changes.progressIndicator.newValue);
+});
+
 function on(command, callback) {
     if (!listeners.has(command))
         listeners.set(command, []);

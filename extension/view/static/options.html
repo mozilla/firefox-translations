@@ -20,12 +20,23 @@
   <body>
     <div class="panel-section panel-section-formElements">
       <div class="panel-formElements-item">
+        <label for="progress-indicator">Progress indicator:</label>
+        <select id="progress-indicator" data-bind:value="progressIndicator">
+          <option value="">None (default)</option>
+          <option value="flow-block">Hide text (block)</option>
+          <option value="flow-rounded">Hide text (rounded)</option>
+          <option value="flow-circular">Hide text (circular)</option>
+        </select>
+      </div>
+    </div>
+    <div class="panel-section panel-section-formElements">
+      <div class="panel-formElements-item">
         <label for="translation-provider">Translation provider:</label>
         <select id="translation-provider" data-bind:value="provider">
           <option value="wasm">WASM (embedded)</option>
           <option value="translatelocally" data-bind:disabled="!translateLocallyAvailable">TranslateLocally</option>
         </select>
-        <p data-bind:hidden="translateLocallyAvailable">You can <a href="https://translatelocally.com">download TranslateLocally</a> for even faster private translations.</p>
+        <p data-bind:hidden="translateLocallyAvailable">You can <a href="https://translatelocally.com">download TranslateLocally</a> for faster private translations.</p>
       </div>
     </div>
     <div class="panel-section panel-section-formElements">

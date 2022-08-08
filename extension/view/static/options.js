@@ -3,6 +3,7 @@
 const globalState = {
 	provider: 'wasm',
 	developer: false,
+	progressIndicator: ''
 };
 
 const localState = {
