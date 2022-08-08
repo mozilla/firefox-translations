@@ -85,24 +85,7 @@
 	"web_accessible_resources": [
 		"view/fonts/FlowBlock-Regular.woff2",
 		"view/fonts/FlowCircular-Regular.woff2",
-		"view/fonts/FlowRounded-Regular.woff2",
-		"view/static/benchmark.html",
-		"view/static/benchmark.js",
-		"view/static/benchmark.css",
-		"view/static/test.html",
-		"view/static/test.js",
-		"view/js/InPageTranslation.js",
-		"3rd_party/pako/pako_inflate.js",
-		"3rd_party/js-untar/untar.js",
-		"controller/translation/compat.js",
-		"controller/translation/func.js",
-		"controller/translation/promise.js",
-		"controller/translation/yaml.js",
-		"controller/translation/TLTranslationHelper.js",
-		"controller/translation/WASMTranslationHelper.js",
-		"controller/translation/WASMTranslationWorker.js",
-		"controller/translation/bergamot-translation-worker.js",
-		"controller/translation/bergamot-translation-worker.wasm"
+		"view/fonts/FlowRounded-Regular.woff2"
 	],
 	"description": "Experimental Bergamot Translations translates any webpage utilizing client based machine learning algorithms and models.",
 	"homepage_url": "https://github.com/jelmervdl/firefox-translations"
