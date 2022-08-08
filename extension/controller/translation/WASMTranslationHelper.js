@@ -180,8 +180,29 @@ class WorkerChannel {
      * with a TranslateLocally type registry. Returns Promise<List<Model>>
      */
     async loadModelRegistery() {
+        const cache = typeof caches !== 'undefined' ? caches.open(CACHE_NAME) : null;
         const response = await fetch('https://translatelocally.com/models.json');
         const {models} = await response.json();
+        let serial = 0;
+
+        // Check whether each of the models is already downloaded
+        models.forEach((model) => {
+            // Give the model an id for easy look-up
+            model.id = ++serial;
+            
+            // Async check whether the model is in cache
+            let modelInCache = false;
+            if (cache) {
+                cache.then(cache => cache.match(model.url).then(response => {
+                    modelInCache = response && response.ok;
+                }));
+            }
+
+            Object.defineProperty(model, 'local', {
+                enumerable: true,
+                get: () => modelInCache || this.hasTranslationModel(model)
+            });
+        });
 
         // Add 'from' and 'to' keys for each model. Since theoretically a model
         // can have multiple froms keys in TranslateLocally, we do a little
@@ -190,12 +211,17 @@ class WorkerChannel {
             try {
                 const to = first(Intl.getCanonicalLocales(model.trgTag));
                 for (let from of Intl.getCanonicalLocales(Object.keys(model.srcTags))) {
-                    yield {from, to, model: {...model, local: true}};
+                    yield {from, to, model};
                 }
             } catch (err) {
                 console.log('Skipped model', model, err);
             }
         }));
+    }
+
+    hasTranslationModel({from, to}) {
+        const key = JSON.stringify({from, to});
+        return this.buffers.has(key);
     }
 
     /**
@@ -211,13 +237,24 @@ class WorkerChannel {
         return this.buffers.get(key);
     }
 
+    downloadModel(id) {
+        return new PromiseWithProgress(async (accept, reject, update) => {
+            try {
+                const model = (await this.registry).find(({model}) => model.id === id);
+                accept(await this.loadTranslationModel(model, update));
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
     /**
      * Downloads (or from cache) a translation model and returns a set of
      * ArrayBuffers. These can then be passed to a TranslationWorker thread
      * to instantiate a TranslationModel inside the WASM vm.
      * Returns Promise<Map<str,ArrayBuffer>>.
      */
-    async loadTranslationModel({from, to}) {
+    async loadTranslationModel({from, to}, update) {
         performance.mark(`loadTranslationModule.${JSON.stringify({from, to})}`);
 
         // Find that model in the registry which will tell us about its files
@@ -231,7 +268,7 @@ class WorkerChannel {
 
         const entry = first(entries).model;
 
-        const compressedArchive = await this.getItemFromCacheOrWeb(entry.url, entry.checksum);
+        const compressedArchive = await this.getItemFromCacheOrWeb(entry.url, entry.checksum, update);
 
         const archive = pako.inflate(compressedArchive);
 
@@ -265,22 +302,27 @@ class WorkerChannel {
      * @param {String} checksum sha256 checksum as hexadecimal string
      * @returns {Promise<ArrayBuffer>}
      */
-    async getItemFromCacheOrWeb(url, checksum) {
+    async getItemFromCacheOrWeb(url, checksum, update) {
         try {
-            const cache = await caches.open(CACHE_NAME);
-            const match = await cache.match(url);
+            let cache = null;
 
-            if (match) {
-                // Found it in the cache, let's check whether it (still) matches the
-                // checksum. If not, redownload it.
-                const buffer = await match.arrayBuffer();
-                if (await this.digestSha256AsHex(buffer) === checksum)
-                    return buffer;
-                else
-                    cache.delete(url);
+            // Only check the cache if we're not running in private mode
+            if (typeof caches !== 'undefined') {
+                cache = await caches.open(CACHE_NAME);
+                const match = await cache.match(url);
+
+                if (match) {
+                    // Found it in the cache, let's check whether it (still) matches the
+                    // checksum. If not, redownload it.
+                    const buffer = await match.arrayBuffer();
+                    if (await this.digestSha256AsHex(buffer) === checksum)
+                        return buffer;
+                    else
+                        cache.delete(url);
+                }
             }
 
-            return await this.getItemFromWeb(url, checksum, cache);
+            return await this.getItemFromWeb(url, checksum, cache, update);
         } catch (e) {
             throw new Error(`Failed to download '${url}': ${e.message}`);
         }
@@ -294,29 +336,67 @@ class WorkerChannel {
      * @param {Cache?} cache optional cache to save response into
      * @returns {Promise<ArrayBuffer>}
      */
-    async getItemFromWeb(url, checksum, cache) {
+    async getItemFromWeb(url, checksum, cache, update) {
         try {
             // Rig up a timeout cancel signal for our fetch
             const abort = new AbortController();
-            const timeout = setTimeout(() => abort.abort(), MAX_DOWNLOAD_TIME);
+            let timeout = setTimeout(() => abort.abort(), MAX_DOWNLOAD_TIME);
 
-            // Start downloading the url, using the hex checksum to ask
-            // `fetch()` to verify the download using subresource integrity 
-            const response = await fetch(url, {
-                integrity: `sha256-${hexToBase64(checksum)}`,
-                signal: abort.signal
-            });
+            // Start downloading the url, will give us response headers.
+            const response = await fetch(url, {signal: abort.signal});
 
-            // Also stream it to cache
-            if (cache)
-                await cache.put(url, response.clone());
+            // Also stream it to cache. We check the promise later, but we have
+            // to clone the response before we start reading.
+            const cached = cache ? cache.put(url, response.clone()) : Promise.resolve(true);
 
-            // Finish downloading (or crash due to timeout)
-            const buffer = await response.arrayBuffer();
+            /** @type {ArrayBuffer} */
+            let buffer;
+
+            if (update) {
+                const size = parseInt(response.headers.get('Content-Length'));
+
+                // If we didn't get a size, we can't report progress.
+                if (size) {
+                    const body = new Uint8Array(size);
+                    const reader = response.body.getReader();
+                    let read = 0;
+
+                    while (true) {
+                        const {done, value} = await reader.read();
+
+                        if (done)
+                            break;
+
+                        body.set(value, read);
+                        read += value.length;
+                        update({size, read});
+
+                        // Reset timeout because progress is good!
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => abort.abort(), MAX_DOWNLOAD_TIME);
+                    }
+
+                    buffer = body.buffer;
+                }
+            }
+
+            // Fallback fast route when we either don't have an update() or we
+            // didn't get a Content-Length header.
+            if (!buffer)
+                buffer = await response.arrayBuffer();
 
             // Download finished, remove the abort timer
             clearTimeout(timeout);
 
+            // Make sure caching succeeded (if no cache, always true)
+            await cached;
+
+            // Checking checksum afterwards. Previously I used sub-resource
+            // integrity to check the hash, but that will delay getReader()
+            // until the resource has been downloaded & checked.
+            if (await this.digestSha256AsHex(buffer) !== checksum)
+                throw new TypeError(`Response for ${url} did not match checksum ${checksum}`);
+            
             return buffer;
         } catch (e) {
             // If the download timed out or didn't pass muster, make sure it

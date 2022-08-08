@@ -19,7 +19,10 @@ compat.storage.onChanged.addListener(changes => {
 });
 
 function render() {
-	// If the model (or one of the models in case of pivoting) needs downloading
+	// If the model (or one of the models in case of pivoting) needs 
+	// downloading. This info is not always entirely up-to-date since `local`
+	// is a getter when queried from WASMTranslationHelper, but that doesn't
+	// survive the message passing we use to get state.
 	const needsDownload = tabState.models?.find(model => tabState.from === model.from && tabState.to === model.to)?.models?.some(({model}) => !model.local);
 
 	const name = (code) => {
