@@ -30,6 +30,63 @@ function removeTextNodes(node) {
     });
 }
 
+/**
+ * WeakMap that can enumerate over its keys. Keeps tracks of the keys in a list
+ * of weakrefs so unless you `clear()` it it will become slower over time to
+ * iterate over as it has to skip more null references.
+ */
+class EnumerableWeakMap extends WeakMap {
+    #keys = [];
+
+    set(key, value) {
+        if (!super.has(key))
+            this.#keys.push(new WeakRef(key));
+        
+        return super.set(key, value);
+    }
+
+    clear() {
+        // Because WeakMap is not enumerable, we do a slow delete.
+        for (let key of this.keys())
+            super.delete(key);
+
+        // Clear out all keys as well.
+        this.#keys.splice(0, this.#keys.length);
+    }
+
+    delete() {
+        throw new TypeError('delete() not implemented');
+    }
+
+    *keys() {
+        for (let ref of this.#keys) {
+            const key = ref.deref();
+            if (key !== undefined)
+                yield key;
+        }
+    }
+
+    *values() {
+        for (let key of this.keys())
+            yield super.get(key);
+    }
+
+    *entries() {
+        for (let key of this.keys())
+            yield [key, super.get(key)];
+    }
+
+    [Symbol.iterator]() {
+        return this.entries();
+    }
+
+    forEach(callback) {
+        for (let [key, value] of this.entries())
+            callback(value, key, this);
+    }
+}
+
+
 // eslint-disable-next-line no-unused-vars
 class InPageTranslation {
 
@@ -45,7 +102,7 @@ class InPageTranslation {
 
         // Timeout between first DOM mutation and us re-evaluating these nodes.
         this.restartTimeout = null;
-        this.RESTART_INTERVAL = 100;
+        this.RESTART_INTERVAL = 20;
 
         // Table of [Element]:Object to be submitted, and some info about them.
         // Filled by enqueueTranslation(), emptied by dispatchTranslation().
@@ -71,6 +128,10 @@ class InPageTranslation {
 
         // All elements we're actively trying to translate.
         this.targetNodes = new Set();
+
+        // Per Element we store a list of the original children, or per TextNode
+        // we store the original text. Needs to be enumerable, so no WeakMap.
+        this.originalContent = new Map(); //new EnumerableWeakMap(); but that doesn't work because of a privilege boundary.
 
         // Elements that have changed since we've started translating, and are
         // waiting for updateTimeout to call restartTreeWalker again.
@@ -172,9 +233,57 @@ class InPageTranslation {
             for (const mutation of mutationsList) {
                 switch (mutation.type) {
                     case "childList":
+                        // If we're tracking the original content of this node
+                        // then keep our records updated with the mutations that
+                        // the page (not we!) made.
+                        if (this.originalContent.has(mutation.target)) {
+                            const children = this.originalContent.get(mutation.target);
+
+                            // console.log({mutation, children: Array.from(children)});
+
+                            mutation.removedNodes.forEach(child => {
+                                // If an element is removed we restore it so we
+                                // don't have to keep tracking it! In a way this
+                                // is a workaround for how WeakRef doesn't work
+                                // in add-ons. By restoring and releasing it we
+                                // allow elements to be garbage collected.
+                                this.restoreElement(child);
+
+                                // Remove child from our copy of the original
+                                // parent.
+                                let index = children.indexOf(child);
+                                if (index === -1) return; // probably a text node or quality estimation <font/> element added by us
+                                children.splice(index, 1);
+                            });
+
+                            if (mutation.addedNodes) {
+                                if (mutation.previousSibling) {
+                                    let index = children.indexOf(mutation.previousSibling)
+                                    console.assert(index !== -1, 'index of previous sibling', mutation.previousSibling, 'not found in', Array.from(children));
+                                    children.splice(index + 1, 0, ...mutation.addedNodes);
+                                }
+                                else if (mutation.nextSibling) {
+                                    let index = children.indexOf(mutation.nextSibling);
+                                    console.assert(index !== -1, 'index of next sibling', mutation.nextSibling, 'not found in', Array.from(children));
+                                    children.splice(index, 0, ...mutation.addedNodes);
+                                }
+                                else {
+                                    console.assert(children.length === 0, 'no next/prev sibling but the original node had children', Array.from(children))
+                                    children.splice(0, 0, ...mutation.addedNodes);
+                                }
+                            }
+                        }
+
+                        // Start translating the new nodes
                         mutation.addedNodes.forEach(this.enqueueMutatedNode.bind(this));
                         break;
                     case "characterData":
+                        // If we're tracking the text content of this node,
+                        // update our records.
+                        if (this.originalContent.has(mutation.target))
+                            this.originalContent.set(mutation.target, mutation.target.data);
+                        
+                        // Translate the text node.
                         this.enqueueMutatedNode(mutation.target);
                         break;
                 }
@@ -270,11 +379,14 @@ class InPageTranslation {
 
     /**
      * Stops the InPageTranslation process, stopping observing and regard any
-     * in-flight translation request as lost.
+     * in-flight translation request as lost. All queued requests are still
+     * in the queue though, so you can resume.
      */
     stop() {
         if (!this.started)
             return;
+
+        this.started = false;
 
         // TODO: cancel translation requests? Not really necessary at this level
         // because stop() is called on disconnect from the background-script,
@@ -294,12 +406,103 @@ class InPageTranslation {
 
         this.pendingTranslations.clear();
 
+        // Remove any pending node updates for which we just received a
+        // translation but haven't update the node yet.
+        this.translatedNodes.clear();
+
+        // Also make sure we don't attempt to update pending nodes anymore.
+        if (this.updateTimeout) {
+            clearTimeout(this.updateTimeout)
+            this.updateTimeout = null;
+        }
+
         this.mutatedNodes.clear();
 
-        if (this.restartTimeout)
+        if (this.restartTimeout) {
             clearTimeout(this.restartTimeout);
+            this.restartTimeout = null;
+        }
+    }
 
-        this.started = false;
+    restoreElement(node) {
+        const original = this.originalContent.get(node);
+
+        // We start tracking a node in enqueueTranslation. If it isn't tracked
+        // the node never made it that far, and we can skip the rest of the steps.
+        if (original === undefined)
+            return; // TODO: maybe if element look at its children?
+
+        // Now that it will be restored, stop tracking the node.
+        this.originalContent.delete(node);
+
+        // And from the list of nodes we want to translate
+        this.queuedNodes.delete(node);
+
+        // And from the list of nodes that we have requested a translation for
+        const id = this.submittedNodes.get(node);
+        if (id !== undefined) {
+            this.submittedNodes.delete(node);
+            this.pendingTranslations.delete(id);
+        }
+
+        // And from the list of nodes waiting for their content to be updated
+        // with the received translation
+        this.translatedNodes.delete(node);
+    
+        // And remove it from not-to-be-processed-again nodes
+        this.processedNodes.delete(node);
+
+        // Restore the original contents of the node
+        switch (node.nodeType) {
+            case Node.ELEMENT_NODE:
+                // Remove all current children
+                Array.from(node.childNodes).forEach(child => node.removeChild(child));
+
+                // Re-insert the original children which might well be the ones
+                // we just removed, but they could be in a different order or
+                // contain extra text nodes added for the translation to fit.
+                original.forEach(child => {
+                    this.restoreElement(child);
+                    node.appendChild(child)
+                });
+
+                break;
+
+            case Node.TEXT_NODE:
+                    node.data = original;
+                    break;
+
+                default:
+                    // Do nothing? Just leave comments and processing instructions as is.
+                    break;
+        }
+    }
+
+    /**
+     * Stop the process and restore the page back to its original content.
+     */
+    restore() {
+        // Can't restore without stopping.
+        this.stop();
+
+        // Start restoring at each of the target nodes
+        this.targetNodes.forEach(node => this.restoreElement(node));
+
+        // Any left-overs from mutations
+        while (this.originalContent.size) {
+            // Doing a weird re-starting iterator dance because restoreElement()
+            // deletes elements from the originalContent map when called.
+            const {value: node, done} = this.originalContent.keys().next();
+            if (done) break;
+            this.restoreElement(node);
+        }
+
+        // All nodes are now unprocessed again
+        this.processedNodes = new WeakSet(); // `new` because WeakSet has no `clear()`
+        
+        // Similarly, nothing is queued anymore since we need to start over
+        // from the beginning.
+        this.queuedNodes.clear();
     }
 
     /**
@@ -393,7 +596,7 @@ class InPageTranslation {
 
         // Based on jQuery (talk about battle-tested...)
         // https://github.com/jquery/jquery/blob/main/src/css/hiddenVisibleSelectors.js
-        return !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+        return element && !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
     }
 
     /**
@@ -641,6 +844,9 @@ class InPageTranslation {
         else if (this.isElementInViewport(node))
             priority = 1;
 
+        // Record it?
+        this.recordElement(node);
+
         // Remove all children from the isParentQueued call cache
         const nodeIterator = document.createTreeWalker(node, NodeFilter.SHOW_ELEMENT);
         for (let currentNode = nodeIterator.nextNode(); currentNode; currentNode = nodeIterator.nextNode())
@@ -734,6 +940,8 @@ class InPageTranslation {
                     // they'll only cause mismatches between textual text nodes.
                     if (child.data.trim().length == 0)
                         return false;
+
+                    return true;
                 });
 
                 const dstChildNodes = Object.fromEntries(dstNodes
@@ -833,6 +1041,8 @@ class InPageTranslation {
                 node.data = translated;
         };
 
+        console.assert(this.started, 'Called updateElements while InPageTranslation.started is false');
+
         // Pause observing mutations
         this.stopMutationObserver();
 
@@ -851,6 +1061,19 @@ class InPageTranslation {
             this.updateTimeout = null;
         } finally {
             this.startMutationObserver();
+        }
+    }
+
+    recordElement(node) {
+        switch (node.nodeType) {
+            case Node.ELEMENT_NODE:
+                const children = Array.from(node.childNodes);
+                children.forEach(this.recordElement.bind(this))
+                this.originalContent.set(node, children);
+                break;
+            case Node.TEXT_NODE:
+                this.originalContent.set(node, node.data);
+                break;
         }
     }
 

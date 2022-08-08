@@ -52,7 +52,7 @@ on('Update', diff => {
                 break;
             
             default:
-                inPageTranslation.stop();
+                inPageTranslation.restore();
                 break;
         }
     }
