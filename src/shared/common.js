@@ -1,4 +1,4 @@
-function addEventListeners(root, handlers) {
+export function addEventListeners(root, handlers) {
 	const handlersPerEventType = {};
 
 	Object.entries(handlers).forEach(([name, callback]) => {
@@ -18,7 +18,7 @@ function addEventListeners(root, handlers) {
 	});
 }
 
-const StateHelper = {
+export const StateHelper = {
 	get(target, prop, receiver) {
 		if (prop.substr(0, 1) === '!')
 			return !Reflect.get(target, prop.substr(1));
@@ -33,7 +33,7 @@ const StateHelper = {
 	}
 };
 
-function renderSelect(select, values) {
+export function renderSelect(select, values) {
 	// Todo: we can be smarter about this!
 	while (select.length)
 		select.remove(0);
@@ -41,7 +41,7 @@ function renderSelect(select, values) {
 		select.add(new Option(label, value), null);
 }
 
-function queryXPathAll(root, query, callback) {
+export function queryXPathAll(root, query, callback) {
 	const result = document.evaluate(query, root, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null);
 	let output = [];
 	let element;
@@ -51,7 +51,7 @@ function queryXPathAll(root, query, callback) {
 	return output;
 }
 
-class BoundElementRenderer {
+export class BoundElementRenderer {
 	constructor(root) {
 		// this.elements = queryXPathAll(root, './/*[@*[starts-with(name(), "data-bind:")]]');
 		this.elements = [];
@@ -101,11 +101,11 @@ class BoundElementRenderer {
 	}
 }
 
-function renderBoundElements(root, state) {
+export function renderBoundElements(root, state) {
 	return new BoundElementRenderer(root).render(state);
 }
 
-function addBoundElementListeners(root, callback) {
+export function addBoundElementListeners(root, callback) {
 	addEventListeners(root, {
 		'change *[data-bind\\:value]': e => {
 			callback(e.target.dataset['bind:value'], e.target.value, e);
@@ -116,7 +116,7 @@ function addBoundElementListeners(root, callback) {
 	});
 }
 
-function debounce(callable) {
+export function debounce(callable) {
 	let scheduled = null;
 	return (...args) => {
 		if (scheduled) {
@@ -131,7 +131,7 @@ function debounce(callable) {
 	};
 }
 
-async function* asCompleted(iterable) {
+export async function* asCompleted(iterable) {
 	const promises = new Set(iterable);
 	while (promises.size() > 0) {
 		const next = await Promise.race(promises);

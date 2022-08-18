@@ -16,7 +16,7 @@ function promisify(object, methods) {
 	});
 }
 
-const compat = new class {
+export default new class {
 	#isFirefox = false;
 	#isChromium = false;
 	#runtime;

@@ -1,4 +1,8 @@
-// Defaults. Duplicated in backgroundScript.js :(
+import compat from '../shared/compat.js';
+import {
+	renderBoundElements,
+	addBoundElementListeners
+} from '../shared/common.js';
 
 const globalState = {
 	provider: 'wasm',
@@ -9,7 +13,7 @@ const globalState = {
 const localState = {
 	translateLocallyAvailable: false,
 	get benchmarkURL() {
-		return compat.runtime.getURL('view/static/benchmark.html');
+		return compat.runtime.getURL('benchmark.html');
 	}
 };
 

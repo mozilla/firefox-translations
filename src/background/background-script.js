@@ -1,4 +1,8 @@
-/* global compat */
+import compat from '../shared/compat.js';
+import { product } from '../shared/func.js';
+import TLTranslationHelper from './TLTranslationHelper.js';
+import WASMTranslationHelper from './WASMTranslationHelper.js';
+
 
 function isSameDomain(url1, url2) {
     return url1 && url2 && new URL(url1).host === new URL(url2).host;
@@ -278,7 +282,7 @@ class Recorder {
         this.#pages = new Map();
     }
 
-    record({from, text, html, session: {url}}) {
+    record({from, text, session: {url}}) {
         // Unique per page url
         if (!this.#pages.has(url))
             this.#pages.set(url, {
@@ -695,6 +699,14 @@ async function main() {
                 });
                 break;
         }
+    })
+
+    Object.assign(self, {
+        tabs,
+        state,
+        providers,
+        provider,
+        test
     })
 }
 

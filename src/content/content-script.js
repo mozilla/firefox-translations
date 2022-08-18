@@ -1,4 +1,7 @@
-"use strict";
+import compat from '../shared/compat.js';
+import LanguageDetection from './LanguageDetection.js';
+import InPageTranslation from './InPageTranslation.js';
+import SelectionTranslation from './SelectionTranslation.js';
 
 let backgroundScript;
 

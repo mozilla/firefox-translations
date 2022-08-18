@@ -1,4 +1,4 @@
-"use strict";
+import "./InPageTranslation.css";
 
 function computePath(node, root) {
     if (root === undefined)
@@ -31,7 +31,7 @@ function removeTextNodes(node) {
 }
 
 // eslint-disable-next-line no-unused-vars
-class InPageTranslation {
+export default class InPageTranslation {
 
     constructor(mediator) {
         this.translationsCounter = 0;

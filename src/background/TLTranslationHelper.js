@@ -50,7 +50,7 @@ class PortChannel {
 /**
  * Wrapper around TranslateLocally native messaging API.
  */
- class TLTranslationHelper {
+export default class TLTranslationHelper {
 
     constructor(options) {
         this.threads = Math.max(options?.workers || 1, 1);

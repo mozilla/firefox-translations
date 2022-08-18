@@ -6,17 +6,17 @@ html[x-bergamot-debug] [x-bergamot-translated=""] [x-bergamot-translated~="is-ex
 
 @font-face {
   font-family: "Flow Block";
-  src: url("/view/fonts/FlowBlock-Regular.woff2");
+  src: url("../../assets/fonts/FlowBlock-Regular.woff2");
 }
 
 @font-face {
   font-family: "Flow Circular";
-  src: url("/view/fonts/FlowCircular-Regular.woff2");
+  src: url("../../assets/fonts/FlowCircular-Regular.woff2");
 }
 
 @font-face {
   font-family: "Flow Rounded";
-  src: url("/view/fonts/FlowRounded-Regular.woff2");
+  src: url("../../assets/fonts/FlowRounded-Regular.woff2");
 }
 
 [x-bergamot-indicator="flow-block"] [x-bergamot-translated]:not([x-bergamot-translated~="skipped"], [x-bergamot-translated~="rejected"], [x-bergamot-translated=""]) {

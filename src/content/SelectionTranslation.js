@@ -1,4 +1,6 @@
-class SelectionTranslation {
+import "./SelectionTranslation.css";
+
+export default class SelectionTranslation {
 	constructor(mediator) {
 		// Mediator, has a translate(str, obj) method.
 		this.mediator = mediator;

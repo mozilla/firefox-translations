@@ -1,3 +1,10 @@
+import compat from '../shared/compat.js';
+import {
+	renderBoundElements,
+	addEventListeners,
+	addBoundElementListeners,
+} from '../shared/common.js';
+
 const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
 
 // Tab state

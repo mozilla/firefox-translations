@@ -4,7 +4,7 @@
  * translation bar should be displayed
  */
 
-class LanguageDetection {
+export default class LanguageDetection {
     /**
      * Extracts a bit of sample text from the page. Will only resolve once
      * there is some actual text.

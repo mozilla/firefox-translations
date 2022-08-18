@@ -1,3 +1,13 @@
+import WASMTranslationHelper from '../background/WASMTranslationHelper.js'
+import TLTranslationHelper from '../background/TLTranslationHelper.js';
+import {
+	BoundElementRenderer,
+	debounce,
+	addBoundElementListeners,
+	addEventListeners
+} from '../shared/common.js'
+
+
 const defaults = {
 	cacheSize: 0
 };

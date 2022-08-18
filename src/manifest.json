@@ -1,0 +1,70 @@
+{
+	"manifest_version": 2,
+	"name": "Bergamot Translations",
+	"version": "0.0.1",
+	"version_name": "development",
+	"browser_specific_settings":
+	{
+		"gecko":
+		{
+			"strict_min_version": "90.0",
+			"id": "{c9cdf885-0431-4eed-8e18-967b1758c951}"
+		}
+	},
+	"permissions":
+	[
+		"<all_urls>",
+		"contextMenus",
+		"tabs",
+		"webNavigation",
+		"storage",
+		"nativeMessaging"
+	],
+	"background":
+	{
+		"scripts": ["background-script.js"]
+	},
+	"content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+	"content_scripts":
+	[
+		{
+			"matches": ["<all_urls>"],
+			"js": ["content-script.js"],
+			"css": [
+				"SelectionTranslation.css",
+				"InPageTranslation.css"
+			],
+			"run_at": "document_idle",
+			"all_frames": true
+		}
+	],
+	"incognito": "spanning",
+	"browser_action":
+	{
+		"browser_style": true,
+		"default_icon":
+		{
+			"19": "/assets/icons/translation.16x16.png",
+			"38": "/assets/icons/translation.32x32.png"
+		},
+		"default_title": "Translation available",
+		"default_popup": "popup.html"
+	},
+	"options_ui": {
+		"page": "options.html",
+		"browser_style": true,
+		"chrome_style": true
+	},
+	"icons":
+	{
+		"16": "/assets/icons/translation.16x16.png",
+		"32": "/assets/icons/translation.32x32.png"
+	},
+	"web_accessible_resources": [
+		"assets/fonts/FlowBlock-Regular.woff2",
+		"assets/fonts/FlowCircular-Regular.woff2",
+		"assets/fonts/FlowRounded-Regular.woff2"
+	],
+	"description": "Experimental Bergamot Translations translates any webpage utilizing client based machine learning algorithms and models.",
+	"homepage_url": "https://github.com/jelmervdl/firefox-translations"
+}

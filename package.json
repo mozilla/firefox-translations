@@ -4,15 +4,28 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint:js": "eslint -c  .eslintrc.js extension",
     "lint:extension": "web-ext lint -s extension",
-    "build": "web-ext build -s extension --overwrite-dest  --no-config-discovery -n bergamot_translations.xpi",
+    "build": "webpack --mode=production --node-env=production",
+    "build:dev": "webpack --mode=development --node-env=development",
     "sign": "web-ext sign -s extension --no-config-discovery --channel unlisted",
     "format": "prettier 'extension/*.{js,css}' --tab-width=2 --arrow-parens=always --trailing-comma=es5 --no-bracket-spacing --write",
     "once:firefox": "web-ext run -s extension --verbose --firefox nightly  --no-config-discovery",
     "once:chrome": "web-ext run -s extension --verbose --target chromium  --no-config-discovery",
-    "setup-webext": "npm install -g web-ext"
+    "setup-webext": "npm install -g web-ext",
+    "watch": "webpack --mode=development --watch"
   },
   "devDependencies": {
+    "copy-webpack-plugin": "^11.0.0",
     "eslint": "^7.32.0",
-    "web-ext": "^6.6.0"
+    "html-loader": "^4.1.0",
+    "loader-utils": "^3.2.0",
+    "web-ext": "^6.6.0",
+    "web-ext-plugin": "^2.1.1",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0"
+  },
+  "dependencies": {
+    "@browsermt/bergamot-translator": "^0.4.5",
+    "js-untar": "^2.0.0",
+    "pako": "^2.0.4"
   }
 }
