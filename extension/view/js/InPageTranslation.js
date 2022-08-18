@@ -30,63 +30,6 @@ function removeTextNodes(node) {
     });
 }
 
-/**
- * WeakMap that can enumerate over its keys. Keeps tracks of the keys in a list
- * of weakrefs so unless you `clear()` it it will become slower over time to
- * iterate over as it has to skip more null references.
- */
-class EnumerableWeakMap extends WeakMap {
-    #keys = [];
-
-    set(key, value) {
-        if (!super.has(key))
-            this.#keys.push(new WeakRef(key));
-        
-        return super.set(key, value);
-    }
-
-    clear() {
-        // Because WeakMap is not enumerable, we do a slow delete.
-        for (let key of this.keys())
-            super.delete(key);
-
-        // Clear out all keys as well.
-        this.#keys.splice(0, this.#keys.length);
-    }
-
-    delete() {
-        throw new TypeError('delete() not implemented');
-    }
-
-    *keys() {
-        for (let ref of this.#keys) {
-            const key = ref.deref();
-            if (key !== undefined)
-                yield key;
-        }
-    }
-
-    *values() {
-        for (let key of this.keys())
-            yield super.get(key);
-    }
-
-    *entries() {
-        for (let key of this.keys())
-            yield [key, super.get(key)];
-    }
-
-    [Symbol.iterator]() {
-        return this.entries();
-    }
-
-    forEach(callback) {
-        for (let [key, value] of this.entries())
-            callback(value, key, this);
-    }
-}
-
-
 // eslint-disable-next-line no-unused-vars
 class InPageTranslation {
 
@@ -130,8 +73,8 @@ class InPageTranslation {
         this.targetNodes = new Set();
 
         // Per Element we store a list of the original children, or per TextNode
-        // we store the original text. Needs to be enumerable, so no WeakMap.
-        this.originalContent = new Map(); //new EnumerableWeakMap(); but that doesn't work because of a privilege boundary.
+        // we store the original text.
+        this.originalContent = new WeakMap();
 
         // Elements that have changed since we've started translating, and are
         // waiting for updateTimeout to call restartTreeWalker again.
@@ -242,13 +185,6 @@ class InPageTranslation {
                             // console.log({mutation, children: Array.from(children)});
 
                             mutation.removedNodes.forEach(child => {
-                                // If an element is removed we restore it so we
-                                // don't have to keep tracking it! In a way this
-                                // is a workaround for how WeakRef doesn't work
-                                // in add-ons. By restoring and releasing it we
-                                // allow elements to be garbage collected.
-                                this.restoreElement(child);
-
                                 // Remove child from our copy of the original
                                 // parent.
                                 let index = children.indexOf(child);
@@ -429,8 +365,14 @@ class InPageTranslation {
 
         // We start tracking a node in enqueueTranslation. If it isn't tracked
         // the node never made it that far, and we can skip the rest of the steps.
-        if (original === undefined)
-            return; // TODO: maybe if element look at its children?
+        if (original === undefined) {
+            // Look deeper, there might be children we translated
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                Array.from(node.childNodes).forEach(child => this.restoreElement(child));
+            }
+
+            return;
+        }
 
         // Now that it will be restored, stop tracking the node.
         this.originalContent.delete(node);
@@ -488,14 +430,8 @@ class InPageTranslation {
         // Start restoring at each of the target nodes
         this.targetNodes.forEach(node => this.restoreElement(node));
 
-        // Any left-overs from mutations
-        while (this.originalContent.size) {
-            // Doing a weird re-starting iterator dance because restoreElement()
-            // deletes elements from the originalContent map when called.
-            const {value: node, done} = this.originalContent.keys().next();
-            if (done) break;
-            this.restoreElement(node);
-        }
+        // Clear the original content map
+        this.originalContent = new WeakMap();
 
         // All nodes are now unprocessed again
         this.processedNodes = new WeakSet(); // `new` because WeakSet has no `clear()`
