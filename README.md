@@ -26,7 +26,7 @@ Bergamot Translations is a fork of [Firefox Translations](https://github.com/moz
 # Instructions for development
 1. Install Firefox (Nightly for better performance when using WASM)
 2. Clone this repo and run `npm install`
-3. Run `npm run once:firefox` and wait until Firefox starts
+3. Run `npm run watch` and wait until Firefox starts
 4. Browse to a page in any of the supported languages (https://github.com/browsermt/students) to have the translation option to appear
 
 # Instructions for Native Messaging
