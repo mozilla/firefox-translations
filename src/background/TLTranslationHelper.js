@@ -1,10 +1,6 @@
-/* eslint-disable no-global-assign */
-/* eslint-disable no-native-reassign */
-/* eslint-disable max-lines */
-
-/* global engineRegistryRootURL, engineRegistryRootURLTest, engineRegistry, loadEmscriptenGlueCode, Queue */
-/* global modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry,importScripts */
-
+import { lazy, flatten, first } from '../shared/func.js';
+import { PromiseWithProgress } from '../shared/promise.js';
+import compat from '../shared/compat.js';
 
 /**
  * Little wrapper around the message passing API to keep track of messages and
