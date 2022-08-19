@@ -2,15 +2,11 @@
   "name": "bergamot-translations",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint:js": "eslint -c  .eslintrc.js extension",
-    "lint:extension": "web-ext lint -s extension",
-    "build": "webpack --mode=production --node-env=production",
     "build:dev": "webpack --mode=development --node-env=development",
-    "sign": "web-ext sign -s extension --no-config-discovery --channel unlisted",
-    "format": "prettier 'extension/*.{js,css}' --tab-width=2 --arrow-parens=always --trailing-comma=es5 --no-bracket-spacing --write",
-    "once:firefox": "web-ext run -s extension --verbose --firefox nightly  --no-config-discovery",
-    "once:chrome": "web-ext run -s extension --verbose --target chromium  --no-config-discovery",
-    "setup-webext": "npm install -g web-ext",
+    "build:extension": "webpack --mode=production --node-env=production",
+    "build:xpi": "web-ext build -s extension --overwrite-dest  --no-config-discovery -n bergamot_translations.xpi",
+    "build": "npm run build:extension && npm run build:xpi",
+    "sign": "npm run build:xpi && web-ext sign -s extension --no-config-discovery --channel unlisted",
     "watch": "webpack --mode=development --watch"
   },
   "devDependencies": {
