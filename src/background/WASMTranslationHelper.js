@@ -4,7 +4,7 @@ import { first, flatten } from '../shared/func.js';
 import * as YAML from '../shared/yaml.js';
 import { BatchTranslator, TranslatorBacking } from '@browsermt/bergamot-translator';
 import { inflate } from 'pako';
-import untar from 'js-untar';
+import untar from '../vendor/js-untar/untar.js';
 
 /**
  * @typedef {Object} TranslationRequest

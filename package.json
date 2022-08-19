@@ -25,7 +25,6 @@
   },
   "dependencies": {
     "@browsermt/bergamot-translator": "^0.4.5",
-    "js-untar": "^2.0.0",
     "pako": "^2.0.4"
   }
 }
