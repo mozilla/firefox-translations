@@ -19,7 +19,7 @@ const CACHE_NAME = "bergamot-translations";
 
 const MAX_DOWNLOAD_TIME = 60000; // TODO move this
 
-const WASM_TRANSLATION_WORKER_URL = compat.runtime.getURL('translation-worker.js');
+const WASM_TRANSLATION_WORKER_URL = compat.runtime.getURL('translator-worker.js');
 
 class BergamotBacking extends TranslatorBacking {
     constructor(options) {
@@ -288,6 +288,6 @@ export default class WASMTranslationHelper {
     }
 
     remove(filter) {
-        return this.translator.filter(filter);
+        return this.translator.remove(filter);
     }
 }
