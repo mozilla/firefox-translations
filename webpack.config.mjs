@@ -81,6 +81,9 @@ export default {
     new CopyPlugin({
       patterns: [
         {
+          from: 'assets/fonts/*.woff2'
+        },
+        {
           from: 'assets/icons/*.png'
         },
         {
