@@ -33,3 +33,6 @@ document.getElementById("lblReportUserInteraction").textContent =
 
 document.getElementById("lblErrorReport").textContent =
 browser.i18n.getMessage("datacollectionConsentPageErrorsOption");
+
+document.getElementById("lblShowChangelog").textContent =
+  browser.i18n.getMessage("showChangelogOption");
