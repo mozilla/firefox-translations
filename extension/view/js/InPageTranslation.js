@@ -1039,6 +1039,7 @@ class InPageTranslation {
     }
 
     isSameLanguage(lang, other) {
+
         /*
          * en === en, en-US === en-US
          */
