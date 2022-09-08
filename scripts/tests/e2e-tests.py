@@ -104,6 +104,7 @@ disable_faster_gemm("bergamot-translator-worker.js")
 
 try:
     print("Building gecko")
+    subprocess.check_output("./mach bootstrap", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
     subprocess.check_output("./mach build", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
     print("Running test with fallback gemm")
     subprocess.check_output("./mach test --setpref=fxtranslations.running.mochitest=true browser/extensions/translations/test/browser/browser_translation_test.js", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
