@@ -14,6 +14,8 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: '17.x'
+      - run: brew unlink python@3.10
+      - run: brew install python@3.9    
       - run: npm install
       - run: brew install git-cinnabar
       - name: Run e2e test on master
