@@ -78,6 +78,8 @@ with open('gecko/browser/extensions/translations/moz.build', 'a') as f:
 print("****** Test with faster gemm ******")
 try:
     print("Building gecko")
+    isExist = os.path.exists("/Users/runner/srcdirs/gecko-4825a4822c73/_virtualenvs/mach/lib/python3.10/site-packages/")
+    print(isExist)
     subprocess.check_output("./mach bootstrap", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
     subprocess.check_output("MOZBUILD_STATE_PATH=/Users/runner/ ./mach build", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
     print("Running test with faster gemm")
