@@ -90,6 +90,9 @@ export default {
           from: 'src/benchmark/benchmark.html'
         },
         {
+          from: 'src/benchmark/benchmark.css'
+        },
+        {
           from: 'src/options/options.html'
         },
         {
