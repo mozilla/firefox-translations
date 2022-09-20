@@ -280,14 +280,18 @@ export default class WASMTranslationHelper {
     }
 
     downloadModel(id) {
-        return this.backing.downloadModel(id);
+        return this.backing.downloadModel(id); // returns PromiseWithProgress
     }
 
     translate(request) {
-        return this.translator.translate(request);
+        return this.translator.translate(request); // returns promise
     }
 
     remove(filter) {
         return this.translator.remove(filter);
+    }
+
+    delete() {
+        return this.translator.delete(); // returns promise
     }
 }

@@ -41,6 +41,10 @@ class PortChannel {
         else
             resolve(message.data);
     }
+
+    disconnect() {
+        this.port.disconnect();
+    }
 }
 
 /**
@@ -228,5 +232,16 @@ export default class TLTranslationHelper {
      */
     remove(filter) {
         //TODO
+    }
+
+    /**
+     * Releases the connection, effectively stopping TranslateLocally running
+     * in the background.
+     */
+    async delete() {
+        if (this.client.instantiated) {
+            const client = await this.client;
+            client.disconnect();
+        }
     }
 }

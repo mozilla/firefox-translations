@@ -5,6 +5,10 @@ export function lazy(factory) {
     let promise = null;
 
     return {
+        get instantiated() {
+            return promise !== null;
+        },
+
         then(...args) {
             // Ask for the actual promise
             if (promise === null) {
