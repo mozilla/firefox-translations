@@ -254,7 +254,7 @@ async function execute(scenario, run) {
 
 	data.busy = false;
 
-	translator.delete(); // Not awaiting, can happen async
+	await translator.delete(); // Waiting because we don't want to interfere with other runs
 
 	return {row, data};
 }
