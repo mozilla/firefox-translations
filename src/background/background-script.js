@@ -407,6 +407,10 @@ let provider = new class {
 
     reset() {
         tabs.forEach(tab => tab.reset(tab.state.url));
+
+        if (this.#provider)
+            this.#provider.delete();
+
         this.#provider = null;
     }
 };
