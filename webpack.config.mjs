@@ -3,7 +3,7 @@ import CopyPlugin from 'copy-webpack-plugin';
 import webpack from 'webpack';
 
 /**
- * Hack replacement of webpack's default baseURI runtimme implementation that
+ * Hack replacement of webpack's default baseURI runtime implementation that
  * returns a string or undefined. And that doesn't work well when used with
  * `new URL(..., baseURI)` where the base URI is a secret plugin installation
  * path only known at runtime.
