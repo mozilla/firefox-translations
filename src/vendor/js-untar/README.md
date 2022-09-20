@@ -1,0 +1,1 @@
+Originally from https://github.com/InvokIT/js-untar, modified to work in a web extension context.
