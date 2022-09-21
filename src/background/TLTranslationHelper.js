@@ -1,4 +1,4 @@
-import { lazy, flatten, first } from '../shared/func.js';
+import { lazy, flatten, first, deduplicate } from '../shared/func.js';
 import { PromiseWithProgress } from '../shared/promise.js';
 import compat from '../shared/compat.js';
 
@@ -114,12 +114,12 @@ export default class TLTranslationHelper {
      */
     async loadModelRegistery() {
         const client = await this.client;
-        const response = await client.request('ListModels', {includeRemote: true});
+        const models = await client.request('ListModels', {includeRemote: true});
 
         // Add 'from' and 'to' keys for each model. Since theoretically a model
-        // can have multiple froms keys in TranslateLocally, we do a little
+        // can have multiple from keys in TranslateLocally, we do a little
         // product here.
-        return Array.from(flatten(response, function*(model) {
+        let entries = flatten(models, function*(model) {
             try {
                 const to = first(Intl.getCanonicalLocales(model.trgTag));
                 for (let from of Intl.getCanonicalLocales(Object.keys(model.srcTags))) {
@@ -128,67 +128,27 @@ export default class TLTranslationHelper {
             } catch (err) {
                 console.log('Skipped model', model, err);
             }
-        }));
-    }
+        });
 
-    /**
-     * Crappy named method that gives you a list of models to translate from
-     * one language into the other. Generally this will be the same as you
-     * just put in if there is a direct model, but it could return a list of
-     * two models if you need to pivot through a third language.
-     * Returns just [{from:str,to:str}...]. To be used something like this:
-     * ```
-     * const models = await this.getModels(from, to);
-     * models.forEach(({from, to}) => {
-     *   const buffers = await this.loadTranslationModel({from,to});
-     *   [TranslationWorker].loadTranslationModel({from,to}, buffers)
-     * });
-     * ```
-     */
-    async getModels(from, to) {
-        const key = JSON.stringify({from, to});
+        // Deduplicate models, preferring local ones above tiny ones, and tiny
+        // ones above base models because of download size.
+        entries = deduplicate(entries, {
+            key({from, to}) {
+                return `${from}:${to}`;
+            },
+            sort({model: a}, {model: b}) {
+                if (a.local != b.local)
+                    return (a.local ? 0 : 1) - (b.local ? 0 : 1);
 
-        // Note that the `this.models` map stores Promises. This so that
-        // multiple calls to `getModels` that ask for the same model will
-        // return the same promise, and the actual lookup is only done once.
-        // The lookup is async because we need to await `this.registry`
-        if (!this.models.has(key)) {
-            this.models.set(key, new Promise(async (resolve, reject) => {
-                const registry = await this.registry;
+                // TODO: why is it "shortname" no capital N here, but "shortName" in the index?
+                // Bug in TranslateLocally? Yep! https://github.com/XapaJIaMnu/translateLocally/issues/118
+                const key = 'shortname' in a ? 'shortname' : 'shortName'
 
-                // TODO: This all scales really badly.
+                return (a[key].indexOf('tiny') === -1 ? 1 : 0) - (b[key].indexOf('tiny') === -1 ? 1 : 0)
+            }
+        });
 
-                let direct = [], outbound = [], inbound = [];
-
-                registry.forEach(model => {
-                    if (model.from === from && model.to === to)
-                        direct.push(model);
-                    else if (model.from === from)
-                        outbound.push(model);
-                    else if (model.to === to)
-                        inbound.push(model);
-                });
-
-                if (direct.length)
-                    return resolve([direct[0]]);
-
-                // Find the pivot language
-                const shared = intersect(
-                    outbound.map(model => model.to),
-                    inbound.map(model => model.from)
-                );
-
-                if (!shared.size)
-                    throw new Error(`No model available to translate from ${from} to ${to}`);
-
-                resolve([
-                    outbound.find(model => shared.has(model.to)),
-                    inbound.find(model => shared.has(model.from))
-                ]);
-            }));
-        }
-
-        return await this.models.get(key);
+        return Array.from(entries);
     }
 
     /**
@@ -206,7 +166,7 @@ export default class TLTranslationHelper {
     async translate(request) {
         const client = await this.client;
         const response = await client.request('Translate', {
-            src: request.from,
+            src: request.from, // TODO: Use `model` and `pivot` and model ids?
             trg: request.to,
             text: request.text,
             html: request.html
