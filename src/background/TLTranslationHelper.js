@@ -222,6 +222,13 @@ export default class TLTranslationHelper {
             const response = client.request('DownloadModel', {modelID});
             response.addProgressListener(update);
             response.then(accept, reject);
+
+            // Also update this.registry to reflect that this model is now local
+            response.then(async () => {
+                const models = await this.registry;
+                const model = models.find(({model: id}) => id === modelID);
+                model.local = true;
+            })
         });
     }
 
