@@ -1,6 +1,6 @@
 import compat from '../shared/compat.js';
 import { PromiseWithProgress } from '../shared/promise.js';
-import { first, flatten } from '../shared/func.js';
+import { first, flatten, deduplicate } from '../shared/func.js';
 import * as YAML from '../shared/yaml.js';
 import { BatchTranslator, TranslatorBacking } from '@browsermt/bergamot-translator';
 import { inflate } from 'pako';
@@ -37,37 +37,27 @@ class BergamotBacking extends TranslatorBacking {
     /**
      * Loads the model registry. Uses the registry shipped with this extension,
      * but formatted a bit easier to use, and future-proofed to be swapped out
-     * with a TranslateLocally type registry. Returns Promise<List<Model>>
+     * with a TranslateLocally type registry.
+     * @returns {Promise<List<{
+     *  from: String,
+     *  to: String,
+     *  model: {
+     *    id: Number,
+     *    local: Boolean,
+     *    shortName: String,
+     *    url: String,
+     *    checksum: String
+     *  }>>}
      */
     async loadModelRegistery() {
-        const cache = typeof caches !== 'undefined' ? caches.open(CACHE_NAME) : null;
         const response = await fetch('https://translatelocally.com/models.json');
-        const {models} = await response.json();
+        let {models} = await response.json();
         let serial = 0;
-
-        // Check whether each of the models is already downloaded
-        models.forEach((model) => {
-            // Give the model an id for easy look-up
-            model.id = ++serial;
-            
-            // Async check whether the model is in cache
-            let modelInCache = false;
-            if (cache) {
-                cache.then(cache => cache.match(model.url).then(response => {
-                    modelInCache = response && response.ok;
-                }));
-            }
-
-            Object.defineProperty(model, 'local', {
-                enumerable: true,
-                get: () => modelInCache || this.#hasTranslationModel(model)
-            });
-        });
 
         // Add 'from' and 'to' keys for each model. Since theoretically a model
         // can have multiple froms keys in TranslateLocally, we do a little
         // product here.
-        return Array.from(flatten(models, function*(model) {
+        let entries = flatten(models, function*(model) {
             try {
                 const to = first(Intl.getCanonicalLocales(model.trgTag));
                 for (let from of Intl.getCanonicalLocales(Object.keys(model.srcTags))) {
@@ -76,14 +66,54 @@ class BergamotBacking extends TranslatorBacking {
             } catch (err) {
                 console.log('Skipped model', model, err);
             }
+        })
+
+        // Check whether each of the models is already downloaded
+        const cache = typeof caches !== 'undefined' ? caches.open(CACHE_NAME) : null;
+        entries = await Promise.all(Array.from(entries, async (entry) => {
+            // Give the model an id for easy look-up
+            entry.model.id = ++serial;
+
+            // Maybe we already have the model in memory
+            entry.model.local = this.#hasTranslationModel(entry);
+
+            // Check whether the model is in cache otherwise
+            if (!entry.model.local && cache) {
+                const response = await (await cache).match(entry.model.url);
+                entry.model.local = response?.ok || false;
+            }
+
+            return entry;
         }));
+
+        // Deduplicate models, preferring local ones above tiny ones, and tiny
+        // ones above base models because of download size.
+        entries = deduplicate(entries, {
+            key({from, to}) {
+                return `${from}:${to}`;
+            },
+            sort({model: a}, {model: b}) {
+                if (a.local != b.local)
+                    return (a.local ? 0 : 1) - (b.local ? 0 : 1);
+                return (a.shortName.indexOf('tiny') === -1 ? 1 : 0) - (b.shortName.indexOf('tiny') === -1 ? 1 : 0)
+            }
+        });
+
+        return Array.from(entries);
     }
 
     downloadModel(id) {
         return new PromiseWithProgress(async (accept, reject, update) => {
             try {
                 const model = (await this.registry).find(({model}) => model.id === id);
-                accept(await this.loadTranslationModel(model, update));
+                
+                // Wait for the buffers to download & decompress
+                const buffers = await this.loadTranslationModel(model, update);
+
+                // Mark model as local now (mutates this.registry!)
+                model.local = true;
+
+                accept(buffers);
             } catch (err) {
                 reject(err);
             }
@@ -100,17 +130,12 @@ class BergamotBacking extends TranslatorBacking {
         performance.mark(`loadTranslationModule.${JSON.stringify({from, to})}`);
 
         // Find that model in the registry which will tell us about its files
-        const entries = (await this.registry).filter(model => model.from == from && model.to == to);
+        const entry = (await this.registry).find(model => model.from == from && model.to == to);
 
-        // Prefer tiny models above non-tiny ones (right now base models don't even work properly 😅)
-        entries.sort(({model: a}, {model: b}) => (a.shortName.indexOf('tiny') === -1 ? 1 : 0) - (b.shortName.indexOf('tiny') === -1 ? 1 : 0));
-
-        if (!entries)
+        if (!entry)
             throw new Error(`No model for '${from}' -> '${to}'`);
 
-        const entry = first(entries).model;
-
-        const compressedArchive = await this.getItemFromCacheOrWeb(entry.url, entry.checksum, update);
+        const compressedArchive = await this.getItemFromCacheOrWeb(entry.model.url, entry.model.checksum, update);
 
         const archive = inflate(compressedArchive);
 
