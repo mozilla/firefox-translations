@@ -677,13 +677,7 @@ async function main() {
         tabs.delete(tabId);
     });
 
-    // Add global "translate this item" menu option
-    chrome.contextMenus.create({
-        id: 'translate-element',
-        title: 'Translate Element',
-        contexts: ['page']
-    });
-
+    // Add "translate selection" menu item
     chrome.contextMenus.create({
         id: 'translate-selection',
         title: 'Translate Selection',
@@ -692,11 +686,6 @@ async function main() {
 
     chrome.contextMenus.onClicked.addListener((info, tab) => {
         switch (info.menuItemId) {
-            case 'translate-element':
-                getTab(tab.id).frames.get(info.frameId).postMessage({
-                    command: 'TranslateClickedElement'
-                });
-                break;
             case 'translate-selection':
                 getTab(tab.id).frames.get(info.frameId).postMessage({
                     command: 'TranslateSelection'

@@ -209,19 +209,6 @@ window.addEventListener('pagehide', e => {
     }
 });
 
-// Track last clicked element for TranslateClickedElement
-let lastClickedElement;
-
-window.addEventListener('mousedown', e => {
-    lastClickedElement = e.target;
-});
-
-on('TranslateClickedElement', () => {
-    console.assert(lastClickedElement, 'TranslateClickedElement but no lastClickedElement');
-    inPageTranslation.addElement(lastClickedElement);
-    inPageTranslation.start(state.from);
-});
-
 on('TranslateSelection', () => {
     const selection = document.getSelection();
     selectionTranslation.start(selection);
