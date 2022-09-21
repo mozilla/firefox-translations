@@ -1,5 +1,5 @@
 #!/bin/bash
-cd extension
+cd src
 mv manifest.json{,.bak}
 < manifest.json.bak \
 sed -r 's/"version": ".+"/"version": "'$(echo "$GITHUB_REF_NAME" | sed -r 's/^(.+\/)?v(.+)$/\2/')'"/' \
