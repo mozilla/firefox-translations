@@ -1,5 +1,6 @@
 import { BoundElementRenderer, isElementInViewport, debounce } from '../shared/common.js';
 import compat from '../shared/compat.js';
+import { SupersededError } from '@browsermt/bergamot-translator';
 
 function createElement(name, attributes, children) {
 	const el = document.createElement(name);
@@ -245,7 +246,10 @@ export default class OutboundTranslation {
 			const backtranslated = await this.delegate.backtranslate(translated);
 			this.#referenceField.textContent = backtranslated;
 		} catch (err) {
-			console.warn('#onInput', err);
+			if (err instanceof SupersededError)
+				return;
+			
+			throw err;
 		}
 	}
 }
