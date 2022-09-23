@@ -139,3 +139,33 @@ export async function* asCompleted(iterable) {
 		promises.delete(next);
 	}
 }
+
+/**
+ * Test whether the element is visible on the page at all.
+ * @returns {Boolean}
+ */
+export function isElementVisible(element) {
+	if (element.nodeType === Node.TEXT_NODE)
+		element = element.parentElement;
+
+	// Based on jQuery (talk about battle-tested...)
+	// https://github.com/jquery/jquery/blob/main/src/css/hiddenVisibleSelectors.js
+	return element && !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+}
+
+/**
+ * Test whether an element intersects with the viewport.
+ * @returns {Boolean}
+ */
+export function isElementInViewport(element) {
+	if (element.nodeType === Node.TEXT_NODE)
+		element = element.parentElement;
+
+	const rect = element.getBoundingClientRect();
+	return (
+		rect.top >= 0 &&
+		rect.left >= 0 &&
+		rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+		rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+	);
+}

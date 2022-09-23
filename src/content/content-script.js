@@ -2,6 +2,8 @@ import compat from '../shared/compat.js';
 import LanguageDetection from './LanguageDetection.js';
 import InPageTranslation from './InPageTranslation.js';
 import SelectionTranslation from './SelectionTranslation.js';
+import OutboundTranslation from './OutboundTranslation.js';
+import { LatencyOptimisedTranslator } from '@browsermt/bergamot-translator';
 
 let backgroundScript;
 
@@ -108,10 +110,7 @@ function translate(text, user) {
             text,
 
             // data useful for the response
-            user: {
-                ...user,
-                
-            },
+            user,
             
             // data useful for the scheduling
             priority: user.priority || 0,
@@ -144,6 +143,139 @@ const selectionTranslation = new SelectionTranslation({
     }
 });
 
+/**
+ * Matches the interface of Proxy<TranslationWorker> but wraps the actual
+ * translator running in the background script that we communicate with through
+ * message passing. With this we can use that instance & models with the
+ * LatencyOptimisedTranslator class thinking it is a Worker running the WASM
+ * code.
+ */
+class BackgroundScriptWorkerProxy {
+    /**
+     * Serial that provides a unique number for each translation request.
+     * @type {Number}
+     */
+    #serial = 0;
+
+    /**
+     * Map of submitted requests and their promises waiting to be resolved.
+     * @type {Map<Number,{
+     *   accept: (translations:Object[]) => Null,
+     *   reject: (error:Error) => null,
+     *   request: Object
+     * }>}
+     */
+    #pending = new Map();
+    
+    async hasTranslationModel({from, to}) {
+        return true;
+    }
+
+    /**
+     * Because `hasTranslationModel()` always returns true this function should
+     * never get called.
+     */
+    async getTranslationModel({from, to}, options) {
+        throw new Error('getTranslationModel is not expected to be called');
+    }
+
+    /**
+     * @param {{
+     *   models: {from:String, to:String}[],
+     *   texts: {
+     *     text: String,
+     *     html: Boolean,
+     *   }[]
+     * }}
+     * @returns {Promise<{request:TranslationRequest, target: {text: String}}>[]}
+     */
+    translate({models, texts}) {
+        if (texts.length !== 1)
+            throw new TypeError('Only batches of 1 are expected');
+
+        return new Promise((accept, reject) => {
+            const request = {
+                // translation request
+                from: models[0].from,
+                to: models[0].to,
+                html: texts[0].html,
+                text: texts[0].text,
+
+                // data useful for the response
+                user: {
+                    id: ++this.#serial,
+                    source: 'OutboundTranslation'
+                },
+                
+                // data useful for the scheduling
+                priority: 3,
+
+                // data useful for recording
+                session: {
+                    id: sessionID,
+                    url: document.location.href
+                }
+            };
+
+            this.#pending.set(request.user.id, {request, accept, reject});
+            backgroundScript.postMessage({
+                command: "TranslateRequest",
+                data: request
+            });
+        })
+    }
+
+    enqueueTranslationResponse(text, user) {
+        const {request, accept, reject} = this.#pending.get(user.id);
+        this.#pending.delete(user.id);
+        accept([{request, target: {text}}]);
+    }
+}
+
+const outboundTranslationWorker = new BackgroundScriptWorkerProxy();
+
+const outboundTranslation = new OutboundTranslation(new class {
+    constructor() {
+        this.backing = {
+            async loadWorker() {
+                return {
+                    exports: outboundTranslationWorker,
+                    worker: {
+                        terminate() { return; }
+                    }
+                };
+            },
+            async getModels({from, to}) {
+                return [{from,to}]
+            }
+        };
+
+        this.translator = new LatencyOptimisedTranslator({}, this.backing);
+    }
+
+    async translate(text) {
+        const response = await this.translator.translate({
+            from: state.to,
+            to: state.from,
+            text,
+            html: false
+        });
+
+        return response.target.text;
+    }
+
+    async backtranslate(text) {
+        const response = await this.translator.translate({
+            from: state.from,
+            to: state.to,
+            text,
+            html: false
+        });
+
+        return response.target.text;
+    }
+}());
+
 on('TranslateResponse', data => {
     switch (data.request.user?.source) {
         case 'InPageTranslation':
@@ -151,6 +283,9 @@ on('TranslateResponse', data => {
             break;
         case 'SelectionTranslation':
             selectionTranslation.enqueueTranslationResponse(data.target.text, data.request.user);
+            break;
+        case 'OutboundTranslation':
+            outboundTranslationWorker.enqueueTranslationResponse(data.target.text, data.request.user);
             break;
     }
 });
@@ -209,7 +344,20 @@ window.addEventListener('pagehide', e => {
     }
 });
 
+let lastClickedElement = null;
+
+window.addEventListener('contextmenu', e => {
+    lastClickedElement = e.target;
+}, {capture: true});
+
 on('TranslateSelection', () => {
     const selection = document.getSelection();
     selectionTranslation.start(selection);
+});
+
+on('ShowOutboundTranslation', () => {
+    if (lastClickedElement.closest('[contenteditable]'))
+        throw new Error('Outbound translation not implemented for contenteditable');
+    
+    outboundTranslation.target = lastClickedElement;
 });

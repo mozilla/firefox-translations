@@ -1,4 +1,5 @@
 import "./InPageTranslation.css";
+import { isElementVisible, isElementInViewport } from '../shared/common.js'; 
 
 function computePath(node, root) {
     if (root === undefined)
@@ -514,31 +515,6 @@ export default class InPageTranslation {
         this.mutatedNodes.clear();
     }
 
-    isElementInViewport(element) {
-        if (element.nodeType === Node.TEXT_NODE)
-            element = element.parentElement;
-
-        const rect = element.getBoundingClientRect();
-        return (
-            rect.top >= 0 &&
-            rect.left >= 0 &&
-            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-        );
-    }
-
-    /**
-     * Test whether the element is visible.
-     */
-    isElementVisible(element) {
-        if (element.nodeType === Node.TEXT_NODE)
-            element = element.parentElement;
-
-        // Based on jQuery (talk about battle-tested...)
-        // https://github.com/jquery/jquery/blob/main/src/css/hiddenVisibleSelectors.js
-        return element && !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
-    }
-
     /**
      * Test whether any of the parent nodes are already in the process of being
      * translated. If the parent of the node is already translating we should 
@@ -786,9 +762,9 @@ export default class InPageTranslation {
             node.setAttribute('x-bergamot-translated', this.translationsCounter);
 
         let priority = 2;
-        if (!this.isElementVisible(node))
+        if (!isElementVisible(node))
             priority = 3;
-        else if (this.isElementInViewport(node))
+        else if (isElementInViewport(node))
             priority = 1;
 
         // Record it?

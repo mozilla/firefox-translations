@@ -696,11 +696,18 @@ async function main() {
         tabs.delete(tabId);
     });
 
-    // Add "translate selection" menu item
+    // Add "translate selection" menu item to selections
     chrome.contextMenus.create({
         id: 'translate-selection',
         title: 'Translate Selection',
         contexts: ['selection']
+    });
+
+    // Add "type to translate" menu item to textareas
+    chrome.contextMenus.create({
+        id: 'show-outbound-translation',
+        title: 'Type to translate…',
+        contexts: ['editable']
     });
 
     chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -708,6 +715,11 @@ async function main() {
             case 'translate-selection':
                 getTab(tab.id).frames.get(info.frameId).postMessage({
                     command: 'TranslateSelection'
+                });
+                break;
+            case 'show-outbound-translation':
+                getTab(tab.id).frames.get(info.frameId).postMessage({
+                    command: 'ShowOutboundTranslation'
                 });
                 break;
         }
