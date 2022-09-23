@@ -78,6 +78,12 @@ export default class OutboundTranslation {
 	#referenceField;
 
 	/**
+	 * Bound `#onFocusTarget` method.
+	 * @type {(event:FocusEvent) => Null}
+	 */
+	#onFocusTargetListener;
+
+	/**
 	 * Translation delegate
 	 * @type {OutboundTranslationDelegate}
 	 */
@@ -149,6 +155,8 @@ export default class OutboundTranslation {
 				to: name(this.#to)
 			})
 		});
+
+		this.#onFocusTargetListener = this.#onFocusTarget.bind(this);
 	}
 
 	get from() {
@@ -179,14 +187,14 @@ export default class OutboundTranslation {
 	set target(target) {
 		// Remove event listeners from the old element
 		if (this.#target) {
-			this.#target.removeEventListener('focus', this.#onFocusTarget);
+			this.#target.removeEventListener('focus', this.#onFocusTargetListener);
 		}
 
 		this.#target = target;
 
 		// Attach event listeners to the new target (if there is one)
 		if (this.#target) {
-			this.#target.addEventListener('focus', this.#onFocusTarget);
+			this.#target.addEventListener('focus', this.#onFocusTargetListener);
 		}
 
 		if (this.#target && !this.element.parentNode)
@@ -215,7 +223,7 @@ export default class OutboundTranslation {
 	}
 
 	#onFocusTarget(e) {
-		setTimeout(() => this.#inputField.focus());
+		this.#inputField.focus();
 	}
 
 	#onKeyDown(e) {
