@@ -89,3 +89,8 @@ button.primary:hover {
 	padding: 7px 28px;
 	width: min-content;
 }
+
+.focus-ring {
+	position: absolute;
+	box-shadow: #f00 0 0 0 4px;
+}

@@ -366,4 +366,5 @@ on('ShowOutboundTranslation', () => {
         throw new Error('Outbound translation not implemented for contenteditable');
     
     outboundTranslation.target = lastClickedElement;
+    outboundTranslation.start();
 });
