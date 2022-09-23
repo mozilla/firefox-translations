@@ -99,6 +99,9 @@ export default {
           from: 'src/popup/popup.html'
         },
         {
+          from: 'src/content/OutboundTranslation.css'
+        },
+        {
           from: 'node_modules/@browsermt/bergamot-translator/worker/bergamot-translator-worker.js'
         },
         {

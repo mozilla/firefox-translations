@@ -155,17 +155,35 @@ export function isElementVisible(element) {
 
 /**
  * Test whether an element intersects with the viewport.
- * @returns {Boolean}
+ * @param {Node}
+ * @param {{
+ * 	top?: Number,
+ *  bottom?: Number,
+ *  left?: Number,
+ *  right?: Number }} margin from edges of viewport
+ * @returns {Boolean} intersects or not
  */
-export function isElementInViewport(element) {
+export function isElementInViewport(element, margin) {
 	if (element.nodeType === Node.TEXT_NODE)
 		element = element.parentElement;
 
+	margin = {
+		top: 0,
+		left: 0,
+		bottom: 0,
+		right: 0,
+		...(margin || {})
+	};
+
+	const viewport = {
+		height: window.innerHeight || document.documentElement.clientHeight,
+		width: window.innerWidth || document.documentElement.clientWidth
+	};
+
 	const rect = element.getBoundingClientRect();
-	return (
-		rect.top >= 0 &&
-		rect.left >= 0 &&
-		rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-		rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-	);
+
+	return rect.bottom >= margin.top &&
+		rect.top <= viewport.height - margin.bottom &&
+		rect.right >= margin.left &&
+		rect.left <= viewport.width - margin.right;
 }
