@@ -1,4 +1,4 @@
-import { isElementInViewport } from '../shared/common.js';
+import { BoundElementRenderer, isElementInViewport, debounce } from '../shared/common.js';
 import compat from '../shared/compat.js';
 
 function createElement(name, attributes, children) {
@@ -21,6 +21,19 @@ function createElement(name, attributes, children) {
 	return el
 }
 
+const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
+
+const name = (code) => {
+	if (!code)
+		return undefined;
+	
+	try {
+		return regionNamesInEnglish.of(code);
+	} catch (RangeError) {
+		return `[${code}]`; // fallback if code is not known or invalid
+	}
+};
+
 export default class OutboundTranslation {
 	/**
 	 * @typedef {{
@@ -34,6 +47,16 @@ export default class OutboundTranslation {
 	 * @type {HTMLElement?}
 	 */
 	#target;
+
+	/**
+	 * @type {String}
+	 */
+	#from;
+
+	/**
+	 * @type {String}
+	 */
+	#to;
 
 	/**
 	 * DOM root of outbound translation pane.
@@ -85,21 +108,30 @@ export default class OutboundTranslation {
 			href: compat.runtime.getURL('OutboundTranslation.css')
 		}));
 
-		this.#tree.appendChild(createElement('div', {
-			className: 'pane'
-		}, [
-			createElement('div', {
-				className: 'outbound-translation-widget'
-			}, [
-				this.#inputField = createElement('textarea', {
-					className: 'input-field',
-					onkeydown: this.#onKeyDown.bind(this),
-					oninput: this.#onInput.bind(this)
-				}),
-				this.#referenceField = createElement('div', {
-					className: 'reference-field'
-				})
+		this.#tree.appendChild(createElement('div', {className: 'pane'}, [
+			createElement('p', {className: 'input-field-label'}, [
+				'Translating what you type from ',
+				createElement('em', {'data-bind:text-content': 'from'}),
+				' to ',
+				createElement('em', {'data-bind:text-content': 'to'}),
+				':'
 			]),
+			this.#inputField = createElement('textarea', {
+				className: 'input-field',
+				placeholder: 'Type here to begin translating…',
+				onkeydown: this.#onKeyDown.bind(this),
+				oninput: this.#onInput.bind(this)
+			}),
+			createElement('p', {className: 'reference-field-label'}, [
+				'Translating the translated text from ',
+				createElement('em', {'data-bind:text-content': 'to'}),
+				' back to ',
+				createElement('em', {'data-bind:text-content': 'from'}),
+				' to validate the translation:'
+			]),
+			this.#referenceField = createElement('div', {
+				className: 'reference-field'
+			}),
 			createElement('button', {
 				className: 'primary close-button',
 				onclick: this.close.bind(this)
@@ -107,6 +139,33 @@ export default class OutboundTranslation {
 				'Close'
 			])
 		]));
+
+		const renderer = new BoundElementRenderer(this.#tree);
+
+		this.render = debounce(() => {
+			renderer.render({
+				from: name(this.#from),
+				to: name(this.#to)
+			})
+		});
+	}
+
+	get from() {
+		return this.#from;
+	}
+
+	set from(from) {
+		this.#from = from;
+		this.render();
+	}
+
+	get to() {
+		return this.#to;
+	}
+
+	set to(to) {
+		this.#to = to;
+		this.render();
 	}
 
 	get target() {

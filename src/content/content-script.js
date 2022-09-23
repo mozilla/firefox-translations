@@ -236,7 +236,7 @@ const outboundTranslationWorker = new BackgroundScriptWorkerProxy();
 
 const outboundTranslation = new OutboundTranslation(new class {
     constructor() {
-        this.backing = {
+        this.translator = new LatencyOptimisedTranslator({}, {
             async loadWorker() {
                 return {
                     exports: outboundTranslationWorker,
@@ -248,9 +248,7 @@ const outboundTranslation = new OutboundTranslation(new class {
             async getModels({from, to}) {
                 return [{from,to}]
             }
-        };
-
-        this.translator = new LatencyOptimisedTranslator({}, this.backing);
+        });
     }
 
     async translate(text) {
@@ -275,6 +273,14 @@ const outboundTranslation = new OutboundTranslation(new class {
         return response.target.text;
     }
 }());
+
+on('Update', diff => {
+    if ('from' in diff)
+        outboundTranslation.from = diff.from;
+
+    if ('to' in diff)
+        outboundTranslation.to = diff.to;
+});
 
 on('TranslateResponse', data => {
     switch (data.request.user?.source) {

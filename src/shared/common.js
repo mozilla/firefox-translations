@@ -23,7 +23,7 @@ export const StateHelper = {
 		if (prop.substr(0, 1) === '!')
 			return !Reflect.get(target, prop.substr(1));
 
-		return Reflect.get(...arguments);
+		return Reflect.get(target, prop);
 	},
 	has(target, prop) {
 		if (prop.substr(0, 1) === '!')
