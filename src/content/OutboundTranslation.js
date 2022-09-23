@@ -200,6 +200,9 @@ export default class OutboundTranslation {
 		// Prevent focusin events from leaking out of the widget
 		this.#tree.addEventListener('focusin', e => e.stopPropagation(), true);
 
+		// Sync scrolling of input field with reference field.
+		this.#inputField.addEventListener('scroll', this.#syncScrollPosition.bind(this), {passive: true})
+
 		this.#onResizeListener = this.#renderFocusRing.bind(this);
 
 		// Observer for changes to the form field to keep the focus ring in sync
@@ -320,14 +323,13 @@ export default class OutboundTranslation {
 	 * If the target field has a value, backtranslate it and populate the
 	 * input field with it.
 	 */
-	#restore() {
+	async #restore() {
 		// If we've edited the field before, and it hasn't changed since then, pick
 		// up where we left off.
 		if (this.#target.value && this.memory.get(this.#target)?.translated === this.#target.value) {
 			const {value, reference} = this.memory.get(this.#target);
 			this.#inputField.value = value;
 			this.#referenceField.textContent = reference;
-			this.#inputField.focus();
 		}
 		
 		// If the field has a value, backtranslate it to populate the input widget.
@@ -339,15 +341,13 @@ export default class OutboundTranslation {
 				disabled: true
 			});
 
-			this.delegate.backtranslate(this.#target.value)
-				.then(text => {
-					this.#inputField.value = text
-					this.#referenceField.textContent = text;
-				})
-				.finally(() => {
-					this.#inputField.disabled = false;
-					this.#inputField.focus();
-				});
+			try {
+				const text = await this.delegate.backtranslate(this.#target.value)
+				this.#inputField.value = text
+				this.#referenceField.textContent = text;
+			} finally {
+				this.#inputField.disabled = false;
+			}
 		}
 		
 		// The field is just empty, make sure our widgets are empty as well.
@@ -355,8 +355,10 @@ export default class OutboundTranslation {
 			// If it doesn't just make sure the input field is empty
 			this.#inputField.value = '';
 			this.#referenceField.textContent = '';
-			this.#inputField.focus();
 		}
+
+		this.#inputField.focus();
+		this.#syncScrollPosition();
 	}
 
 	/**
@@ -384,6 +386,13 @@ export default class OutboundTranslation {
 
 		// TODO: replace this by something that prefers to scroll it closer to
 		// the panel or the bottom of the window, but not behind the panel.
+	}
+
+	/**
+	 * Sync the scroll position of the reference field to that of the input field.
+	 */
+	#syncScrollPosition() {
+		this.#referenceField.scrollTop = this.#inputField.scrollTop;
 	}
 
 	/**
@@ -443,6 +452,7 @@ export default class OutboundTranslation {
 
 			const reference = await this.delegate.backtranslate(translated);
 			this.#referenceField.textContent = reference;
+			this.#syncScrollPosition();
 
 			// Store for later
 			this.memory.set(this.#target, {
