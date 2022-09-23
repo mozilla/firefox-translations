@@ -4,6 +4,10 @@
 	height: var(--outbound-translation-height);
 }
 
+:root {
+	color-scheme: light dark;
+}
+
 button {
 	text-align: center;
 	border: 0;
@@ -42,7 +46,9 @@ button.primary:hover {
 	height: var(--outbound-translation-height);
 	box-sizing: border-box;
 
-	background: white;
+	background: canvas;
+	color: canvastext;
+
 	font-size: 14px;
 	margin: 0;
 	padding: 14px;
