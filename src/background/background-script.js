@@ -544,7 +544,7 @@ function connectContentScript(contentScript) {
                     })
                     .catch(e => {
                         // Catch error messages caused by abort()
-                        if (e && e.message && e.message === 'removed by filter' && e.request && e.request._abortSignal.aborted)
+                        if (e?.message === 'removed by filter' && e?.request?._abortSignal?.aborted)
                             return;
                         
                         tab.update(state => ({
@@ -554,8 +554,11 @@ function connectContentScript(contentScript) {
                     })
                     .finally(() => {
                         tab.update(state => ({
-                            pendingTranslationRequests: state.pendingTranslationRequests - 1,
-                            totalTranslationRequests: state.totalTranslationRequests + 1
+                            // TODO what if we just navigated away and all the
+                            // cancelled translations from the previous page come
+                            // in and decrement the pending count of the current
+                            // page?
+                            pendingTranslationRequests: state.pendingTranslationRequests - 1
                         }));
                     })
                 break;
