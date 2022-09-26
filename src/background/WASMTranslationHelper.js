@@ -15,7 +15,7 @@ import untar from '../vendor/js-untar/untar.js';
  * @property {Integer?} priority
  */
 
-const CACHE_NAME = "bergamot-translations";
+const CACHE_NAME = "translatelocally";
 
 const MAX_DOWNLOAD_TIME = 60000; // TODO move this
 
