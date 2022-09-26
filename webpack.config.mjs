@@ -84,7 +84,7 @@ export default {
           from: 'assets/fonts/*.woff2'
         },
         {
-          from: 'assets/icons/*.png'
+          from: 'assets/icons/*'
         },
         {
           from: 'src/benchmark/benchmark.html'

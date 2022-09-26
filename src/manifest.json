@@ -1,6 +1,6 @@
 {
 	"manifest_version": 2,
-	"name": "Bergamot Translations",
+	"name": "TranslateLocally for Firefox",
 	"version": "0.0.1",
 	"version_name": "development",
 	"browser_specific_settings":
@@ -44,8 +44,9 @@
 		"browser_style": true,
 		"default_icon":
 		{
-			"19": "/assets/icons/translation.16x16.png",
-			"38": "/assets/icons/translation.32x32.png"
+			"16": "/assets/icons/translateLocally_logo.16.png",
+			"32": "/assets/icons/translateLocally_logo.32.png",
+			"64": "/assets/icons/translateLocally_logo.64.png"
 		},
 		"default_title": "Translation available",
 		"default_popup": "popup.html"
@@ -57,14 +58,14 @@
 	},
 	"icons":
 	{
-		"16": "/assets/icons/translation.16x16.png",
-		"32": "/assets/icons/translation.32x32.png"
+		"48": "/assets/icons/translateLocally_logo.48.png",
+		"96": "/assets/icons/translateLocally_logo.96.png"
 	},
 	"web_accessible_resources": [
 		"assets/fonts/FlowBlock-Regular.woff2",
 		"assets/fonts/FlowCircular-Regular.woff2",
 		"assets/fonts/FlowRounded-Regular.woff2"
 	],
-	"description": "Experimental Bergamot Translations translates any webpage utilizing client based machine learning algorithms and models.",
-	"homepage_url": "https://github.com/jelmervdl/firefox-translations"
+	"description": "TranslateLocally for Firefox is a webextension that enables client side in-page translations for web browsers. It is a stand-alone extension, but can integrate with TranslateLocally for custom models and even better performance.",
+	"homepage_url": "https://github.com/jelmervdl/translatelocally-webext"
 }
