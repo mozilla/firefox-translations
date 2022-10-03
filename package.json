@@ -6,7 +6,7 @@
     "build:extension": "webpack --mode=production --node-env=production",
     "build:xpi": "web-ext build -s extension --overwrite-dest  --no-config-discovery -n translatelocally.xpi",
     "build": "npm run build:extension && npm run build:xpi",
-    "sign": "npm run build:xpi && web-ext sign -s extension --no-config-discovery --channel unlisted",
+    "sign": "npm run build:xpi && web-ext sign -s extension --no-config-discovery --channel listed",
     "watch": "webpack --mode=development --watch"
   },
   "devDependencies": {
