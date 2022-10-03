@@ -20,7 +20,7 @@
     "webpack-cli": "^4.10.0"
   },
   "dependencies": {
-    "@browsermt/bergamot-translator": "^0.4.5",
+    "@browsermt/bergamot-translator": "^0.4.9",
     "pako": "^2.0.4"
   }
 }

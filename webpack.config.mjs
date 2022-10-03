@@ -70,10 +70,10 @@ export default {
     globalObject: 'self',
   },
   target: [
-    "es6"
+    "es2020"
   ],
   optimization: {
-    minimize: false
+    minimize: false // true works, but let people see the source!
   },
   devtool: "source-map",
   plugins: [
@@ -112,6 +112,9 @@ export default {
           }
         }
       ]
+    }),
+    new webpack.DefinePlugin({
+      'typeof self': JSON.stringify('object')
     }),
     new WebExtPlugin({
       sourceDir: '../../extension',

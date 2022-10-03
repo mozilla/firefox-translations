@@ -19,16 +19,7 @@ const CACHE_NAME = "translatelocally";
 
 const MAX_DOWNLOAD_TIME = 60000; // TODO move this
 
-const WASM_TRANSLATION_WORKER_URL = compat.runtime.getURL('translator-worker.js');
-
 class BergamotBacking extends TranslatorBacking {
-    constructor(options) {
-        super({
-            ...options,
-            workerUrl: WASM_TRANSLATION_WORKER_URL
-        })
-    }
-
     #hasTranslationModel({from, to}) {
         const key = JSON.stringify({from, to});
         return this.models.has(key);
