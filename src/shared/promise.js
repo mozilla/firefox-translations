@@ -1,6 +1,6 @@
 /**
  * Promise class, but with a progress notification. Useful for things like
- * donwloads where there is information about progress.
+ * downloads where there is information about progress.
  */
 export class PromiseWithProgress extends Promise {
     #listeners;

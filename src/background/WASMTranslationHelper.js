@@ -93,6 +93,16 @@ class BergamotBacking extends TranslatorBacking {
         return Array.from(entries);
     }
 
+    /**
+     * Downloads model by id
+     * @param {Number} id model id
+     * @returns {Promise<{
+     *  model: ArrayBuffer,
+     *  vocabs: ArrayBuffer[],
+     *  shortlist: ArrayBuffer,
+     *  config: {[key: String]: String}
+     * }>}
+     */
     downloadModel(id) {
         return new PromiseWithProgress(async (accept, reject, update) => {
             try {
@@ -111,11 +121,19 @@ class BergamotBacking extends TranslatorBacking {
         });
     }
 
-     /**
+    /**
      * Downloads (or from cache) a translation model and returns a set of
      * ArrayBuffers. These can then be passed to a TranslationWorker thread
      * to instantiate a TranslationModel inside the WASM vm.
      * Returns Promise<Map<str,ArrayBuffer>>.
+     * @param {{from:String, to:String}} model
+     * @param {({size:Number, read:Number}) => Null} [update] download progress callback
+     * @returns {Promise<{
+     *  model: ArrayBuffer,
+     *  vocabs: ArrayBuffer[],
+     *  shortlist: ArrayBuffer,
+     *  config: {[key: String]: String}
+     * }>}
      */
     async loadTranslationModel({from, to}, update) {
         performance.mark(`loadTranslationModule.${JSON.stringify({from, to})}`);
@@ -158,6 +176,7 @@ class BergamotBacking extends TranslatorBacking {
      * always checked against checksum.
      * @param {String} url
      * @param {String} checksum sha256 checksum as hexadecimal string
+     * @param {({size:Number, read:Number}) => Null} [update] download progress callback
      * @returns {Promise<ArrayBuffer>}
      */
     async getItemFromCacheOrWeb(url, checksum, update) {
@@ -191,7 +210,8 @@ class BergamotBacking extends TranslatorBacking {
      * is passed in as well). Verifies the checksum.
      * @param {String} url
      * @param {String} checksum sha256 checksum as hexadecimal string
-     * @param {Cache?} cache optional cache to save response into
+     * @param {Cache} [cache] optional cache to save response into
+     * @param {({size:Number, read:Number}) => Null} [update] download progress callback
      * @returns {Promise<ArrayBuffer>}
      */
     async getItemFromWeb(url, checksum, cache, update) {
