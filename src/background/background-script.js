@@ -595,20 +595,31 @@ function connectPopup(popup) {
 
                 // For each download promise, add a progress listener that updates the tab state
                 // with how far all our downloads have progressed so far.
-                downloads.forEach((_, promise) => promise.addProgressListener(({read, size}) => {
-                    // Update download we got a notification about
-                    downloads.set(promise, {read, size});
-                    // Update tab state about all downloads combined (i.e. model, optionally pivot)
-                    tab.update(state => ({
-                        modelDownloadRead: Array.from(downloads.values()).reduce((sum, {read}) => sum + read, 0),
-                        modelDownloadSize: Array.from(downloads.values()).reduce((sum, {size}) => sum + size, 0)
-                    }));
-                }));
+                downloads.forEach((_, promise) => {
+                    promise.addProgressListener(({read, size}) => {
+                        // Update download we got a notification about
+                        downloads.set(promise, {read, size});
+                        // Update tab state about all downloads combined (i.e. model, optionally pivot)
+                        tab.update(state => ({
+                            modelDownloadRead: Array.from(downloads.values()).reduce((sum, {read}) => sum + read, 0),
+                            modelDownloadSize: Array.from(downloads.values()).reduce((sum, {size}) => sum + size, 0)
+                        }));
+                    });
+
+                    promise.then(() => {
+                        // Trigger update of state.models because the `local`
+                        // property this model has changed. We don't support
+                        // any nested key updates so let's just push the whole
+                        // damn thing.
+                        tab.update(state => ({
+                            models: state.models
+                        }));
+                    })
+                });
 
                 // Finally, when all downloads have finished, start translating the page.
                 try {
                     await Promise.all(downloads.keys());
-
                     tab.translate();
                 } catch (e) {
                     tab.update(state => ({
