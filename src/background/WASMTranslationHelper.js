@@ -106,13 +106,13 @@ class BergamotBacking extends TranslatorBacking {
     downloadModel(id) {
         return new PromiseWithProgress(async (accept, reject, update) => {
             try {
-                const model = (await this.registry).find(({model}) => model.id === id);
+                const entry = (await this.registry).find(({model}) => model.id === id);
                 
                 // Wait for the buffers to download & decompress
-                const buffers = await this.loadTranslationModel(model, update);
+                const buffers = await this.loadTranslationModel(entry, update);
 
                 // Mark model as local now (mutates this.registry!)
-                model.local = true;
+                entry.model.local = true;
 
                 accept(buffers);
             } catch (err) {
