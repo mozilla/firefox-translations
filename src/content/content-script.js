@@ -232,18 +232,19 @@ class BackgroundScriptWorkerProxy {
     }
 }
 
+// Fake worker that really just delegates all the actual work to
+// the background script. Lives in this scope as to be able to receive
+// `TranslateResponse` messages (see down below this script.)
+const outboundTranslationWorker = new BackgroundScriptWorkerProxy();
+
 const outboundTranslation = new OutboundTranslation(new class {
     constructor() {
-        // Fake worker that really just delegates all the actual work to
-        // the background script.
-        const workerProxy = new BackgroundScriptWorkerProxy();
-
         // TranslatorBacking that mimics just enough for
         // LatencyOptimisedTranslator to do its work.
         const backing = {
             async loadWorker() {
                 return {
-                    exports: workerProxy,
+                    exports: outboundTranslationWorker,
                     worker: {
                         terminate() { return; }
                     }
