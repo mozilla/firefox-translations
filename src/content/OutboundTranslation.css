@@ -25,6 +25,8 @@ button.primary:hover {
 }
 
 .focus-ring {
+	z-index: 2147483646; /* One less than .pane */
+
 	position: absolute;
 	box-shadow: #f00 0 0 0 4px;
 
