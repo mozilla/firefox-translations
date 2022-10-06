@@ -372,9 +372,6 @@ on('TranslateSelection', () => {
 });
 
 on('ShowOutboundTranslation', () => {
-    if (lastClickedElement.closest('[contenteditable]'))
-        throw new Error('Outbound translation not implemented for contenteditable');
-    
     outboundTranslation.target = lastClickedElement;
     outboundTranslation.start();
 });

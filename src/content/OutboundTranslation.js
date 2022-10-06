@@ -281,7 +281,7 @@ export default class OutboundTranslation {
 	 * Can this element be edited by this widget?
 	 */
 	#isSupportedElement(element) {
-		return element.matches('textarea, input[type=text], input[type=search]');
+		return element.matches('textarea, input[type=text], input[type=search], [contenteditable=""], [contenteditable="true"]');
 	}
 
 	/**
@@ -307,15 +307,35 @@ export default class OutboundTranslation {
 	}
 
 	/**
+	 * Reads the target's current value.
+	 * @return {String}
+	 */
+	#getTargetValue() {
+		if ('value' in this.#target)
+			return this.#target.value;
+		else if ('innerText' in this.#target)
+			return this.#target.innerText; // or textContent? Should text hidden by styling be returned?
+		else
+			throw new Error(`No accessor implemented for type ${this.#target.__proto__.constructor.name}`);
+	}
+
+	/**
 	 * Sets target's value, simulating as if it was done normally, triggering
 	 * all the right events.
 	 * @param {String} value
 	 */
 	#setTargetValue(value) {
-		const setter = Reflect.getOwnPropertyDescriptor(this.#target.__proto__, "value").set;
-    Reflect.apply(setter, this.#target, [value]);
-    
-    const event = new Event("input", {bubbles: true});
+		let setter = null;
+
+		if ('value' in this.#target)
+			// Reflect.apply(Reflect.getOwnPropertyDescriptor(this.#target.__proto__, 'value').get, this.#target, [value])
+			this.#target.value = value;
+		else if ('innerText' in this.#target)
+			this.#target.innerText = value; // I don't know a getOwnPropertyDescriptor variant of this
+		else
+			throw new Error(`No accessor implemented for type ${this.#target.__proto__.constructor.name}`);
+		
+		const event = new Event("input", {bubbles: true});
     this.#target.dispatchEvent(event);
 	}
 
