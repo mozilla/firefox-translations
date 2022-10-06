@@ -179,11 +179,15 @@ export default class OutboundTranslation {
 			className: 'focus-ring',
 		}));
 
+		// Invisible area that can be dragged up or down to resize the pane
+		const resizeBar = createElement('div', {className: 'resize-bar'});
+
 		// Panel that shows outbound translation widgets
 		this.#tree.appendChild(this.#pane = createElement('dialog', {
 			className: 'pane',
 			open: true
 		}, [
+			resizeBar,
 			createElement('div', {className: 'outbound-translation-widget'}, [
 				createElement('p', {className: 'input-field-label'}, [
 					'Translating what you type from ',
@@ -243,6 +247,29 @@ export default class OutboundTranslation {
 		// TODO: Detect if #target becomes disabled/readonly
 
 		this.#onFocusTargetListener = this.#onFocusTarget.bind(this);
+
+		// Add resize behaviour to the invisible resize bar
+		resizeBar.addEventListener('mousedown', e => {
+			e.preventDefault(); // Prevent selecting stuff
+
+			const startHeight = this.height;
+			const startY = e.screenY;
+
+			const onMouseMove = (e) => {
+				const height = startHeight - (e.screenY - startY);
+				this.height = Math.max(200, Math.min(0.9 * document.documentElement.clientHeight, height));
+				this.element.style.setProperty('--outbound-translation-height', `${this.height}px`);
+				// TODO: Remember height between pages?
+			}
+
+			const onMouseUp = () => {
+				window.removeEventListener('mousemove', onMouseMove);
+				window.removeEventListener('mouseup', onMouseUp);
+			}
+
+			window.addEventListener('mousemove', onMouseMove);
+			window.addEventListener('mouseup', onMouseUp);
+		});
 	}
 
 	get from() {

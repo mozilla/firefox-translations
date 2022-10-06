@@ -60,6 +60,15 @@ button.primary:hover {
 	box-shadow: rgba(0, 0, 0, 0.16) 0px 0 6px, rgba(0, 0, 0, 0.23) 0px 0 6px;
 }
 
+.resize-bar {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: -3px;
+	height: 5px;
+	cursor: ns-resize;
+}
+
 .outbound-translation-widget {
 	display: grid;
 	grid: "input-label reference-label" min-content
