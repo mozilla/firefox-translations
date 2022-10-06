@@ -103,12 +103,12 @@ compat.tabs.query({active: true, currentWindow: true}).then(tabs => {
 	});
 
 	addEventListeners(document.body, {
-		'click #translate-btn': e => {
+		'click .translate-btn': e => {
 			backgroundScript.postMessage({
 				command: 'TranslateStart'
 			});
 		},
-		'click #download-btn': e => {
+		'click .download-btn': e => {
 			// TODO this assumes tabState.from and tabState.to reflect the current UI,
 			// which they should iff the UpdateRequest has been processed and
 			// broadcasted by backgroundScript.
@@ -123,12 +123,12 @@ compat.tabs.query({active: true, currentWindow: true}).then(tabs => {
 				data: {models}
 			});
 		},
-		'click #abort-translate-btn': e => {
+		'click .abort-translate-btn': e => {
 			backgroundScript.postMessage({
 				command: 'TranslateAbort'
 			});
 		},
-		'click #export-recorded-pages-btn': e => {
+		'click .export-recorded-pages-btn': e => {
 			backgroundScript.postMessage({
 				command: 'ExportRecordedPages'
 			});
