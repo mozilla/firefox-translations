@@ -22,6 +22,23 @@ function createElement(name, attributes, children) {
 	return el
 }
 
+function moveCursorToEnd(target) {
+	if ('value' in target) {
+		const length = target.value.length;
+		target.setSelectionRange(length, length);
+	} else if ('innerText' in target) {
+		const range = document.createRange();
+		range.setEnd(target.lastChild,
+			target.lastChild.nodeType === Node.TEXT_NODE 
+			? target.lastChild.nodeValue.length
+			: 1);
+		range.collapse();
+		const selection = window.getSelection();
+		selection.removeAllRanges();
+		selection.addRange(range);
+	}
+}
+
 const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
 
 const name = (code) => {
@@ -274,7 +291,10 @@ export default class OutboundTranslation {
 	 */
 	hide() {
 		this.element.parentNode?.removeChild(this.element);
-		this.#target?.focus();
+		if (this.#target) {
+			this.#target.focus();
+			moveCursorToEnd(this.#target);
+		}
 	}
 
 	/**
