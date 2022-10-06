@@ -154,6 +154,7 @@ class Tab extends EventTarget {
         this.id = id;
         this.state = {
             state: State.PAGE_LOADING,
+            active: false,
             from: undefined,
             to: undefined,
             models: [],
@@ -279,6 +280,29 @@ function updateActionButton(event) {
     }
 }
 
+function updateMenuItems({data, target: {state}}) {
+    // Only let the active tab make decisions about the current menu items
+    if (!state.active)
+        return;
+
+    // Only if one of the relevant properties changed update menu items
+    const keys = ['state', 'models', 'from', 'to', 'active'];
+    if (!keys.some(key => key in data))
+        return;
+
+    // Enable translate if the page has translation models available
+    compat.contextMenus.update('translate-selection', {
+        visible: state.models?.length > 0
+    });
+
+    // Enable the outbound translation option only if translation and
+    // backtranslation models are available.
+    compat.contextMenus.update('show-outbound-translation', {
+        visible: state.models?.some(({from, to}) => from === state.from && to === state.to)
+              && state.models?.some(({from, to}) => from === state.to && to === state.from)
+    });
+}
+
 /**
  * A record can be used to record all translation messages send to the
  * translation backend. Useful for debugging & benchmarking.
@@ -371,7 +395,12 @@ function getTab(tabId) {
     if (!tabs.has(tabId)) {
         const tab = new Tab(tabId);
         tabs.set(tabId, tab);
+        
+        // Update action button 
         tab.addEventListener('update', updateActionButton);
+        
+        // Update context menu items for this tab
+        tab.addEventListener('update', updateMenuItems)
     }
 
     return tabs.get(tabId);
@@ -687,8 +716,8 @@ async function main() {
         // Todo: treat reload and link different? Reload -> disable translation?
     });
 
-    compat.tabs.onCreated.addListener(({id: tabId}) => {
-        getTab(tabId).reset();
+    compat.tabs.onCreated.addListener(({id: tabId, active}) => {
+        getTab(tabId).update(() => ({active}));
     });
 
     // Remove the tab state if a tab is removed
@@ -696,15 +725,25 @@ async function main() {
         tabs.delete(tabId);
     });
 
+    // Let each tab know whether its the active one. We use this state change
+    // event to keep the menu items in sync.
+    compat.tabs.onActivated.addListener(({tabId}) => {
+        for (let [id, tab] of tabs) {
+            // If the tab's active state doesn't match the activated tab, fix that.
+            if (tab.active != (tab.id === tabId))
+                tab.update(() => ({active: Boolean(tab.id === tabId)}));
+        }
+    });
+
     // Add "translate selection" menu item to selections
-    chrome.contextMenus.create({
+    compat.contextMenus.create({
         id: 'translate-selection',
         title: 'Translate Selection',
         contexts: ['selection']
     });
 
     // Add "type to translate" menu item to textareas
-    chrome.contextMenus.create({
+    compat.contextMenus.create({
         id: 'show-outbound-translation',
         title: 'Type to translate…',
         contexts: ['editable']

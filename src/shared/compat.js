@@ -68,4 +68,8 @@ export default new class {
 	get browserAction() {
 		return this.#runtime.browserAction;
 	}
+
+	get contextMenus() {
+		return this.#runtime.contextMenus;
+	}
 };
