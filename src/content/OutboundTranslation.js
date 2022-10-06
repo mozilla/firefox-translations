@@ -364,16 +364,19 @@ export default class OutboundTranslation {
 	 * input field with it.
 	 */
 	async #restore() {
+		// Text content of the element that's on the page (and in the foreign language)
+		const inPageValue = this.#getTargetValue();
+	
 		// If we've edited the field before, and it hasn't changed since then, pick
 		// up where we left off.
-		if (this.#target.value && this.memory.get(this.#target)?.translated === this.#target.value) {
+		if (inPageValue && this.memory.get(this.#target)?.translated === inPageValue) {
 			const {value, reference} = this.memory.get(this.#target);
 			this.#inputField.value = value;
 			this.#referenceField.textContent = reference;
 		}
 		
 		// If the field has a value, backtranslate it to populate the input widget.
-		else if (this.#target.value) {
+		else if (inPageValue) {
 			// During backtranslation disable the input field for a minute to avoid
 			// confusion.
 			Object.assign(this.#inputField, {
@@ -382,7 +385,7 @@ export default class OutboundTranslation {
 			});
 
 			try {
-				const text = await this.delegate.backtranslate(this.#target.value)
+				const text = await this.delegate.backtranslate(inPageValue)
 				this.#inputField.value = text
 				this.#referenceField.textContent = text;
 			} finally {
