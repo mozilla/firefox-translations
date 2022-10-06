@@ -232,14 +232,18 @@ class BackgroundScriptWorkerProxy {
     }
 }
 
-const outboundTranslationWorker = new BackgroundScriptWorkerProxy();
-
 const outboundTranslation = new OutboundTranslation(new class {
     constructor() {
-        this.translator = new LatencyOptimisedTranslator({}, {
+        // Fake worker that really just delegates all the actual work to
+        // the background script.
+        const workerProxy = new BackgroundScriptWorkerProxy();
+
+        // TranslatorBacking that mimics just enough for
+        // LatencyOptimisedTranslator to do its work.
+        const backing = {
             async loadWorker() {
                 return {
-                    exports: outboundTranslationWorker,
+                    exports: workerProxy,
                     worker: {
                         terminate() { return; }
                     }
@@ -248,12 +252,18 @@ const outboundTranslation = new OutboundTranslation(new class {
             async getModels({from, to}) {
                 return [{from,to}]
             }
-        });
+        };
+
+        // Separate translators for both directions so they have their own
+        // queue. Using LatencyOptimisedTranslator to have it cancel all
+        // translation requests that would otherwise clog up the queue. 
+        this.translator = new LatencyOptimisedTranslator({}, backing);
+        this.backtranslator = new LatencyOptimisedTranslator({}, backing);
     }
 
     async translate(text) {
         const response = await this.translator.translate({
-            from: state.to,
+            from: state.to, // Direction flipped from the page
             to: state.from,
             text,
             html: false
@@ -263,7 +273,7 @@ const outboundTranslation = new OutboundTranslation(new class {
     }
 
     async backtranslate(text) {
-        const response = await this.translator.translate({
+        const response = await this.backtranslator.translate({
             from: state.from,
             to: state.to,
             text,
