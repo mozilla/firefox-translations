@@ -51,10 +51,6 @@ export default new class {
 		return this.#runtime.runtime;
 	}
 
-	get webNavigation() {
-		return this.#runtime.webNavigation;
-	}
-
 	get tabs() {
 		if (this.#isChromium)
 			return promisify(chrome.tabs, ['query']);

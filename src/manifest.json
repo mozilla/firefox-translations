@@ -16,7 +16,6 @@
 		"<all_urls>",
 		"contextMenus",
 		"tabs",
-		"webNavigation",
 		"storage",
 		"nativeMessaging"
 	],

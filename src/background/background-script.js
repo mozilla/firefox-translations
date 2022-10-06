@@ -137,6 +137,14 @@ const State = {
     TRANSLATION_ERROR: 'translation-error'
 };
 
+// States in which the user has the translation enabled. Used to keep
+// translating pages in the same domain.
+const activeTranslationStates = [
+    State.DOWNLOADING_MODELS, 
+    State.TRANSLATION_IN_PROGRESS,
+    State.TRANSLATION_FINISHED
+];
+
 class Tab extends EventTarget {
     /**
      * @param {Number} id tab id
@@ -199,7 +207,7 @@ class Tab extends EventTarget {
      */
      reset(url) {
         this.update(state => {
-            if (isSameDomain(url, state.url) && state.state == State.TRANSLATION_IN_PROGRESS) {
+            if (isSameDomain(url, state.url) && activeTranslationStates.includes(state.state)) {
                 return {
                     url,
                     pendingTranslationRequests: 0,
@@ -673,13 +681,10 @@ async function main() {
     });
 
     // Initialize or update the state of a tab when navigating
-    compat.webNavigation.onCommitted.addListener(({tabId, frameId, url}) => {
-        // Right now we're only interested in top-level navigation changes
-        if (frameId !== 0)
-            return;
-
+    compat.tabs.onUpdated.addListener((tabId, diff) => {
+        if (diff.url)
+            getTab(tabId).reset(diff.url);
         // Todo: treat reload and link different? Reload -> disable translation?
-        getTab(tabId).reset(url);
     });
 
     compat.tabs.onCreated.addListener(({id: tabId}) => {
