@@ -205,7 +205,7 @@ export default class OutboundTranslation {
 				createElement('p', {className: 'reference-field-label'}, [
 					'Translating the translated text from ',
 					createElement('em', {'data-bind:text-content': 'from'}),
-					' back to ',
+					' back into ',
 					createElement('em', {'data-bind:text-content': 'to'}),
 					' to validate the translation:'
 				]),
