@@ -108,6 +108,11 @@ button.primary:hover {
 	border-radius: 3px;
 }
 
+.loading .reference-field:empty::after {
+	content: 'Translating…';
+	color: #ccc;
+}
+
 
 .close-button {
 	grid-area: controls;

@@ -83,6 +83,12 @@ export default class OutboundTranslation {
 	#tree;
 
 	/**
+	 * DOM element of the pane at the bottom of the screen.
+	 * @type {HTMLElement}
+	 */
+	#pane;
+
+	/**
 	 * Text area that the user types untranslated text into.
 	 * @type {HTMLTextAreaElement}
 	 */
@@ -103,6 +109,13 @@ export default class OutboundTranslation {
 	 * @type {(state: Object) => Null}
 	 */
 	#render;
+
+	/**
+	 * Number of loading translations. Since one can cancel the other async we use
+	 * a number.
+	 * @type {Number}
+	 */
+	#loading = 0;
 
 	/**
 	 * Bound `#onFocusTarget` method.
@@ -167,7 +180,7 @@ export default class OutboundTranslation {
 		}));
 
 		// Panel that shows outbound translation widgets
-		this.#tree.appendChild(createElement('dialog', {
+		this.#tree.appendChild(this.#pane = createElement('dialog', {
 			className: 'pane',
 			open: true
 		}, [
@@ -381,7 +394,8 @@ export default class OutboundTranslation {
 			// confusion.
 			Object.assign(this.#inputField, {
 				value: '',
-				disabled: true
+				disabled: true,
+				placeholder: 'Translating…'
 			});
 
 			try {
@@ -389,7 +403,10 @@ export default class OutboundTranslation {
 				this.#inputField.value = text
 				this.#referenceField.textContent = text;
 			} finally {
-				this.#inputField.disabled = false;
+				Object.assign(this.#inputField, {
+					disabled: false,
+					placeholder: 'Type here to begin translating…'
+				});
 			}
 		}
 		
@@ -485,12 +502,20 @@ export default class OutboundTranslation {
 			// Make sure target is visible (mimics behaviour you normally get when
 			// typing into a text field that's currently not in view.)
 			this.#scrollIfNecessary()
-			
-			// TODO: What if we changed #target between delegate.translate() call and
-			// the time it returns?
-			const value = this.#inputField.value;
 
-			const translated = await this.delegate.translate(value)
+			this.#pane.classList.toggle('loading', ++this.#loading);
+			
+			// local copies in case it changes during translate()
+			const value = this.#inputField.value;
+			const target = this.#target;
+
+			const translated = await this.delegate.translate(value);
+
+			// Quick check we're still editing the same field after the translation
+			// finally came back.
+			if (this.#target !== target)
+				return;
+
 			this.#setTargetValue(translated);
 
 			const reference = await this.delegate.backtranslate(translated);
@@ -508,6 +533,8 @@ export default class OutboundTranslation {
 				return;
 			
 			throw err;
+		} finally {
+			this.#pane.classList.toggle('loading', --this.#loading);
 		}
 	}
 }
