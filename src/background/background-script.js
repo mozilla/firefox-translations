@@ -58,7 +58,7 @@ const SimilarLanguages = [
  * @param {TranslationProvider} provider
  * @return {Promise<{from:String|Undefined, to:String|Undefined, models: TranslationModel[]}>}
  */
-async function detectLanguage({sample, suggested}, provider) {
+async function detectLanguage({sample, suggested}, provider, options) {
     if (!sample)
         throw new Error('Empty sample');
 
@@ -85,6 +85,7 @@ async function detectLanguage({sample, suggested}, provider) {
 
     // Take suggestions into account
     Object.entries(suggested || {}).forEach(([lang, score]) => {
+        lang = lang.substr(0, 2); // TODO: not strip everything down to two letters
         confidence[lang] = Math.max(score, confidence[lang] || 0.0);
     });
 
@@ -100,24 +101,45 @@ async function detectLanguage({sample, suggested}, provider) {
         })
     });
 
+    // Fetch the languages that the browser says the user accepts (i.e Accept header)
+    /** @type {String[]} **/
+    let accepted = await compat.i18n.getAcceptLanguages();
+
+    // TODO: right now all our models are just two-letter codes instead of BCP-47 :(
+    accepted = accepted.map(language => language.substr(0, 2))
+
+    // If the user has a preference, put that up front
+    if (options?.preferred)
+        accepted.unshift(options.preferred);
+
+    // Remove duplicates
+    accepted = accepted.filter((val, index, values) => values.indexOf(val, index + 1) === -1)
+
     // {[lang]: 0.0 .. 1.0} map of likeliness the user wants to translate to this language.
     /** @type {{[lang:String]: Number }} */
-    const preferred = (await compat.i18n.getAcceptLanguages()).reduce((preferred, language, i, languages) => {
-        // Todo: right now all our models are just two-letter codes instead of BCP-47 :(
-        const code = language.substr(0, 2);
-        return code in preferred ? preferred : {...preferred, [code]: 1.0 - (i / languages.length)};
+    const preferred = accepted.reduce((preferred, language, i, languages) => {
+        return language in preferred
+            ? preferred
+            : {...preferred, [language]: 1.0 - (i / languages.length)};
     }, {});
-    
+
     // Function to score a translation model. Higher score is better
     const score = ({from, to, pivot, models}) => {
-        return (confidence[from] || 0.0)                                                  // from language is good
-             + (preferred[to] || 0.0)                                                     // to language is good
-             + (pivot ? 0.0 : 1.0)                                                        // preferably don't pivot
-             + (1.0 / models.reduce((acc, model) => acc + model.local ? 0.0 : 1.0, 1.0))  // prefer local models
+        return 1.0 * (confidence[from] || 0.0)                                                  // from language is good
+             + 0.5 * (preferred[to] || 0.0)                                                     // to language is good
+             + 0.2 * (pivot ? 0.0 : 1.0)                                                        // preferably don't pivot
+             + 0.1 * (1.0 / models.reduce((acc, model) => acc + model.local ? 0.0 : 1.0, 1.0))  // prefer local models
     };
 
     // Sort our possible models, best one first
     pairs.sort((a, b) => score(b) - score(a));
+    
+    // console.log({
+    //     accepted,
+    //     preferred,
+    //     confidence,
+    //     pairs: pairs.map(pair => ({...pair, score: score(pair)}))
+    // });
 
     // (Using pairs instead of confidence and preferred because we prefer a pair
     // we can actually translate to above nothing every time right now.)
@@ -732,11 +754,12 @@ async function main() {
         }
     })
 
+    // Makes debugging easier
     Object.assign(self, {
         tabs,
-        state,
         providers,
         provider,
+        preferences,
         test
     })
 }
