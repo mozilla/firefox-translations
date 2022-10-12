@@ -6,7 +6,7 @@ TranslateLocally for the Browser is a fork of [Firefox Translations](https://git
 ![Screenshot of TranslateLocally for the Browser](./.github/screenshot.png)
 
 # Installation in Firefox
-- Download the translatelocally.xpi file from [the latest release](https://github.com/jelmervdl/translatelocally-web-ext/releases/latest).
+- Download the translatelocally.xpi file from [the latest release](https://addons.mozilla.org/en-GB/firefox/addon/translatelocally-for-firefox/).
 - If you do this in Firefox, it will prompt you to install it
 - Otherwise, open Firefox and drag & drop the downloaded file into it. It will then prompt you to install it.
 
