@@ -3,12 +3,13 @@ import {
 	renderBoundElements,
 	addBoundElementListeners
 } from '../shared/common.js';
+import preferences from '../shared/preferences.js';
 
-const globalState = {
+const globalState = preferences.view({
 	provider: 'wasm',
 	developer: false,
 	progressIndicator: ''
-};
+});
 
 const localState = {
 	translateLocallyAvailable: false,
@@ -19,20 +20,12 @@ const localState = {
 
 const render = () => renderBoundElements(document.body, {...globalState, ...localState});
 
-compat.storage.local.get().then(state => {
-	Object.assign(globalState, state);
-	render();
-});
+// Re-render page if value changes from the outside
+globalState.addListener(render);
 
-compat.storage.onChanged.addListener(async changes => {
-	Object.entries(changes).forEach(([key, {newValue}]) => {
-		globalState[key] = newValue;
-	});
-	render();
-});
-
+// Store value if we changed it on the options page
 addBoundElementListeners(document.body, (key, value) => {
-	compat.storage.local.set({[key]: value});
+	preferences.set(key, value);
 });
 
 function canTranslateLocally() {

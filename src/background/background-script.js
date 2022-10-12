@@ -3,6 +3,7 @@ import { product } from '../shared/func.js';
 import TLTranslationHelper from './TLTranslationHelper.js';
 import WASMTranslationHelper from './WASMTranslationHelper.js';
 import Recorder from './Recorder.js';
+import preferences from '../shared/preferences.js';
 
 
 function isSameDomain(url1, url2) {
@@ -46,6 +47,7 @@ const SimilarLanguages = [
 /**
  * @typedef {Object} TranslationProvider
  * @property {Promise<TranslationModel[]>} registry
+ * @property {(request:Object) => Promise<Object>} translate
  */ 
 
 /**
@@ -310,17 +312,6 @@ const providers = {
     'wasm': WASMTranslationHelper
 };
 
-// Global state (and defaults)
-const state = {
-    provider: 'wasm',
-    options: {
-        workers: 1, // be kind to the user's pc
-        cacheSize: 20000, // remember website boilerplate
-        useNativeIntGemm: true // faster is better (unless it is buggy: https://github.com/browsermt/marian-dev/issues/81)
-    },
-    developer: false // should we show the option to record page translation requests?
-};
-
 // State per tab
 const tabs = new Map();
 
@@ -341,45 +332,79 @@ function getTab(tabId) {
 
 // Instantiation of a TranslationHelper. Access it through .get().
 let provider = new class {
+    /**
+     * @type {Promise<TranslationHelper>}
+     */
     #provider;
 
+    constructor() {
+        // Reset provider instance if the selected provider is changed by the user.
+        preferences.listen('provider', this.reset.bind(this));
+    }
+
+    /**
+     * Get (and if necessary instantiates) a translation helper.
+     * @returns {Promise<TranslationHelper>}
+     */
     get() {
         if (this.#provider)
             return this.#provider;
 
-        if (!(state.provider in providers)) {
-            console.info(`Provider ${state.provider} not in list of supported translation providers. Falling back to 'wasm'`);
-            state.provider = 'wasm';
-        }
-        
-        this.#provider = new providers[state.provider](state.options);
+        return this.#provider = new Promise(async (accept) => {
+            let preferred = await preferences.get('provider', 'wasm')
 
-        this.#provider.onerror = err => {
-            console.error('Translation provider error:', err);
-
-            tabs.forEach(tab => tab.update(() => ({
-                state: State.PAGE_ERROR,
-                error: `Translation provider error: ${err.message}`,
-            })));
-
-            // Try falling back to WASM is the current provider doesn't work
-            // out. Might lose some translations the process but
-            // InPageTranslation should be able to deal with that.
-            if (state.provider !== 'wasm') {
-                console.info(`Provider ${state.provider} encountered irrecoverable errors. Falling back to 'wasm'`);
-                state.provider = 'wasm';
-                this.reset();
+            if (!(preferred in providers)) {
+                console.info(`Provider ${preferred} not in list of supported translation providers. Falling back to 'wasm'`);
+                preferred = 'wasm';
+                preferences.set('provider', preferred);
             }
-        };
+            
+            let options = await preferences.get('options', {
+                workers: 1, // be kind to the user's pc
+                cacheSize: 20000, // remember website boilerplate
+                useNativeIntGemm: true // faster is better (unless it is buggy: https://github.com/browsermt/marian-dev/issues/81)
+            });
 
-        return this.#provider;
+            const provider = new providers[preferred](options);
+
+            provider.onerror = err => {
+                console.error('Translation provider error:', err);
+
+                tabs.forEach(tab => tab.update(() => ({
+                    state: State.PAGE_ERROR,
+                    error: `Translation provider error: ${err.message}`,
+                })));
+
+                // Try falling back to WASM is the current provider doesn't work
+                // out. Might lose some translations the process but
+                // InPageTranslation should be able to deal with that.
+                if (preferred !== 'wasm') {
+                    console.info(`Provider ${preferred} encountered irrecoverable errors. Falling back to 'wasm'`);
+                    preferences.delete('provider', preferred);
+                    this.reset();
+                }
+            };
+
+            accept(provider);
+        });
     }
 
+    /**
+     * Useful to get access to the provider but only if it was instantiated.
+     * @returns {Promise<TranslationHelper>|Null}
+     */
+    has() {
+        return this.#provider
+    }
+
+    /**
+     * Releases the current translation provider.
+     */
     reset() {
+        // TODO: Why are we doing this again?
         tabs.forEach(tab => tab.reset(tab.state.url));
 
-        if (this.#provider)
-            this.#provider.delete();
+        this.has()?.then(provider => provider.delete());
 
         this.#provider = null;
     }
@@ -436,7 +461,10 @@ function connectContentScript(contentScript) {
         
         // Also prune any pending translation requests that have this same
         // signal from the queue. No need to put any work into it.
-        provider.get().remove((request) => request._abortSignal.aborted);
+        provider.has()?.then(provider => {
+            if (provider)
+                provider.remove((request) => request._abortSignal.aborted);
+        })
 
         // Create a new signal in case we want to start translating again.
         _abortSignal = {aborted: false};
@@ -458,32 +486,36 @@ function connectContentScript(contentScript) {
     // Respond to certain messages from the content script. Mainly individual
     // translation requests, and detect language requests which then change the
     // state of the tab to reflect whether translations are available or not.
-    contentScript.onMessage.addListener(message => {
+    contentScript.onMessage.addListener(async (message) => {
         switch (message.command) {
             // Send by the content-scripts inside this tab
             case "DetectLanguage":
-                detectLanguage(message.data, provider.get()).then(summary => {
-                    // TODO: When we support multiple frames inside a tab, we
-                    // should integrate the results from each frame somehow.
-                    // For now we ignore it, because 90% of the time it will be
-                    // an ad that's in English and mess up our estimate.
-                    if (contentScript.sender.frameId !== 0)
-                        return; 
+                // TODO: When we support multiple frames inside a tab, we
+                // should integrate the results from each frame somehow.
+                // For now we ignore it, because 90% of the time it will be
+                // an ad that's in English and mess up our estimate.
+                if (contentScript.sender.frameId !== 0)
+                    return;
 
+                try {
+                    const preferred = await preferences.get('preferredLanguageForPage')
+
+                    const summary = await detectLanguage(message.data, await provider.get(), {preferred})
+                    
                     tab.update(state => ({
-                        from: state.from || summary.from,
+                        from: state.from || summary.from, // default to keeping chosen from/to languages
                         to: state.to || summary.to,
                         models: summary.models,
-                        state: summary.models.length > 0 // TODO this is always true
+                        state: summary.models.length > 0 // TODO this is always true (?)
                             ? State.TRANSLATION_AVAILABLE
                             : State.TRANSLATION_NOT_AVAILABLE
                     }));
-                }).catch(error => {
+                } catch (error) {
                     tab.update(state => ({
                         state: State.PAGE_ERROR,
                         error
                     }));
-                });
+                }
                 break;
 
             // Send by the content-scripts inside this tab
@@ -496,41 +528,54 @@ function connectContentScript(contentScript) {
                 // If we're recording requests from this tab, add the translation
                 // request. Also disabled when developer setting is false since
                 // then there are no controls to turn it on/off.
-                if (state.developer && tab.state.record) {
-                    recorder.record(message.data);
+                preferences.get('developer').then(developer => {
+                    if (developer && tab.state.record) {
+                        recorder.record(message.data);
+                        tab.update(state => ({
+                            recordedPagesCount: recorder.size
+                        }));
+                    }
+                });
+
+                try {
+                    const translator = await provider.get();
+                    const response = await translator.translate({...message.data, _abortSignal});
+                    if (!response.request._abortSignal.aborted) {
+                        contentScript.postMessage({
+                            command: "TranslateResponse",
+                            data: response
+                        });
+                    }
+                } catch(e) {
+                    // Catch error messages caused by abort()
+                    if (e?.message === 'removed by filter' && e?.request?._abortSignal?.aborted)
+                        return;
+
+                    // Tell the requester that their request failed.
+                    contentScript.postMessage({
+                        command: "TranslateResponse",
+                        data: {
+                            request: message.data,
+                            error: e.message
+                        }
+                    });
+                    
+                    // TODO: Do we want the popup to shout on every error?
+                    // Because this can also be triggered by failing Outbound
+                    // Translation!
                     tab.update(state => ({
-                        recordedPagesCount: recorder.size
+                        state: State.TRANSLATION_ERROR,
+                        error: e.message
+                    }));
+                } finally {
+                    tab.update(state => ({
+                        // TODO what if we just navigated away and all the
+                        // cancelled translations from the previous page come
+                        // in and decrement the pending count of the current
+                        // page?
+                        pendingTranslationRequests: state.pendingTranslationRequests - 1
                     }));
                 }
-
-                provider.get().translate({...message.data, _abortSignal})
-                    .then(response => {
-                        if (!response.request._abortSignal.aborted) {
-                            contentScript.postMessage({
-                                command: "TranslateResponse",
-                                data: response
-                            });
-                        }
-                    })
-                    .catch(e => {
-                        // Catch error messages caused by abort()
-                        if (e?.message === 'removed by filter' && e?.request?._abortSignal?.aborted)
-                            return;
-                        
-                        tab.update(state => ({
-                            state: State.TRANSLATION_ERROR,
-                            error: e.message
-                        }));
-                    })
-                    .finally(() => {
-                        tab.update(state => ({
-                            // TODO what if we just navigated away and all the
-                            // cancelled translations from the previous page come
-                            // in and decrement the pending count of the current
-                            // page?
-                            pendingTranslationRequests: state.pendingTranslationRequests - 1
-                        }));
-                    })
                 break;
 
             // Send by this script's Tab.abort() but handled per content-script
@@ -560,8 +605,10 @@ function connectPopup(popup) {
                     state: State.DOWNLOADING_MODELS
                 }));
 
+                const translator = await provider.get();
+
                 // Start the downloads and put them in a {[download:promise]: {read:int,size:int}}
-                const downloads = new Map(message.data.models.map(model => [provider.get().downloadModel(model), {read:0.0, size:0.0}]));
+                const downloads = new Map(message.data.models.map(model => [translator.downloadModel(model), {read:0.0, size:0.0}]));
 
                 // For each download promise, add a progress listener that updates the tab state
                 // with how far all our downloads have progressed so far.
@@ -622,18 +669,6 @@ function connectPopup(popup) {
 }
 
 async function main() {
-    // Init global state (which currently is just the name of the backend to use)
-    Object.assign(state, await compat.storage.local.get(Array.from(Object.keys(state))));
-
-    compat.storage.local.onChanged.addListener(changes => {
-        Object.entries(changes).forEach(([key, {newValue}]) => {
-            state[key] = newValue;
-        });
-
-        if ('provider' in changes)
-            provider.reset();
-    });
-
     // Receive incoming connection requests from content-script and popup
     compat.runtime.onConnect.addListener((port) => {
         if (port.name == 'content-script')

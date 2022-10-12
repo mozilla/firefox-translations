@@ -4,26 +4,17 @@ import {
 	addEventListeners,
 	addBoundElementListeners,
 } from '../shared/common.js';
+import preferences from '../shared/preferences.js';
 
 const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
 
 // Tab state
 const tabState = {};
 
-// Plugin state, like configuration mostly
-const globalState = {};
-
-// Init global state
-compat.storage.local.get(['developer']).then(state => {
-	Object.assign(globalState, state);
-});
-
-compat.storage.onChanged.addListener(changes => {
-    Object.entries(changes).forEach(([key, {newValue}]) => {
-        globalState[key] = newValue;
-    });
-    render();
-});
+// Plugin state (a synchronised view of what's currently in storage)
+const globalState = preferences.view({
+	'developer': false
+})
 
 function render() {
 	// If the model (or one of the models in case of pivoting) needs 
@@ -48,8 +39,8 @@ function render() {
 		...tabState,
 		'lang-from': name(tabState.from),
 		'lang-to': name(tabState.to),
-		'lang-from-options': new Map(tabState.models.map(({from}) => [from, name(from)])),
-		'lang-to-options': new Map(tabState.models.filter(model => tabState.from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
+		'lang-from-options': new Map(tabState.models?.map(({from}) => [from, name(from)])),
+		'lang-to-options': new Map(tabState.models?.filter(model => tabState.from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
 		'needs-download': needsDownload,
 		'completedTranslationRequests': tabState.totalTranslationRequests - tabState.pendingTranslationRequests || undefined,
 		'canExportPages': tabState.recordedPagesCount > 0,
@@ -62,6 +53,10 @@ function render() {
 
 	renderBoundElements(document.body, renderState);
 }
+
+// re-render if the 'developer' preference changes (but also when the real
+// values are fetched from storage!)
+globalState.addListener(render);
 
 function download(url, name) {
 	const a = document.createElement('a');
@@ -100,6 +95,11 @@ compat.tabs.query({active: true, currentWindow: true}).then(tabs => {
 			command: 'UpdateRequest',
 			data: {[key]: value}
 		});
+
+		// If the user changes the 'translate to' field, interpret this as a
+		// strong preference to always translate to that language.
+		if (key === 'to')
+			preferences.set('preferredLanguageForPage', value);
 	});
 
 	addEventListeners(document.body, {
