@@ -35,10 +35,15 @@ export const StateHelper = {
 
 export function renderSelect(select, values) {
 	// Todo: we can be smarter about this!
+	const current = select.value;
+
 	while (select.length)
 		select.remove(0);
+	
 	for (let [value, label] of values)
 		select.add(new Option(label, value), null);
+
+	select.value = current;
 }
 
 export function queryXPathAll(root, query, callback) {
@@ -72,8 +77,12 @@ export class BoundElementRenderer {
 	render(state) {
 		const stateProxy = new Proxy(state, StateHelper);
 
+		const compare = ({attribute:a}, {attribute:b}) => a < b ? -1 : a > b ? 1 : 0;
+
 		this.elements.forEach(({el, bindings}) => {
-			bindings.forEach(({attribute, key}) => {
+			// Sorting bindings so we set `options` before `value`, because the other
+			// way around won't work.
+			bindings.sort(compare).forEach(({attribute, key}) => {
 				try {
 					switch (attribute) {
 						case 'options':

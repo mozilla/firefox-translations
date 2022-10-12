@@ -55,8 +55,8 @@ const name = (code) => {
 export default class OutboundTranslation {
 	/**
 	 * @typedef {{
-	 * 	translate: (text: String) => Promise<String>,
-	 *  backtranslate: (text: String) => Promise<String>
+	 * 	translate: ({from: String, to: String, text: String}) => Promise<String>,
+	 *  backtranslate: ({from: String, to: String, text: String}) => Promise<String>
 	 * }} OutboundTranslationDelegate
 	 */
 
@@ -67,14 +67,23 @@ export default class OutboundTranslation {
 	#target;
 
 	/**
+	 * Language of the page. Confusing enough this is the language we translate
+	 * the typed text into!
 	 * @type {String}
 	 */
-	#from;
+	#pageLanguage;
 
 	/**
+	 * Language the page is translated to. This is the language the user is typing
+	 * in, and thus the `from` language when backtranslating.
 	 * @type {String}
 	 */
-	#to;
+	#userLanguage;
+
+	/**
+	 * @type {String[]}
+	 */
+	#userLanguageOptions;
 
 	/**
 	 * DOM root of outbound translation pane.
@@ -99,6 +108,12 @@ export default class OutboundTranslation {
 	 * @type {HTMLElement}
 	 */
 	#referenceField;
+
+	/**
+	 * Dropdown to select language of user input
+	 * @type {HTMLSelectElement}
+	 */
+	#userLanguageDropdown;
 
 	/**
 	 * @type {HTMLElement}
@@ -134,8 +149,6 @@ export default class OutboundTranslation {
 	 * @type {(entries: ResizeObserverEntries[], observer:ResizeObserver) => Null}
 	 */
 	#onResizeListener;
-
-
 
 	/**
 	 * Translation delegate
@@ -191,9 +204,13 @@ export default class OutboundTranslation {
 			createElement('div', {className: 'outbound-translation-widget'}, [
 				createElement('p', {className: 'input-field-label'}, [
 					'Translating what you type from ',
-					createElement('em', {'data-bind:text-content': 'to'}),
+					// createElement('em', {'data-bind:text-content': 'to'}),
+					this.#userLanguageDropdown = createElement('select', {
+						'data-bind:value': 'userLanguage',
+						'data-bind:options': 'userLanguageOptions'
+					}),
 					' to ',
-					createElement('em', {'data-bind:text-content': 'from'}),
+					createElement('em', {'data-bind:text-content': 'pageLanguageName'}),
 					':'
 				]),
 				this.#inputField = createElement('textarea', {
@@ -204,9 +221,9 @@ export default class OutboundTranslation {
 				}),
 				createElement('p', {className: 'reference-field-label'}, [
 					'Translating the translated text from ',
-					createElement('em', {'data-bind:text-content': 'from'}),
+					createElement('em', {'data-bind:text-content': 'userLanguageName'}),
 					' back into ',
-					createElement('em', {'data-bind:text-content': 'to'}),
+					createElement('em', {'data-bind:text-content': 'pageLanguageName'}),
 					' to validate the translation:'
 				]),
 				this.#referenceField = createElement('div', {
@@ -225,10 +242,15 @@ export default class OutboundTranslation {
 
 		// Re-render when `from` or `to` change
 		this.#render = debounce(() => {
-			renderer.render({
-				from: name(this.from),
-				to: name(this.to)
-			})
+			const renderState = {
+				userLanguage: this.#userLanguage,
+				userLanguageOptions: this.#userLanguageOptions.map(lang => [lang, name(lang)]),
+				userLanguageName: name(this.#userLanguage),
+				pageLanguageName: name(this.#pageLanguage),
+			};
+
+			console.trace('render called with ', renderState);
+			renderer.render(renderState)
 		});
 
 		// Prevent focusin events from leaking out of the widget
@@ -247,6 +269,11 @@ export default class OutboundTranslation {
 		// TODO: Detect if #target becomes disabled/readonly
 
 		this.#onFocusTargetListener = this.#onFocusTarget.bind(this);
+
+		this.#userLanguageDropdown.addEventListener('input', e => {
+			this.setUserLanguage(e.target.value);
+			console.log("TODO: Store userLanguage in preferredLanguageForOutboundTranslation to", e.target.value);
+		})
 
 		// Add resize behaviour to the invisible resize bar
 		resizeBar.addEventListener('mousedown', e => {
@@ -272,21 +299,28 @@ export default class OutboundTranslation {
 		});
 	}
 
-	get from() {
-		return this.#from;
-	}
-
-	set from(value) {
-		this.#from = value;
+	/**
+	 * Sets the target language for backtranslation
+	 * @param {String} language
+	 */
+	setPageLanguage(language) {
+		this.#pageLanguage = language;
 		this.#render();
 	}
 
-	get to() {
-		return this.#to;
+	/**
+	 * @param {String} language
+	 */
+	setUserLanguage(language) {
+		this.#userLanguage = language;
+		this.#render();
 	}
 
-	set to(value) {
-		this.#to = value;
+	/**
+	 * @param {String[]} languages the user can type in
+	 */
+	setUserLanguageOptions(languages) {
+		this.#userLanguageOptions = Array.from(languages);
 		this.#render();
 	}
 
@@ -422,11 +456,15 @@ export default class OutboundTranslation {
 			Object.assign(this.#inputField, {
 				value: '',
 				disabled: true,
-				placeholder: 'Translating…'
+				placeholder: 'Translating original input…'
 			});
 
 			try {
-				const text = await this.delegate.backtranslate(inPageValue)
+				const text = await this.delegate.backtranslate({
+					from: this.#pageLanguage,
+					to: this.#userLanguage,
+					text: inPageValue
+				});
 				this.#inputField.value = text
 				this.#referenceField.textContent = text;
 			} finally {
@@ -525,6 +563,11 @@ export default class OutboundTranslation {
 		if (!this.#target)
 			throw new Error('Called #onInput without having a #target');
 
+		if (!this.#pageLanguage || !this.#userLanguage || !this.#userLanguageOptions.includes(this.#userLanguage)) {
+			console.error('#onInput called but `pageLanguage` or `userLanguage` is invalid');
+			return;
+		}
+
 		try {
 			// Make sure target is visible (mimics behaviour you normally get when
 			// typing into a text field that's currently not in view.)
@@ -536,7 +579,11 @@ export default class OutboundTranslation {
 			const value = this.#inputField.value;
 			const target = this.#target;
 
-			const translated = await this.delegate.translate(value);
+			const translated = await this.delegate.backtranslate({
+				from: this.#userLanguage,
+				to: this.#pageLanguage,
+				text: value
+			});
 
 			// Quick check we're still editing the same field after the translation
 			// finally came back.
@@ -545,7 +592,12 @@ export default class OutboundTranslation {
 
 			this.#setTargetValue(translated);
 
-			const reference = await this.delegate.backtranslate(translated);
+			const reference = await this.delegate.translate({
+				from: this.#pageLanguage,
+				to: this.#userLanguage,
+				text: translated
+			});
+
 			this.#referenceField.textContent = reference;
 			this.#syncScrollPosition();
 
