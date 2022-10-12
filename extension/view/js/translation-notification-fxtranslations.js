@@ -166,7 +166,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this._getAnonElt("outboundtranslations-check").style.display = "none";
     this._getAnonElt("qualityestimations-check").style.display = "none";
     this._getAnonElt("translate").style.display = "none";
-    this._getAnonElt("translateAsBrowse").style.display = "inline";
+    this._getAnonElt("translateAsBrowse").style.display = "";
     this.updateTranslationProgress("");
   }
 
