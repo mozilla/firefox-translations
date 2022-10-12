@@ -1003,7 +1003,7 @@ export default class InPageTranslation {
     /**
      * Batches translation responses for a single big updateElements() call.
      */
-    enqueueTranslationResponse(translated, {id}) {
+    enqueueTranslationResponse({request: {user: {id}}, target, error}) {
         // Look up node by message id. This can fail 
         const node = this.pendingTranslations.get(id);
         if (node === undefined) {
@@ -1016,9 +1016,14 @@ export default class InPageTranslation {
 
         // Node still exists! Remove node -> (pending) message mapping
         this.submittedNodes.delete(node);
+
+        if (error) {
+            console.debug('[in-page-translation] got error response to translation request', error);
+            return;
+        }
         
         // Queue node to be populated with translation next update.
-        this.translatedNodes.set(node, {id, translated});
+        this.translatedNodes.set(node, {id, translated: target.text});
 
         // we schedule the UI update
         if (!this.updateTimeout)

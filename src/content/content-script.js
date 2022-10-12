@@ -4,6 +4,7 @@ import InPageTranslation from './InPageTranslation.js';
 import SelectionTranslation from './SelectionTranslation.js';
 import OutboundTranslation from './OutboundTranslation.js';
 import { LatencyOptimisedTranslator } from '@browsermt/bergamot-translator';
+import preferences from '../shared/preferences.js';
 
 let backgroundScript;
 
@@ -14,17 +15,9 @@ const state = {
 };
 
 // Loading indicator for html element translation
-compat.storage.local.get({progressIndicator:''}).then(state => {
+preferences.bind('progressIndicator', progressIndicator => {
     document.body.setAttribute('x-bergamot-indicator', state.progressIndicator);
-});
-
-compat.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace !== 'local')
-        return;
-
-    if ('progressIndicator' in changes)
-        document.body.setAttribute('x-bergamot-indicator', changes.progressIndicator.newValue);
-});
+}, {default: ''})
 
 function on(command, callback) {
     if (!listeners.has(command))
@@ -35,7 +28,7 @@ function on(command, callback) {
 
 on('Update', diff => {
     Object.assign(state, diff);
-    document.body.dataset.xBergamotState = JSON.stringify(state);
+    // document.body.dataset.xBergamotState = JSON.stringify(state);
 });
 
 on('Update', diff => {
@@ -225,10 +218,13 @@ class BackgroundScriptWorkerProxy {
         })
     }
 
-    enqueueTranslationResponse(text, user) {
-        const {request, accept, reject} = this.#pending.get(user.id);
-        this.#pending.delete(user.id);
-        accept([{request, target: {text}}]);
+    enqueueTranslationResponse({request: {user: {id}}, target, error}) {
+        const {request, accept, reject} = this.#pending.get(id);
+        this.#pending.delete(id);
+        if (error)
+            reject(error)
+        else
+            accept([{request, target}]);
     }
 }
 
@@ -258,51 +254,51 @@ const outboundTranslation = new OutboundTranslation(new class {
         // Separate translators for both directions so they have their own
         // queue. Using LatencyOptimisedTranslator to have it cancel all
         // translation requests that would otherwise clog up the queue. 
-        this.translator = new LatencyOptimisedTranslator({}, backing);
-        this.backtranslator = new LatencyOptimisedTranslator({}, backing);
-    }
+        const translator = new LatencyOptimisedTranslator({}, backing);
+        this.translate = async (request) => {
+            const response = await translator.translate(request)
+            return response.target.text;
+        };
 
-    async translate(text) {
-        const response = await this.translator.translate({
-            from: state.to, // Direction flipped from the page
-            to: state.from,
-            text,
-            html: false
-        });
-
-        return response.target.text;
-    }
-
-    async backtranslate(text) {
-        const response = await this.backtranslator.translate({
-            from: state.from,
-            to: state.to,
-            text,
-            html: false
-        });
-
-        return response.target.text;
+        const backtranslator = new LatencyOptimisedTranslator({}, backing);
+        this.backtranslate = async (request) => {
+            const response = await backtranslator.translate(request)
+            return response.target.text;
+        }
     }
 }());
 
-on('Update', diff => {
+// This one is mainly for the TRANSLATION_AVAILABLE event
+on('Update', async (diff) => {
     if ('from' in diff)
-        outboundTranslation.from = diff.from;
+        outboundTranslation.setPageLanguage(diff.from);
+
+    const preferredLanguage = await preferences.get('preferredLanguageForOutboundTranslation');
 
     if ('to' in diff)
-        outboundTranslation.to = diff.to;
+        outboundTranslation.setUserLanguage(preferredLanguage || diff.to);
+
+    if ('from' in diff || 'models' in diff) {
+        outboundTranslation.setUserLanguageOptions(state.models.reduce((options, entry) => {
+            // `state` has already been updated at this point as well and we know
+            // that is complete. `diff` might not contain all the keys we need.
+            if (entry.to === state.from && !options.has(entry.from))
+                options.add(entry.from)
+            return options
+        }, new Set()));
+    }
 });
 
 on('TranslateResponse', data => {
     switch (data.request.user?.source) {
         case 'InPageTranslation':
-            inPageTranslation.enqueueTranslationResponse(data.target.text, data.request.user);
+            inPageTranslation.enqueueTranslationResponse(data);
             break;
         case 'SelectionTranslation':
-            selectionTranslation.enqueueTranslationResponse(data.target.text, data.request.user);
+            selectionTranslation.enqueueTranslationResponse(data);
             break;
         case 'OutboundTranslation':
-            outboundTranslationWorker.enqueueTranslationResponse(data.target.text, data.request.user);
+            outboundTranslationWorker.enqueueTranslationResponse(data);
             break;
     }
 });

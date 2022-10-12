@@ -36,6 +36,14 @@ export default new class {
     }
 
     /**
+     * get() + listen() in an easy package.
+     */
+    async bind(key, callback, options) {
+        const value = this.get(key, options?.default);
+        this.listen(key, callback);
+    }
+
+    /**
      * Create a (not async) view of the preferences that's faster to access
      * frequently. Will be kept in sync. Use addListener() to know when it
      * changes.
