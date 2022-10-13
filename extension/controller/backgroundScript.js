@@ -420,6 +420,18 @@ const messageListener = function(message, sender) {
           browser.storage.local.set({ telemetryCollectionConsent: message.consent });
           pingSender.setUploadEnabled(message.consent);
           break;
+        case "showChangelog":
+          browser.storage.local.set({
+            showChangelog: message.consent,
+
+            /*
+             * make sure the last version is the current one,
+             * because it's only set when the changelog is shown.
+             * otherwise, the changelog would show at the next browser start
+             */
+            lastVersion: extensionVersion,
+          });
+          break;
         default:
           // ignore
           break;
@@ -518,24 +530,21 @@ browser.webNavigation.onCommitted.addListener(details => {
   if (details.frameId === 0) submitPing(details.tabId);
 });
 
-const displayedConsentPromise = browser.storage.local.get("displayedConsent");
+const retrieveOptionsFromStorage = browser.storage.local.get(["displayedConsent", "lastVersion", "showChangelog"]);
 const isMochitestPromise = browser.experiments.translationbar.isMochitest();
-const retrievelastVersionFromStorage = browser.storage.local.get("lastVersion");
 
 Promise.allSettled([
-                    displayedConsentPromise,
+                    retrieveOptionsFromStorage,
                     isMochitestPromise,
-                    retrievelastVersionFromStorage
                   ]).then(values => {
-  const displayedConsent = values[0].value?.displayedConsent;
-  const lastVersionDisplayed = values[2].value?.lastVersion;
+  const { displayedConsent, lastVersion: lastVersionDisplayed, showChangelog } = values[0].value || {};
   isMochitest = values[1].value;
 
   if (!displayedConsent && !isMochitest) {
     browser.tabs.create({ url: browser.runtime.getURL("view/static/dataConsent.html") });
     browser.storage.local.set({ displayedConsent: true });
     browser.storage.local.set({ lastVersion: extensionVersion });
-  } else if (displayedConsent && extensionVersion !== lastVersionDisplayed) {
+  } else if (showChangelog && displayedConsent && extensionVersion !== lastVersionDisplayed) {
     browser.tabs.create({
       active: true,
       url: browser.extension.getURL("view/static/CHANGELOG.html"),
