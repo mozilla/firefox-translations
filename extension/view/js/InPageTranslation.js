@@ -227,6 +227,10 @@ class InPageTranslation {
         /*
          * pre-construct the excluded node selector. Doing it here since it
          * needs to know `language`. See `containsExcludedNode()`.
+         * Note: [lang]:not([lang...]) is too strict as it also matches slightly
+         * different language code. In that case the tree walker will drill down
+         * and still accept the element in isExcludedNode. Just not as part of
+         * a block.
          */
         this.excludedNodeSelector = `[lang]:not([lang|="${this.language}"]),[translate=no],.notranslate,[contenteditable],${Array.from(this.excludedTags).join(",")},#OTapp`;
 
@@ -524,9 +528,14 @@ class InPageTranslation {
 
         /*
          * exclude elements that have a lang attribute that mismatches the
-         * language we're currently translating.
+         * language we're currently translating. Run it through
+         * getCanonicalLocales() because pages get creative.
          */
-        if (node.lang && node.lang.substr(0,2) !== this.language) return true;
+        try {
+            if (node.lang && !Intl.getCanonicalLocales(node.lang).some(lang => this.isSameLanguage(lang, this.language))) return true;
+        } catch (err) {
+            if (err.name !== "RangeError") throw err;
+        }
 
         /*
          * exclude elements that have an translate=no attribute
@@ -1027,5 +1036,24 @@ class InPageTranslation {
                     break;
             }
         });
+    }
+
+    isSameLanguage(lang, other) {
+
+        /*
+         * en === en, en-US === en-US
+         */
+        if (lang === other) return true;
+
+        /*
+         * en-US === en
+         */
+        if (lang.includes("-") && !other.includes("-") && lang.split("-")[0] === other) return true;
+
+        /*
+         * intentionally not testing for en === en-US to make sure very
+         * specific models are not used for translating broad language codes.
+         */
+        return false;
     }
 }
