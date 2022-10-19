@@ -13,12 +13,12 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     return `
     <image anonid="logoIcon" class="messageImage"/>
     <description flex="1">
-    <label style="vertical-align:top; margin-top:10px; margin-right:10px" anonid="labelTranslate">&translation.thisPageIsIn.label;</label>
+      <label style="vertical-align:top; margin-top:10px; margin-right:10px" anonid="labelTranslate"></label>
       <label anoind="ddlLanguage" style="vertical-align: middle;">
         <menulist anonid="detectedLanguage" oncommand="this.closest('notification').fromLanguageChanged();">
         </menulist>
       </label>
-      <button class="notification-button primary" label="&translation.translate.button;" anonid="translate" oncommand="this.closest('notification').onTranslate();"/>
+      <button class="notification-button primary" anonid="translate" oncommand="this.closest('notification').onTranslate();"/>
       <label anoind="cbOutbondTranslation" style="vertical-align: middle;">
         <checkbox anonid="outboundtranslations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onOutboundClick();" />
       </label>
@@ -27,12 +27,12 @@ window.MozTranslationNotification = class extends MozElements.Notification {
       </label>
       <label style="vertical-align: middle; float:right">
         <button class="notification-button" label="" anonid="translateAsBrowse" style="display:none;" oncommand="this.closest('notification').translateAsBrowse();"/>
-        <button type="menu" class="notification-button" anonid="options" label="&translation.options.menu;">
+        <button type="menu" class="notification-button" anonid="options">
           <menupopup class="translation-menupopup" onpopupshowing="this.closest('notification').optionsShowing();">
-            <checkbox anonid="neverForSite" oncommand="this.closest('notification').neverForSite();" label="&translation.options.neverForSite.label;" accesskey="&translation.options.neverForSite.accesskey;"/>
+            <checkbox anonid="neverForSite" oncommand="this.closest('notification').neverForSite();"/>
             <menuitem anonid="neverForLanguage" oncommand="this.closest('notification').neverForLanguage();"/>
             <menuseparator/>
-            <menuitem oncommand="openPreferences('paneGeneral-fxtranslations');" label="&translation.options.preferences.label;" accesskey="&translation.options.preferences.accesskey;"/>
+            <menuitem anonid="optionsMenu" oncommand="openPreferences('paneGeneral-fxtranslations');"/>
             <menuitem anonid="displayStatistics" oncommand="this.closest('notification').displayStatistics();" label=""/>
           </menupopup>
         </button>
@@ -40,16 +40,8 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     </description>
     <toolbarbutton anonid="closeButton" ondblclick="event.stopPropagation();"
     class="messageCloseButton close-icon"
-    tooltiptext="&closeNotification.tooltip;"
     oncommand="this.parentNode.closeCommand();"/>
     `;
-  }
-
-  static get entities() {
-    return [
-      "chrome://global/locale/notification.dtd",
-      "chrome://browser/locale/translation.dtd",
-    ];
   }
 
   updateTranslationProgress(localizedMessage) {
@@ -59,6 +51,14 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   init(translationNotificationManager) {
     // set icon in the infobar. we should move this to a css file.
     this._getAnonElt("logoIcon").setAttribute("src", translationNotificationManager.logoIcon);
+    this._getAnonElt("labelTranslate").setAttribute("value", translationNotificationManager.localizedLabels.thisPageIsIn);
+    this._getAnonElt("translate").setAttribute("label", translationNotificationManager.localizedLabels.translateButton);
+    this._getAnonElt("options").setAttribute("label", translationNotificationManager.localizedLabels.optionsButton);
+    this._getAnonElt("neverForSite").setAttribute("label", translationNotificationManager.localizedLabels.neverThisSiteLabel);
+    this._getAnonElt("neverForSite").setAttribute("accesskey", translationNotificationManager.localizedLabels.neverThisSiteAccesskey);
+    this._getAnonElt("optionsMenu").setAttribute("label", translationNotificationManager.localizedLabels.optionsMenuLabel);
+    this._getAnonElt("optionsMenu").setAttribute("accesskey", translationNotificationManager.localizedLabels.optionsMenuAccesskey);
+    this._getAnonElt("closeButton").setAttribute("tooltiptext", translationNotificationManager.localizedLabels.closeNotificationTooltip);
     this._getAnonElt("qualityestimations-check").setAttribute("label", translationNotificationManager.localizedLabels.qualityEstimationMessage);
     this._getAnonElt("displayStatistics").setAttribute("label", translationNotificationManager.localizedLabels.displayStatisticsMessage);
     this._getAnonElt("qualityestimations-check").checked = translationNotificationManager.infobarSettings.qualityestimations["qualityestimations-check"];
@@ -252,17 +252,17 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     const langName = Services.intl.getLanguageDisplayNames(undefined, [lang,])[0];
 
     // set the label and accesskey on the menuitem.
-    const bundle = Services.strings.createBundle("chrome://browser/locale/translation.properties",);
+
     let item = this._getAnonElt("neverForLanguage");
-    const kStrId = "translation.options.neverForLanguage";
+    let label = this.translationNotificationManager.localizedLabels.neverForLanguageLabel;
+
     item.setAttribute(
       "label",
-      bundle.formatStringFromName(`${kStrId}.label`, [langName]),
+      label.replace("%S", langName),
     );
     item.setAttribute(
       "accesskey",
-      // eslint-disable-next-line new-cap
-      bundle.GetStringFromName(`${kStrId}.accesskey`),
+      this.translationNotificationManager.localizedLabels.neverForLanguageAccesskey,
     );
 
     /*
