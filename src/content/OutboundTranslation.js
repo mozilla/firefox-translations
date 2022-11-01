@@ -195,6 +195,8 @@ export default class OutboundTranslation {
 		// Invisible area that can be dragged up or down to resize the pane
 		const resizeBar = createElement('div', {className: 'resize-bar'});
 
+		const closeButton = createElement('button', {className: 'primary close-button'}, ['Close']);
+
 		// Panel that shows outbound translation widgets
 		this.#tree.appendChild(this.#pane = createElement('dialog', {
 			className: 'pane',
@@ -215,9 +217,7 @@ export default class OutboundTranslation {
 				]),
 				this.#inputField = createElement('textarea', {
 					className: 'input-field',
-					placeholder: 'Type here to begin translating…',
-					onkeydown: this.#onKeyDown.bind(this),
-					oninput: this.#onInput.bind(this) 
+					placeholder: 'Type here to begin translating…'
 				}),
 				createElement('p', {className: 'reference-field-label'}, [
 					'Translating the translated text from ',
@@ -229,12 +229,7 @@ export default class OutboundTranslation {
 				this.#referenceField = createElement('div', {
 					className: 'reference-field'
 				}),
-				createElement('button', {
-					className: 'primary close-button',
-					onclick: this.stop.bind(this)
-				}, [
-					'Close'
-				])
+				closeButton
 			])
 		]));
 
@@ -253,20 +248,25 @@ export default class OutboundTranslation {
 			renderer.render(renderState)
 		});
 
-		// Prevent focusin events from leaking out of the widget
-		this.#tree.addEventListener('focusin', e => e.stopPropagation(), true);
+		// Capture [Escape] and [Tab] keypresses
+		this.#inputField.addEventListener('keydown', this.#onKeyDown.bind(this));
+
+		// Capture input in the textfield we need to translate
+		this.#inputField.addEventListener('input', this.#onInput.bind(this));
 
 		// Sync scrolling of input field with reference field.
 		this.#inputField.addEventListener('scroll', this.#syncScrollPosition.bind(this), {passive: true})
 
+		// Observer that's registered with window for resize changes
+		// TOOD: Is this necessary or is the ResizeObserver on the form field sufficient?
 		this.#onResizeListener = this.#renderFocusRing.bind(this);
 
 		// Observer for changes to the form field to keep the focus ring in sync
 		this.#targetResizeObserver = new ResizeObserver(this.#onResizeListener);
 
-		// TODO: Detect if #target becomes invisible/inaccessible
+		// TODO: Detect if #target becomes invisible/inaccessible (DOM changes)
 
-		// TODO: Detect if #target becomes disabled/readonly
+		// TODO: Detect if #target becomes disabled/readonly (DOM changes)
 
 		this.#onFocusTargetListener = this.#onFocusTarget.bind(this);
 
@@ -274,6 +274,8 @@ export default class OutboundTranslation {
 			this.setUserLanguage(e.target.value);
 			console.log("TODO: Store userLanguage in preferredLanguageForOutboundTranslation to", e.target.value);
 		})
+
+		closeButton.addEventListener('click', this.stop.bind(this));
 
 		// Add resize behaviour to the invisible resize bar
 		resizeBar.addEventListener('mousedown', e => {
@@ -296,6 +298,13 @@ export default class OutboundTranslation {
 
 			window.addEventListener('mousemove', onMouseMove);
 			window.addEventListener('mouseup', onMouseUp);
+		});
+
+		// Prevent certain events from leaking out of the widget so they can't be
+		// captured and cancelled by the parent page. Does not prevent handlers
+		// installed with {capture:true} though. Those could still wreak havoc.
+		['focusin', 'keydown', 'keyup', 'keypress', 'click', 'mousedown'].forEach(event => {
+			this.#tree.addEventListener(event, e => { e.stopPropagation(); });
 		});
 	}
 
