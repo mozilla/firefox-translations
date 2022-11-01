@@ -37,6 +37,19 @@ button.primary:hover {
 	pointer-events: none;
 }
 
+.focus-ring::after {
+	content: 'Editing with TranslateLocally';
+	position: absolute;
+	top: calc(-14px - 8px);
+	left: -4px;
+	padding: 4px;
+	background: red;
+	color: white;
+	border-radius: 4px 4px 0 0;
+	font-size: 14px;
+	line-height: 14px;
+}
+
 .pane {
 	z-index: 2147483647;
 
