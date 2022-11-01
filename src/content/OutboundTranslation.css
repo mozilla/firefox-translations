@@ -28,6 +28,7 @@ button.primary:hover {
 	z-index: 2147483646; /* One less than .pane */
 
 	position: absolute;
+	border-radius: 1px; /* Makes the box-shadow go `border-radius: 4px` */
 	box-shadow: #f00 0 0 0 4px;
 
 	margin: 0;
