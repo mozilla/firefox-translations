@@ -232,7 +232,17 @@ const messageListener = function(message, sender) {
               qualityEstimationMessage: browser.i18n.getMessage("errorHighlightingMessage"),
               surveyMessage: browser.i18n.getMessage("surveyMessage"),
               translateAsBrowseOn: browser.i18n.getMessage("translateAsBrowseOn"),
-              translateAsBrowseOff: browser.i18n.getMessage("translateAsBrowseOff")
+              translateAsBrowseOff: browser.i18n.getMessage("translateAsBrowseOff"),
+              thisPageIsIn: browser.i18n.getMessage("translationBarPageIsIn"),
+              translateButton: browser.i18n.getMessage("translationBarTranslateButton"),
+              optionsButton: browser.i18n.getMessage("translationBarOptionsButton"),
+              neverThisSiteLabel: browser.i18n.getMessage("translationBarNeverThisSiteLabel"),
+              neverThisSiteAccesskey: browser.i18n.getMessage("translationBarNeverThisSiteAccesskey"),
+              neverForLanguageLabel: browser.i18n.getMessage("neverForLanguageLabel", ["%S"]),
+              neverForLanguageAccesskey: browser.i18n.getMessage("neverForLanguageAccesskey"),
+              optionsMenuLabel: browser.i18n.getMessage("optionsMenuLabel"),
+              optionsMenuAccesskey: browser.i18n.getMessage("optionsMenuAccesskey"),
+              closeNotificationTooltip: browser.i18n.getMessage("closeNotification")
             },
             false,
             {
