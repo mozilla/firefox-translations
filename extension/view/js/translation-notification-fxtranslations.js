@@ -34,7 +34,8 @@ window.MozTranslationNotification = class extends MozElements.Notification {
             <menuseparator/>
             <menuitem anonid="optionsMenu" oncommand="openPreferences('paneGeneral-fxtranslations');"/>
             <menuitem anonid="displayStatistics" oncommand="this.closest('notification').displayStatistics();" label=""/>
-          </menupopup>
+            <menuitem anonid="openChangelog" oncommand="this.closest('notification').openChangelog();" label="Changelog"/>
+            </menupopup>
         </button>
       </label>
     </description>
@@ -327,6 +328,11 @@ window.MozTranslationNotification = class extends MozElements.Notification {
      */
     this.translationNotificationManager.enableStats();
   }
+
+  openChangelog() {
+    this.translationNotificationManager.openChangelog();
+  }
+
 };
 
 customElements.define(
