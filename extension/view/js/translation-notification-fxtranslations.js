@@ -136,7 +136,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         );
     this.translationNotificationManager.reportInfobarMetric(
       "boolean", "auto_translate_enabled",
-      translationNotificationManager.autoTranslate === true
+      translationNotificationManager.autoTranslate?.translatingAsBrowse === true
     );
 
     if (translationNotificationManager.autoTranslate?.translatingAsBrowse) {
@@ -223,16 +223,18 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   translateAsBrowse() {
-    this.translationNotificationManager.autoTranslate =
-      !this.translationNotificationManager.autoTranslate
+    this.translationNotificationManager.autoTranslate.translatingAsBrowse =
+      !this.translationNotificationManager.autoTranslate?.translatingAsBrowse;
+    this.translationNotificationManager.autoTranslate.sourceLanguage = this._getAnonElt("detectedLanguage").value;
+    this.translationNotificationManager.autoTranslate.targetLanguage = this._getAnonElt("targetLanguage").value;
     this._getAnonElt("translateAsBrowse").setAttribute(
       "label",
-      this.translationNotificationManager.autoTranslate
+      this.translationNotificationManager.autoTranslate?.translatingAsBrowse
       ? this.translationNotificationManager.localizedLabels.translateAsBrowseOff
       : this.translationNotificationManager.localizedLabels.translateAsBrowseOn
     );
     this.translationNotificationManager.translateAsBrowse();
-    if (this.translationNotificationManager.autoTranslate) {
+    if (this.translationNotificationManager.autoTranslate?.translatingAsBrowse) {
       this.translationNotificationManager.reportInfobarMetric("event","auto_translate_on");
       this.translationNotificationManager.reportInfobarMetric("boolean", "auto_translate_enabled", true);
     } else {

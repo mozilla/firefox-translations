@@ -14,7 +14,9 @@ class TranslationNotificationManager {
         this.languageSet = new Set();
         this.devLanguageSet = new Set();
         this.storage = null;
-        this.autoTranslate = null;
+        this.autoTranslate = {
+            translatingAsBrowse: false
+        };
         this.targetLanguage = null;
         this.loadLanguages();
     }
@@ -148,9 +150,7 @@ class TranslationNotificationManager {
         const message = {
             command: "translateAsBrowse",
             tabId: this.tabId,
-            translatingAsBrowse: this.autoTranslate,
-            sourceLanguage: this.detectedLanguage,
-            targetLanguage: this.targetLanguage
+            translatingAsBrowse: this.autoTranslate
         }
         this.bgScriptListenerCallback(message);
     }
