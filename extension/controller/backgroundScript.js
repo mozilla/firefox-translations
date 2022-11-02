@@ -477,6 +477,7 @@ modelFastTextReadyPromise =
       modelFastText = model;
     });
 
+// eslint-disable-next-line max-lines-per-function
 browser.pageAction.onClicked.addListener(tab => {
     Sentry.wrap(async () => {
 
@@ -493,13 +494,22 @@ browser.pageAction.onClicked.addListener(tab => {
                 "userrequest",
                 languageDetection.navigatorLanguage,
                 {
-                    displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
-                    outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
-                    qualityEstimationMessage: browser.i18n.getMessage("errorHighlightingMessage"),
-                    surveyMessage: browser.i18n.getMessage("surveyMessage"),
-                    languageDefaultOption: browser.i18n.getMessage("languageDefaultOption"),
-                    translateAsBrowseOn: browser.i18n.getMessage("translateAsBrowseOn"),
-                    translateAsBrowseOff: browser.i18n.getMessage("translateAsBrowseOff")
+                  displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
+                  outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
+                  qualityEstimationMessage: browser.i18n.getMessage("errorHighlightingMessage"),
+                  surveyMessage: browser.i18n.getMessage("surveyMessage"),
+                  translateAsBrowseOn: browser.i18n.getMessage("translateAsBrowseOn"),
+                  translateAsBrowseOff: browser.i18n.getMessage("translateAsBrowseOff"),
+                  thisPageIsIn: browser.i18n.getMessage("translationBarPageIsIn"),
+                  translateButton: browser.i18n.getMessage("translationBarTranslateButton"),
+                  optionsButton: browser.i18n.getMessage("translationBarOptionsButton"),
+                  neverThisSiteLabel: browser.i18n.getMessage("translationBarNeverThisSiteLabel"),
+                  neverThisSiteAccesskey: browser.i18n.getMessage("translationBarNeverThisSiteAccesskey"),
+                  neverForLanguageLabel: browser.i18n.getMessage("neverForLanguageLabel", ["%S"]),
+                  neverForLanguageAccesskey: browser.i18n.getMessage("neverForLanguageAccesskey"),
+                  optionsMenuLabel: browser.i18n.getMessage("optionsMenuLabel"),
+                  optionsMenuAccesskey: browser.i18n.getMessage("optionsMenuAccesskey"),
+                  closeNotificationTooltip: browser.i18n.getMessage("closeNotification")
                 },
                 true,
                 {
