@@ -13,12 +13,15 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     return `
     <image anonid="logoIcon" class="messageImage"/>
     <description flex="1">
+      <label anonid="lblSrcLng" style="display:none; vertical-align:top; margin-top:10px; margin-left:10px"></label>
+      <image anonid="logoArrowFirst" style="display:none; vertical-align:top; margin-top:13px;" class="messageImage"/>
+      <label anonid="lblTgtLng" style="display:none; vertical-align:top; margin-top:10px;"></label>
       <label style="vertical-align:top; margin-top:10px; margin-right:10px" anonid="labelTranslate"></label>
       <label anoind="ddlLanguage" style="vertical-align: middle;">
         <menulist anonid="detectedLanguage" oncommand="this.closest('notification').fromLanguageChanged();">
         </menulist>
       </label>
-      <image anonid="logoArrow" class="messageImage"/>
+      <image anonid="logoArrow" style="vertical-align:top; margin-top:10px;" class="messageImage"/>
       <label anoind="ddlTgtLanguage" style="vertical-align: middle;">
         <menulist anonid="targetLanguage">
       </menulist>
@@ -59,6 +62,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     // set icon in the infobar. we should move this to a css file.
     this._getAnonElt("logoIcon").setAttribute("src", translationNotificationManager.logoIcon);
     this._getAnonElt("logoArrow").setAttribute("src", translationNotificationManager.logoArrow);
+    this._getAnonElt("logoArrowFirst").setAttribute("src", translationNotificationManager.logoArrow);
     this._getAnonElt("logoRefresh").setAttribute("src", translationNotificationManager.logoRefresh);
     this._getAnonElt("labelTranslate").setAttribute("value", translationNotificationManager.localizedLabels.thisPageIsIn);
     this._getAnonElt("translate").setAttribute("label", translationNotificationManager.localizedLabels.translateButton);
@@ -177,6 +181,16 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   translate() {
     const from = this._getSourceLang();
     const to = this._getTargetLang();
+    this._getAnonElt("lblSrcLng").style.display = "";
+    this._getAnonElt("lblSrcLng").setAttribute(
+      "value",
+      this.localizedLanguagesByCode[this._getAnonElt("detectedLanguage").value]
+    );
+    this._getAnonElt("lblTgtLng").style.display = "";
+    this._getAnonElt("lblTgtLng").setAttribute(
+      "value",
+      this.localizedLanguagesByCode[this._getAnonElt("targetLanguage").value]
+    );
     this.translationNotificationManager.requestInPageTranslation(
         from,
         to,
@@ -196,8 +210,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
       "tooltiptext",
       this.localizedLanguagesByCode[this._getAnonElt("detectedLanguage").value]
     );
-    this._getAnonElt("logoArrow").style.display = "none";
     this._getAnonElt("targetLanguage").style.display = "none";
+    this._getAnonElt("logoArrow").style.display = "none";
+    this._getAnonElt("logoArrowFirst").style.display = "";
+
     this.updateTranslationProgress("");
   }
 
