@@ -15,8 +15,12 @@ jobs:
         with:
           node-version: '17.x'
       - run: brew unlink python@3.10
-      - run: brew install python@3.9
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.6'
       - run: npm install
       - run: brew install git-cinnabar
       - name: Run e2e test on esr102
+        env:
+          MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURC: system
         run: python3 scripts/tests/e2e-tests.py esr102
