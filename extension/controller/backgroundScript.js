@@ -249,7 +249,10 @@ const messageListener = function(message, sender) {
               outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
               qualityestimations: await browser.storage.local.get("qualityestimations-check")
             },
-            translateAsBrowseMap.get(sender.tab.id)?.translatingAsBrowse,
+            translateAsBrowseMap.get(sender.tab.id)
+              ? translateAsBrowseMap.get(sender.tab.id)
+              : { translatingAsBrowse: false }
+            ,
             isOutboundTranslationSupported
           );
 
@@ -406,9 +409,7 @@ const messageListener = function(message, sender) {
            * so that when there's a navigation in this tab, site and samelanguage
            * we should automatically start the translation
            */
-          translateAsBrowseMap.set(message.tabId, {
-            translatingAsBrowse: message.translatingAsBrowse
-          });
+          translateAsBrowseMap.set(message.tabId, message.translatingAsBrowse);
           break;
         case "errorCollectionConsent":
           browser.storage.local.set({ errorCollectionConsent: message.consent });
@@ -483,6 +484,7 @@ modelFastTextReadyPromise =
 
 // eslint-disable-next-line max-lines-per-function
 browser.pageAction.onClicked.addListener(tab => {
+    // eslint-disable-next-line max-lines-per-function
     Sentry.wrap(async () => {
 
         /*
@@ -520,7 +522,9 @@ browser.pageAction.onClicked.addListener(tab => {
                   outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
                   qualityestimations: await browser.storage.local.get("qualityestimations-check")
                 },
-                false,
+                translateAsBrowseMap.get(tab.id)
+                ? translateAsBrowseMap.get(tab.id)
+                : { translatingAsBrowse: false },
                 false
             );
           } else {

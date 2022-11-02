@@ -14,7 +14,10 @@ class TranslationNotificationManager {
         this.languageSet = new Set();
         this.devLanguageSet = new Set();
         this.storage = null;
-        this.autoTranslate = false;
+        this.autoTranslate = {
+            translatingAsBrowse: false
+        };
+        this.targetLanguage = null;
         this.loadLanguages();
     }
 
@@ -63,14 +66,12 @@ class TranslationNotificationManager {
         for (const languagePair of Object.keys(this.modelRegistry)) {
             const firstLang = languagePair.substring(0, 2);
             const secondLang = languagePair.substring(2, 4);
-            if (firstLang !== navLangCode) {
-                this.languageSet.add(firstLang);
+            this.languageSet.add(firstLang);
 
-                if (isPivotModelDev ||
-                  ((secondLang === navLangCode || (requiresPivoting && secondLang === "en")) &&
-                    this.modelRegistry[languagePair].model.modelType === "dev")) {
-                    this.devLanguageSet.add(firstLang);
-                }
+            if (isPivotModelDev ||
+              ((secondLang === navLangCode || (requiresPivoting && secondLang === "en")) &&
+                this.modelRegistry[languagePair].model.modelType === "dev")) {
+                this.devLanguageSet.add(firstLang);
             }
         }
     }
@@ -113,6 +114,8 @@ class TranslationNotificationManager {
             withQualityEstimation,
             tabId: this.tabId
         };
+        this.detectedLanguage = from;
+        this.targetLanguage = to;
         this.bgScriptListenerCallback(message);
     }
 

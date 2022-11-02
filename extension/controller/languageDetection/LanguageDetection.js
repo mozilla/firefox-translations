@@ -34,6 +34,13 @@ class LanguageDetection {
     }
 
     /*
+     * update the target language to be used for translation
+     */
+    setTargetLanguage(targetLanguage) {
+        this.targetLanguage = targetLanguage;
+    }
+
+    /*
      * return if the page meets the conditiions to display
      * or not the translation bar
      */

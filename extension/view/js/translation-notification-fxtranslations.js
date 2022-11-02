@@ -18,6 +18,11 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         <menulist anonid="detectedLanguage" oncommand="this.closest('notification').fromLanguageChanged();">
         </menulist>
       </label>
+      <image anonid="logoArrow" class="messageImage"/>
+      <label anoind="ddlTgtLanguage" style="vertical-align: middle;">
+        <menulist anonid="targetLanguage">
+      </menulist>
+    </label>
       <button class="notification-button primary" anonid="translate" oncommand="this.closest('notification').onTranslate();"/>
       <label anoind="cbOutbondTranslation" style="vertical-align: middle;">
         <checkbox anonid="outboundtranslations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onOutboundClick();" />
@@ -52,6 +57,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   init(translationNotificationManager) {
     // set icon in the infobar. we should move this to a css file.
     this._getAnonElt("logoIcon").setAttribute("src", translationNotificationManager.logoIcon);
+    this._getAnonElt("logoArrow").setAttribute("src", translationNotificationManager.logoArrow);
     this._getAnonElt("labelTranslate").setAttribute("value", translationNotificationManager.localizedLabels.thisPageIsIn);
     this._getAnonElt("translate").setAttribute("label", translationNotificationManager.localizedLabels.translateButton);
     this._getAnonElt("options").setAttribute("label", translationNotificationManager.localizedLabels.optionsButton);
@@ -101,6 +107,18 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     }
     detectedLanguage.value = translationNotificationManager.detectedLanguage;
 
+    // fill the target language ddl
+    const targetLanguage = this._getAnonElt("targetLanguage");
+    for (let [code, name] of languagesSupported) {
+      if (this.translationNotificationManager.devLanguageSet.has(code)) {
+            name += " (Beta)";
+      }
+      targetLanguage.appendItem(name, code);
+      this.localizedLanguagesByCode[code] = name;
+    }
+    targetLanguage.value = translationNotificationManager.navigatorLanguage;
+
+
     // fill the list of supported target languages.
     const targetLanguages = sortByLocalizedName(this.translationNotificationManager.languageSet);
     for (const [code, name] of targetLanguages) {
@@ -118,14 +136,17 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         );
     this.translationNotificationManager.reportInfobarMetric(
       "boolean", "auto_translate_enabled",
-      translationNotificationManager.autoTranslate === true
+      translationNotificationManager.autoTranslate?.translatingAsBrowse === true
     );
 
-    if (translationNotificationManager.autoTranslate) {
+    if (translationNotificationManager.autoTranslate?.translatingAsBrowse) {
       this._getAnonElt("translateAsBrowse").setAttribute(
         "label",
         translationNotificationManager.localizedLabels.translateAsBrowseOff,
       );
+      detectedLanguage.value = translationNotificationManager.autoTranslate?.sourceLanguage;
+      targetLanguage.value = translationNotificationManager.autoTranslate?.targetLanguage;
+
       this.translate();
     }
   }
@@ -168,6 +189,8 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this._getAnonElt("qualityestimations-check").style.display = "none";
     this._getAnonElt("translate").style.display = "none";
     this._getAnonElt("translateAsBrowse").style.display = "";
+    this._getAnonElt("logoArrow").style.display = "none";
+    this._getAnonElt("targetLanguage").style.display = "none";
     this.updateTranslationProgress("");
   }
 
@@ -200,16 +223,18 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   translateAsBrowse() {
-    this.translationNotificationManager.autoTranslate =
-      !this.translationNotificationManager.autoTranslate
+    this.translationNotificationManager.autoTranslate.translatingAsBrowse =
+      !this.translationNotificationManager.autoTranslate?.translatingAsBrowse;
+    this.translationNotificationManager.autoTranslate.sourceLanguage = this._getAnonElt("detectedLanguage").value;
+    this.translationNotificationManager.autoTranslate.targetLanguage = this._getAnonElt("targetLanguage").value;
     this._getAnonElt("translateAsBrowse").setAttribute(
       "label",
-      this.translationNotificationManager.autoTranslate
+      this.translationNotificationManager.autoTranslate?.translatingAsBrowse
       ? this.translationNotificationManager.localizedLabels.translateAsBrowseOff
       : this.translationNotificationManager.localizedLabels.translateAsBrowseOn
     );
     this.translationNotificationManager.translateAsBrowse();
-    if (this.translationNotificationManager.autoTranslate) {
+    if (this.translationNotificationManager.autoTranslate?.translatingAsBrowse) {
       this.translationNotificationManager.reportInfobarMetric("event","auto_translate_on");
       this.translationNotificationManager.reportInfobarMetric("boolean", "auto_translate_enabled", true);
     } else {
@@ -242,7 +267,11 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   _getTargetLang() {
-    return this.translationNotificationManager.navigatorLanguage;
+    const lang = this._getAnonElt("targetLanguage").value;
+    if (!lang) {
+      throw new Error("Target language is not defined");
+    }
+    return lang;
   }
 
   optionsShowing() {
