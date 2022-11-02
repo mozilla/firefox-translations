@@ -252,7 +252,7 @@ class Mediator {
             this.tabId,
             message.frameId,
             message.origin,
-            this.languageDetection.navigatorLanguage,
+            this.languageDetection.targetLanguage,
             this.languageDetection.pageLanguage,
             message.payload.attrId,
             message.payload.withOutboundTranslation,
@@ -276,7 +276,7 @@ class Mediator {
 
     updateElements(translationMessage) {
         if (THIS_ORIGIN !== translationMessage.origin) {
-            console.warn(`Message with a different origin is received. Skipping updating. 
+            console.warn(`Message with a different origin is received. Skipping updating.
                                Window origin: ${THIS_ORIGIN}, Message origin: ${translationMessage.origin}`)
             return;
         }
@@ -322,6 +322,8 @@ class Mediator {
 
                 // the user might have changed the page language, so we just accept it
                 this.languageDetection.setPageLanguage(message.from);
+                this.languageDetection.setTargetLanguage(message.to);
+
                 if (!this.inPageTranslation.started) {
                     this.inPageTranslation.withOutboundTranslation = message.withOutboundTranslation;
                     this.inPageTranslation.withQualityEstimation = message.withQualityEstimation;

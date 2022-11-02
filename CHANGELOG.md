@@ -17,6 +17,7 @@ You can send suggestions or report issues to the team via any of the channels be
 - The display of the changelog now happens upon the user's choice on about:addons and in the options button.
 - Renewal of telemetry metrics
 - Normalization of language codes across the extension
+- Added option to translate to a target language different than the browser's
 
 ## [[v1.1.4]](https://github.com/mozilla/firefox-translations/tree/v1.1.4) - 2022-07-28
 ### Added

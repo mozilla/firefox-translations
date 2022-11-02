@@ -249,7 +249,7 @@ const messageListener = function(message, sender) {
               outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
               qualityestimations: await browser.storage.local.get("qualityestimations-check")
             },
-            translateAsBrowseMap.get(sender.tab.id)?.translatingAsBrowse,
+            translateAsBrowseMap.get(sender.tab.id),
             isOutboundTranslationSupported
           );
 
@@ -407,7 +407,9 @@ const messageListener = function(message, sender) {
            * we should automatically start the translation
            */
           translateAsBrowseMap.set(message.tabId, {
-            translatingAsBrowse: message.translatingAsBrowse
+            translatingAsBrowse: message.translatingAsBrowse,
+            sourceLanguage: message.sourceLanguage,
+            targetLanguage: message.targetLanguage
           });
           break;
         case "errorCollectionConsent":

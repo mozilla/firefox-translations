@@ -181,6 +181,7 @@ const translationNotificationManagers = new Map();
                 translationNotificationManager.notificationBox = notif;
                 translationNotificationManager.browser = tab.browser;
                 translationNotificationManager.logoIcon = context.extension.getURL("/view/icons/translation-color.svg",)
+                translationNotificationManager.logoArrow = context.extension.getURL("/view/icons/arrow.svg",)
                 translationNotificationManager.localizedLabels = localizedLabels;
                 translationNotificationManager.infobarSettings = infobarSettings;
                 translationNotificationManager.autoTranslate = autoTranslate;
