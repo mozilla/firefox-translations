@@ -19,7 +19,7 @@ subprocess.call("npm run build-test".split(), cwd=root)
 subprocess.call("git clone hg::https://hg.mozilla.org/mozilla-unified mozilla-esr102".split(), cwd=root)
 subprocess.call("git checkout bookmarks/esr102".split(), cwd="mozilla-esr102")
 # create the folder for the extension
-subprocess.call("rm -rf mozilla-esr102/browser/extensions/translations/extension".split(), cwd=root)
+subprocess.call("mkdir -p mozilla-esr102/browser/extensions/translations/".split(), cwd=root)
 # and extract the newly one built there
 subprocess.call("unzip web-ext-artifacts/firefox_translations.xpi -d mozilla-esr102/browser/extensions/translations/extension/".split(), cwd=root)
 # copy the tests
