@@ -161,4 +161,12 @@ class TranslationNotificationManager {
         }
         this.bgScriptListenerCallback(message);
     }
+
+    onRefresh() {
+        const message = {
+            command: "refreshPage",
+            tabId: this.tabId
+        }
+        this.bgScriptListenerCallback(message);
+    }
 }

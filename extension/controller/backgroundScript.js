@@ -447,6 +447,9 @@ const messageListener = function(message, sender) {
           browser.tabs.create({ url: browser.runtime.getURL("view/static/CHANGELOG.html") });
 
           break;
+        case "refreshPage":
+          browser.tabs.reload(message.tabId);
+          break;
         default:
           // ignore
           break;
