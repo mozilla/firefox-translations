@@ -151,4 +151,11 @@ class TranslationNotificationManager {
         }
         this.bgScriptListenerCallback(message);
     }
+
+    openChangelog() {
+        const message = {
+            command: "openChangelog"
+        }
+        this.bgScriptListenerCallback(message);
+    }
 }

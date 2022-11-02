@@ -442,6 +442,10 @@ const messageListener = function(message, sender) {
             lastVersion: extensionVersion,
           });
           break;
+        case "openChangelog":
+          browser.tabs.create({ url: browser.runtime.getURL("view/static/CHANGELOG.html") });
+
+          break;
         default:
           // ignore
           break;
