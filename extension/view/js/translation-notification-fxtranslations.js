@@ -31,6 +31,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         <checkbox anonid="qualityestimations-check" label="" style="padding-left:5px" oncommand="this.closest('notification').onQeClick();"/>
       </label>
       <label style="vertical-align: middle; float:right">
+        <image anonid="logoRefresh" tooltiptext="" class="messageImage" style="display:none; vertical-align:bottom; cursor: pointer; tool" onclick="this.closest('notification').onRefresh();"/>
         <button class="notification-button" label="" anonid="translateAsBrowse" style="display:none;" oncommand="this.closest('notification').translateAsBrowse();"/>
         <button type="menu" class="notification-button" anonid="options">
           <menupopup class="translation-menupopup" onpopupshowing="this.closest('notification').optionsShowing();">
@@ -58,6 +59,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     // set icon in the infobar. we should move this to a css file.
     this._getAnonElt("logoIcon").setAttribute("src", translationNotificationManager.logoIcon);
     this._getAnonElt("logoArrow").setAttribute("src", translationNotificationManager.logoArrow);
+    this._getAnonElt("logoRefresh").setAttribute("src", translationNotificationManager.logoRefresh);
     this._getAnonElt("labelTranslate").setAttribute("value", translationNotificationManager.localizedLabels.thisPageIsIn);
     this._getAnonElt("translate").setAttribute("label", translationNotificationManager.localizedLabels.translateButton);
     this._getAnonElt("options").setAttribute("label", translationNotificationManager.localizedLabels.optionsButton);
@@ -189,6 +191,11 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this._getAnonElt("qualityestimations-check").style.display = "none";
     this._getAnonElt("translate").style.display = "none";
     this._getAnonElt("translateAsBrowse").style.display = "";
+    this._getAnonElt("logoRefresh").style.display = "";
+    this._getAnonElt("logoRefresh").setAttribute(
+      "tooltiptext",
+      this.localizedLanguagesByCode[this._getAnonElt("detectedLanguage").value]
+    );
     this._getAnonElt("logoArrow").style.display = "none";
     this._getAnonElt("targetLanguage").style.display = "none";
     this.updateTranslationProgress("");
@@ -362,6 +369,9 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this.translationNotificationManager.openChangelog();
   }
 
+  onRefresh() {
+    this.translationNotificationManager.onRefresh();
+  }
 };
 
 customElements.define(

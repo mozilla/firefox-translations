@@ -186,6 +186,7 @@ const translationNotificationManagers = new Map();
                 translationNotificationManager.infobarSettings = infobarSettings;
                 translationNotificationManager.autoTranslate = autoTranslate;
                 translationNotificationManager.otSupported = otSupported;
+                translationNotificationManager.logoRefresh = context.extension.getURL("/view/icons/refresh.svg",)
 
                 notif.init(translationNotificationManager);
                 translationNotificationManagers.set(tabId, translationNotificationManager);
