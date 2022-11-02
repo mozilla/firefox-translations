@@ -1,4 +1,4 @@
-name: End-to-End Tests on esr91
+name: End-to-End Tests on esr102
 on:
   push:
     branches: [ main ]
@@ -15,10 +15,10 @@ jobs:
         with:
           node-version: '17.x'
       - run: brew unlink python@3.10
-      - run: brew install python@3.9 
+      - run: brew install python@3.9
       - run: npm install
       - run: brew install git-cinnabar
-      - name: Run e2e test on esr91
+      - name: Run e2e test on esr102
         env:
           MACH_USE_SYSTEM_PYTHON: 1
-        run: python3 scripts/tests/e2e-tests-esr91.py
+        run: python3 scripts/tests/e2e-tests-esr102.py
