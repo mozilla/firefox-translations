@@ -10,12 +10,19 @@ if not os.path.exists("scripts/tests/e2e-tests.py"):
     sys.exit("This script is intended to be executed from the root folder.")
 root = os.getcwd()
 
+if sys.argv[1] == "esr102":
+    print("Testing on esr102")
+else:
+    print("Testing on main")
+
 # Remove old gecko
 subprocess.call("rm -rf gecko".split(), cwd=root)
 # First we build the extension
 subprocess.call("npm run build-test".split(), cwd=root)
 # then we clone gecko
-subprocess.call("git clone hg::https://hg.mozilla.org/mozilla-central gecko".split(), cwd=root)
+subprocess.call("git clone hg::https://hg.mozilla.org/mozilla-unified gecko".split(), cwd=root)
+if sys.argv[1] == "esr102":
+    subprocess.call("git checkout bookmarks/esr102".split(), cwd="gecko")
 # create the folder for the extension
 subprocess.call("mkdir -p gecko/browser/extensions/translations/extension".split(), cwd=root)
 # and extract the newly one built there
@@ -30,10 +37,9 @@ subprocess.call("cp -r scripts/tests/esen/ gecko/browser/extensions/translations
 subprocess.call("cp -r scripts/tests/enes/ gecko/browser/extensions/translations/test/browser/enes/".split(), cwd=root)
 subprocess.call("cp scripts/tests/jar.mn gecko/browser/extensions/translations/".split(), cwd=root)
 with open('gecko/browser/extensions/moz.build', 'a') as fp:
-    fp.write('if CONFIG["NIGHTLY_BUILD"]: \n')
-    fp.write('  DIRS += [ \n')
-    fp.write('      "translations", \n')
-    fp.write('  ] \n')
+    fp.write('DIRS += [ \n')
+    fp.write('    "translations", \n')
+    fp.write('] \n')
 
 # let's copy bergamot-translator's wasm artifacts at right place for tests
 subprocess.call("cp -r gecko/browser/extensions/translations/extension/model/static/translation/ gecko/browser/extensions/translations/test/browser/".split(), cwd=root)
@@ -47,6 +53,8 @@ f.close()
 f = open("scripts/tests/BrowserGlue.jsm")
 dataBrowserGlue = f.read()
 dataBrowserGlue = dataBrowserGlue.replace("{version}", extension_version)
+if sys.argv[1] == "esr102":
+    dataBrowserGlue = dataBrowserGlue.replace("lazy.AddonManager", "AddonManager")
 f.close()
 
 fp = open("gecko/browser/components/BrowserGlue.jsm")

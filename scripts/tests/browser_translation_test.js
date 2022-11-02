@@ -46,7 +46,7 @@ add_task(async function testTranslationBarDisplayed() {
   await TestUtils.waitForCondition(
     () => {
       return (
-        notification.querySelector("[anonid=labelTranslate]").innerHTML
+        notification.querySelector("[anonid=labelTranslate]").getAttribute("value")
            .includes("Automatic Translation enabled")
       );
     },
