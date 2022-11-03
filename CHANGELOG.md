@@ -11,13 +11,16 @@ You can send suggestions or report issues to the team via any of the channels be
 [You can also rate and leave us a comment on Mozilla Addons.](https://addons.mozilla.org/en-US/firefox/addon/firefox-translations/)
 
 ## [[v1.1.5]](https://github.com/mozilla/firefox-translations/tree/v1.1.5) - 2022-11-02
+### Added
+- Option to translate to a target language different than the browser's default
+- Option to return page to original state
+- The language pair currently in use is now being displayed in the translation bar
 
 ### Changed
 - Fixed user interface and localization issues.
 - The display of the changelog now happens upon the user's choice on about:addons and in the options button.
 - Renewal of telemetry metrics
 - Normalization of language codes across the extension
-- Added option to translate to a target language different than the browser's
 
 ## [[v1.1.4]](https://github.com/mozilla/firefox-translations/tree/v1.1.4) - 2022-07-28
 ### Added
