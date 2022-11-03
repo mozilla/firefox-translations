@@ -146,5 +146,24 @@
     "default_icon": "view/icons/translation-bw.svg",
     "default_title": "Firefox Translations"
   },
+  "browser_action": {
+    "show_matches": ["<all_urls>"],
+    "browser_style": true,
+    "default_icon": {
+      "16": "view/icons/translation-color.svg",
+      "32": "view/icons/translation-color.svg"
+    },
+    "default_title": "Firefox Translations",
+    "default_popup": "view/popup/index.html",
+    "theme_icons": [{
+      "light": "view/icons/translation-color.svg",
+      "dark": "view/icons/translation-color.svg",
+      "size": 16
+    }, {
+      "light": "view/icons/translation-color.svg",
+      "dark": "view/icons/translation-color.svg",
+      "size": 32
+    }]
+  },
   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';"
 }
