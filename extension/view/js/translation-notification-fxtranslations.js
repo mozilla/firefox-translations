@@ -386,6 +386,10 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   }
 
   onRefresh() {
+    if (this.translationNotificationManager.autoTranslate.translatingAsBrowse) {
+      this.translationNotificationManager.autoTranslate.translatingAsBrowse = false;
+      this.translationNotificationManager.translateAsBrowse();
+    }
     this.translationNotificationManager.onRefresh();
   }
 };
