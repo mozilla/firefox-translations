@@ -26,8 +26,9 @@ function moveCursorToEnd(target) {
 	if ('value' in target) {
 		const length = target.value.length;
 		target.setSelectionRange(length, length);
-	} else if ('innerText' in target) {
+	} else if (target.isContentEditable) {
 		const range = document.createRange();
+		if (!target.lastChild) return; // it is empty
 		range.setEnd(target.lastChild,
 			target.lastChild.nodeType === Node.TEXT_NODE 
 			? target.lastChild.nodeValue.length
@@ -40,13 +41,53 @@ function moveCursorToEnd(target) {
 }
 
 function getEffectiveBackgroundColor(el) {
-	while (el) {
+	while (el instanceof Element) {
 		const style = getComputedStyle(el);
 		if (style.backgroundColor !== 'transparent' && !/^rgba\(.*,\s*0(\.\d+)?\)$/.test(style.backgroundColor))
 			return style.backgroundColor;
 		else
 			el = el.parentNode;
 	}
+}
+
+function setValueInput(target, value) {
+	// Reflect.apply(Reflect.getOwnPropertyDescriptor(this.#target.__proto__, 'value').get, this.#target, [value])
+	target.value = value;
+
+	// Notify any external scripts of the change
+	const event = new Event("input", {bubbles: true});
+  target.dispatchEvent(event);
+}
+
+function isDraftJS(target) {
+	return target.matches('.public-DraftEditor-content');
+}
+
+function setValueContentEditable(target, value) {
+	// Source: https://github.com/facebook/draft-js/issues/616
+	return new Promise(accept => {
+		const selection = window.getSelection();
+		const range = document.createRange();
+		range.selectNodeContents(target);
+		selection.removeAllRanges();
+		selection.addRange(range);
+
+		// Wait for selection before dispatching the `beforeinput` event
+		if (isDraftJS(target)) {
+			document.addEventListener("selectionchange", () => {
+				target.dispatchEvent(new InputEvent("beforeinput", {
+					inputType: "insertText",
+					data: value,
+					bubbles: true,
+					cancelable: true
+				}));
+				accept();
+			}, {once: true});
+		} else {
+			document.execCommand('insertText', false, value);
+			accept();
+		}
+	});
 }
 
 const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
@@ -406,12 +447,9 @@ export default class OutboundTranslation {
 		this.element.parentNode?.removeChild(this.element);
 		
 		if (this.#target) {
-			console.log('calling target.focus() for', this.#target);
 			this.#target.focus();
-		}
-
-		if (this.#target && !this.#target.isContentEditable)
 			moveCursorToEnd(this.#target);
+		}
 	}
 
 	/**
@@ -434,7 +472,7 @@ export default class OutboundTranslation {
 			if (['text', 'font', 'color', 'padding', 'line-'].some(prefix => key.startsWith(prefix)))
 				previewStyle[key] = targetStyle.getPropertyValue(key)
 
-		previewStyle['background-color'] = getEffectiveBackgroundColor(this.#target);
+		previewStyle['background-color'] = getEffectiveBackgroundColor(this.#target) || 'Canvas';
 
 		Object.assign(this.#previewField.style, previewStyle);
 	}
@@ -448,6 +486,8 @@ export default class OutboundTranslation {
 		if (this.#target) {
 			this.#targetResizeObserver.unobserve(this.#target);
 
+			// If we're moving away from a [contenteditable] target, finalize setting
+			// its contents.
 			if (this.#usePreviewField() && this.#previewValue !== null)
 				this.#setTargetValue(this.#previewValue);
 		}
@@ -460,6 +500,7 @@ export default class OutboundTranslation {
 			if (this.#usePreviewField()) {
 				this.#previewField.hidden = false;
 
+				// Make the preview field match the style of the original textbox
 				this.#renderPreviewField();
 				
 				// Set previewValue to Null to mark it as unchanged
@@ -498,32 +539,10 @@ export default class OutboundTranslation {
 	 * @param {String} value
 	 */
 	#setTargetValue(value) {
-		console.log('#setTargetValue', this.#target, value);
-
 		if ('value' in this.#target) {
-			// Reflect.apply(Reflect.getOwnPropertyDescriptor(this.#target.__proto__, 'value').get, this.#target, [value])
-			this.#target.value = value;
-
-			// Notify any external scripts of the change
-			const event = new Event("input", {bubbles: true});
-	    this.#target.dispatchEvent(event);
+			setValueInput(this.#target, value);
 	  } else if (this.#target.isContentEditable) {
-			// Source: https://github.com/facebook/draft-js/issues/616
-			const selection = window.getSelection();
-			const range = document.createRange();
-			range.selectNodeContents(this.#target);
-			selection.removeAllRanges();
-			selection.addRange(range);
-
-			// Wait for selection before dispatching the `beforeinput` event
-			document.addEventListener("selectionchange",(function() {
-				this.dispatchEvent(new InputEvent("beforeinput", {
-					inputType: "insertText",
-					data: value,
-					bubbles: true,
-					cancelable: true
-				}));
-			}).bind(this.#target), {once: true});
+	  	setValueContentEditable(this.#target, value);
 		}
 		else
 			throw new Error(`No accessor implemented for type ${this.#target.__proto__.constructor.name}`);
