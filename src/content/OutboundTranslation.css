@@ -23,8 +23,6 @@
 	margin: 0;
 	padding: 0;
 	border: none;
-
-	pointer-events: none;
 }
 
 .focus-ring > .label {
@@ -43,6 +41,8 @@
 	text-overflow: ellipsis;
 	overflow: hidden;
 	max-width: 90%;
+
+	pointer-events: none;
 }
 
 .focus-ring > .preview-field {
@@ -51,6 +51,9 @@
 	left: 0;
 	bottom: 0;
 	right: 0;
+
+	overflow: hidden;
+	overflow-y: auto;
 }
 
 .focus-ring > .preview-field[hidden] {
