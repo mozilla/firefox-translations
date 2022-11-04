@@ -133,15 +133,6 @@ const messageListener = function(message, sender) {
           await modelFastTextReadyPromise;
 
           /*
-           * if we don't support this browser's language, we need to hide the
-           * page action and bail right away
-           */
-          if (!message.languageDetection.supported) {
-            browser.pageAction.hide(sender.tab.id);
-            break;
-          }
-
-          /*
            * call fasttext to detect the language of the snippet
            * extracted from the page
            */
@@ -530,13 +521,6 @@ browser.pageAction.onClicked.addListener(tab => {
                 : { translatingAsBrowse: false },
                 false
             );
-          } else {
-
-            /*
-             * if we don't support this browser's language, we nede to hide the
-             * page action and bail right away
-             */
-            browser.pageAction.hide(tab.id);
           }
     });
 });
