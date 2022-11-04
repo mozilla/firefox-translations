@@ -320,7 +320,7 @@ const messageListener = function(message, sender) {
 
         case "reportException":
           // eslint-disable-next-line no-case-declarations
-          console.warn("Reporting content script error to Sentry");
+          console.warn("Reporting content script error to Sentry", message.exception);
           Sentry.captureException(deserializeError(message.exception));
           break;
 
@@ -354,15 +354,24 @@ const messageListener = function(message, sender) {
             // eslint-disable-next-line no-use-before-define
             let models = await getLanguageModels(message.tabId, message.languagePairs);
             // pass the downloaded language models to the mediator
-            browser.tabs.sendMessage(
-              message.tabId,
-              {
-                  command: "responseDownloadLanguageModels",
-                  tabId: message.tabId,
-                  languageModels: models
-              },
-              { frameId: 0 }
-            );
+            if (message.tabId > 0) {
+              browser.tabs.sendMessage(
+                message.tabId,
+                {
+                    command: "responseDownloadLanguageModels",
+                    tabId: message.tabId,
+                    languageModels: models
+                },
+                { frameId: 0 }
+              );
+            } else {
+              // send to popup
+              browser.runtime.sendMessage({
+                command: "responseDownloadLanguageModels",
+                tabId: message.tabId,
+                languageModels: models
+              });
+            }
           } catch (error) {
             // eslint-disable-next-line no-use-before-define
             sendUpdateProgress(message.tabId, ["updateProgress", "errorLoadingWasm"]);
@@ -441,6 +450,21 @@ const messageListener = function(message, sender) {
           break;
         case "refreshPage":
           browser.tabs.reload(message.tabId);
+          break;
+        case "returnLocalizedLanguages":
+          const mapLangs = new Map();
+          for (const [langPair,] of Object.entries(modelRegistry)) {
+            const firstLang = langPair.substring(0, 2);
+            const secondLang = langPair.substring(2, 4);
+            // eslint-disable-next-line no-await-in-loop
+            mapLangs.set(firstLang, await browser.experiments.translationbar.getLocalizedLanguageName(firstLang));
+            // eslint-disable-next-line no-await-in-loop
+            mapLangs.set(secondLang, await browser.experiments.translationbar.getLocalizedLanguageName(secondLang));
+          }
+          browser.runtime.sendMessage({
+            command: "responseLocalizedLanguages",
+            localizedLanguages: mapLangs
+        });
           break;
         default:
           // ignore
@@ -697,10 +721,20 @@ const sendUpdateProgress = (tabId, payload) => {
     // first we localize the message.
     // eslint-disable-next-line no-case-declarations
     let localizedMessage = getLocalizedMessage(payload);
-    browser.experiments.translationbar.updateProgress(
-      tabId,
-      localizedMessage
-    );
+    if (tabId >0) {
+      // request is coming from the tab
+      browser.experiments.translationbar.updateProgress(
+        tabId,
+        localizedMessage
+      );
+    } else {
+      // request is coming from the translation popup
+      browser.runtime.sendMessage({
+        command: "updateProgress",
+        localizedMessage
+      });
+    }
+
 }
 
 const digestSha256 = async buffer => {
