@@ -170,7 +170,8 @@ const messageListener = function(message, sender) {
           if (pageLanguage === "no") pageLanguage = "nb"
           browser.tabs.sendMessage(sender.tab.id, {
             command: "responseDetectPageLanguage",
-            pageLanguage: Intl.getCanonicalLocales(pageLanguage)[0]
+            pageLanguage: Intl.getCanonicalLocales(pageLanguage)[0],
+            isAutoTranslateOn: translateAsBrowseMap.get(sender.tab.id)?.translatingAsBrowse
           })
           break;
         }

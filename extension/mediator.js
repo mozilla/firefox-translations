@@ -61,7 +61,7 @@ class Mediator {
     }
 
     // eslint-disable-next-line max-lines-per-function
-    determineIfTranslationisRequired() {
+    determineIfTranslationisRequired(isAutoTranslateOn) {
 
         /*
          * here we:
@@ -71,8 +71,7 @@ class Mediator {
          * - initiate the outbound translation view and start the translation
          *      webworker
          */
-
-        if (this.languageDetection.isLangMismatch()) {
+        if (this.languageDetection.isLangMismatch() || isAutoTranslateOn) {
 
             /*
              * we need to keep track if the translationbar was already displayed
@@ -89,7 +88,7 @@ class Mediator {
             this.recordTelemetry("string", "metadata", "model_version", modelRegistryVersion);
             this.recordTelemetry("counter", "service", "lang_mismatch");
             browser.runtime.sendMessage({ command: "enablePing", tabId: this.tabId });
-            if (this.languageDetection.shouldDisplayTranslation()) {
+            if (this.languageDetection.shouldDisplayTranslation() || isAutoTranslateOn) {
                 // request the backgroundscript to display the translationbar
                 browser.runtime.sendMessage({
                     command: "displayTranslationBar",
@@ -304,7 +303,7 @@ class Mediator {
                 break;
             case "responseDetectPageLanguage":
                 this.languageDetection.setPageLanguage(message.pageLanguage);
-                if (this.isMainFrame) this.determineIfTranslationisRequired();
+                if (this.isMainFrame) this.determineIfTranslationisRequired(message.isAutoTranslateOn);
                 break;
             case "responseDownloadLanguageModels":
                 if (this.tabId && message.tabId === this.tabId && this.translation) {
