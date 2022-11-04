@@ -5,7 +5,6 @@ const langTo = $("#lang-to");
 let supportedFromCodes = {};
 let supportedToCodes = {};
 let mediator = null;
-let currentTo = null;
 let langs = null;
 
 
@@ -76,12 +75,13 @@ class Mediator {
 }
 
 const setLangs = (selector, langsToSet, value, exclude) => {
-    selector.innerHTML =  `<option value="0">${browser.i18n.getMessage("languageDefaultOption")}</option>`;
+    selector.innerHTML = `<option value="0">${browser.i18n.getMessage("languageDefaultOption")}</option>`;
     for (const [code, type] of Object.entries(langsToSet)) {
-        if (code === exclude) continue;
-        let name = langs.get(code);
-        if (type === "dev") name += " (Beta)";
-        selector.innerHTML += `<option value="${code}">${name}</option>`;
+        if (code !== exclude) {
+            let name = langs.get(code);
+            if (type === "dev") name += " (Beta)";
+            selector.innerHTML += `<option value="${code}">${name}</option>`;
+        }
     }
     selector.value = value;
 }
@@ -123,11 +123,9 @@ const translateCall = () => {
                 if (Object.keys(value).length === 0) {
                     setLangs(langFrom, supportedFromCodes, "0", null);
                     setLangs(langTo, supportedToCodes, "0", "0");
-                    currentTo = "0";
                 } else {
                     setLangs(langFrom, supportedFromCodes, value.langFrom, null);
                     setLangs(langTo, supportedToCodes, value.langTo, null);
-                    currentTo = "0";
                 }
             });
 
@@ -180,7 +178,6 @@ langFrom.addEventListener("change", () => {
 });
 
 langTo.addEventListener("change", () => {
-    currentTo = langTo.value;
     if (mediator) {
         browser.runtime.onMessage.removeListener(mediator.bgListener);
         mediator.translation = null;
