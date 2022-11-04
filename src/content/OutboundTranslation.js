@@ -195,8 +195,6 @@ export default class OutboundTranslation {
 		// Invisible area that can be dragged up or down to resize the pane
 		const resizeBar = createElement('div', {className: 'resize-bar'});
 
-		const closeButton = createElement('button', {className: 'primary close-button'}, ['Close']);
-
 		// Panel that shows outbound translation widgets
 		this.#tree.appendChild(this.#pane = createElement('dialog', {
 			className: 'pane',
@@ -229,7 +227,10 @@ export default class OutboundTranslation {
 				this.#referenceField = createElement('div', {
 					className: 'reference-field'
 				}),
-				closeButton
+				createElement('button', {
+					className: 'primary close-button',
+					onclick: this.stop.bind(this)
+				}, ['Close'])
 			])
 		]));
 
