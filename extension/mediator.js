@@ -72,6 +72,7 @@ class Mediator {
          *      webworker
          */
         if (this.languageDetection.isLangMismatch() || isAutoTranslateOn) {
+
             /*
              * we need to keep track if the translationbar was already displayed
              * or not, since during tests we found the browser may send the
