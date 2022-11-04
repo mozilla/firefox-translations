@@ -39,6 +39,16 @@ function moveCursorToEnd(target) {
 	}
 }
 
+function getEffectiveBackgroundColor(el) {
+	while (el) {
+		const style = getComputedStyle(el);
+		if (style.backgroundColor !== 'transparent' && !/^rgba\(.*,\s*0(\.\d+)?\)$/.test(style.backgroundColor))
+			return style.backgroundColor;
+		else
+			el = el.parentNode;
+	}
+}
+
 const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
 
 const name = (code) => {
@@ -108,6 +118,18 @@ export default class OutboundTranslation {
 	 * @type {HTMLElement}
 	 */
 	#referenceField;
+
+	/**
+	 * Overlay that shows the text is as it will be inserted in the page
+	 * @type {HTMLElement}
+	 */
+	#previewField;
+
+	/**
+	 * Text content of the preview field.
+	 * @type {String}
+	 */
+	#previewValue;
 
 	/**
 	 * Dropdown to select language of user input
@@ -188,9 +210,10 @@ export default class OutboundTranslation {
 		}));
 
 		// Ring drawn around the form field we're currently editing
-		this.#focusRing = this.#tree.appendChild(createElement('div', {
-			className: 'focus-ring',
-		}));
+		this.#focusRing = this.#tree.appendChild(createElement('div', {className: 'focus-ring'}, [
+			createElement('span', {className: 'label'}, ['Editing with TranslateLocally']),
+			this.#previewField = createElement('div', {className: 'preview-field'}, [])
+		]));
 
 		// Invisible area that can be dragged up or down to resize the pane
 		const resizeBar = createElement('div', {className: 'resize-bar'});
@@ -276,8 +299,6 @@ export default class OutboundTranslation {
 			console.log("TODO: Store userLanguage in preferredLanguageForOutboundTranslation to", e.target.value);
 		})
 
-		closeButton.addEventListener('click', this.stop.bind(this));
-
 		// Add resize behaviour to the invisible resize bar
 		resizeBar.addEventListener('mousedown', e => {
 			e.preventDefault(); // Prevent selecting stuff
@@ -348,10 +369,18 @@ export default class OutboundTranslation {
 	 * Disables Outbound translation for the page.
 	 */
 	stop() {
+		// Move focus back to original #target.
+		this.hide();
+
+		// Using setTarget(null) to trigger a final update of the value of the old
+		// target field. Will also call hide() but without the #target set, which is
+		// why we call it ourselves earlier.
+		// Note: might mess with event listeners, so calling before removing the
+		// listeners.
+		this.#setTarget(null);
+
 		document.body.removeEventListener('focusin', this.#onFocusTargetListener);
 		document.defaultView.removeEventListener('resize', this.#onResizeListener);
-
-		this.hide();
 	}
 
 	/**
@@ -375,17 +404,39 @@ export default class OutboundTranslation {
 	 */
 	hide() {
 		this.element.parentNode?.removeChild(this.element);
+		
 		if (this.#target) {
+			console.log('calling target.focus() for', this.#target);
 			this.#target.focus();
-			moveCursorToEnd(this.#target);
 		}
+
+		if (this.#target && !this.#target.isContentEditable)
+			moveCursorToEnd(this.#target);
 	}
 
 	/**
 	 * Can this element be edited by this widget?
 	 */
 	#isSupportedElement(element) {
-		return element.matches('textarea, input[type=text], input[type=search], [contenteditable=""], [contenteditable="true"]');
+		return element.matches('textarea, input:not([type]), input[type=text], input[type=search], [contenteditable=""], [contenteditable="true"]');
+	}
+
+	#usePreviewField() {
+		return this.#target?.isContentEditable;
+	}
+
+	#renderPreviewField() {
+		const targetStyle = getComputedStyle(this.#target);
+
+		const previewStyle = {};
+
+		for (let key of targetStyle)
+			if (['text', 'font', 'color', 'padding', 'line-'].some(prefix => key.startsWith(prefix)))
+				previewStyle[key] = targetStyle.getPropertyValue(key)
+
+		previewStyle['background-color'] = getEffectiveBackgroundColor(this.#target);
+
+		Object.assign(this.#previewField.style, previewStyle);
 	}
 
 	/**
@@ -396,12 +447,30 @@ export default class OutboundTranslation {
 	#setTarget(target) {
 		if (this.#target) {
 			this.#targetResizeObserver.unobserve(this.#target);
+
+			if (this.#usePreviewField() && this.#previewValue !== null)
+				this.#setTargetValue(this.#previewValue);
 		}
 
 		if (target && this.#isSupportedElement(target)) {
 			this.#target = target;
 
 			this.#targetResizeObserver.observe(this.#target);
+
+			if (this.#usePreviewField()) {
+				this.#previewField.hidden = false;
+
+				this.#renderPreviewField();
+				
+				// Set previewValue to Null to mark it as unchanged
+				this.#previewValue = null;
+
+				// Reflect the current text of the preview in the field? Not sure about
+				// this, as it could be copying a placeholder text.
+				this.#previewField.textContent = this.#getTargetValue();
+			} else {
+				this.#previewField.hidden = true;
+			}
 
 			this.show();
 		} else {
@@ -429,18 +498,40 @@ export default class OutboundTranslation {
 	 * @param {String} value
 	 */
 	#setTargetValue(value) {
-		let setter = null;
+		console.log('#setTargetValue', this.#target, value);
 
-		if ('value' in this.#target)
+		if ('value' in this.#target) {
 			// Reflect.apply(Reflect.getOwnPropertyDescriptor(this.#target.__proto__, 'value').get, this.#target, [value])
 			this.#target.value = value;
-		else if ('innerText' in this.#target)
-			this.#target.innerText = value; // I don't know a getOwnPropertyDescriptor variant of this
+
+			// Notify any external scripts of the change
+			const event = new Event("input", {bubbles: true});
+	    this.#target.dispatchEvent(event);
+	  } else if (this.#target.isContentEditable) {
+			// Source: https://github.com/facebook/draft-js/issues/616
+			const selection = window.getSelection();
+			const range = document.createRange();
+			range.selectNodeContents(this.#target);
+			selection.removeAllRanges();
+			selection.addRange(range);
+
+			// Wait for selection before dispatching the `beforeinput` event
+			document.addEventListener("selectionchange",(function() {
+				this.dispatchEvent(new InputEvent("beforeinput", {
+					inputType: "insertText",
+					data: value,
+					bubbles: true,
+					cancelable: true
+				}));
+			}).bind(this.#target), {once: true});
+		}
 		else
 			throw new Error(`No accessor implemented for type ${this.#target.__proto__.constructor.name}`);
-		
-		const event = new Event("input", {bubbles: true});
-    this.#target.dispatchEvent(event);
+	}
+
+	#setPreviewValue(value) {
+		this.#previewValue = value;
+		this.#previewField.innerText = value;
 	}
 
 	/**
@@ -600,7 +691,10 @@ export default class OutboundTranslation {
 			if (this.#target !== target)
 				return;
 
-			this.#setTargetValue(translated);
+			if (this.#usePreviewField())
+				this.#setPreviewValue(translated);
+			else
+				this.#setTargetValue(translated);
 
 			const reference = await this.delegate.translate({
 				from: this.#pageLanguage,
