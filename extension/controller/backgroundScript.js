@@ -207,6 +207,10 @@ const messageListener = function(message, sender) {
            * request the experiments API do display the infobar
            */
 
+          // we fallback to english if the browser's language is not supported
+          if (!message.languageDetection.languagesSupportedSet.has(message.languageDetection.navigatorLanguage)) {
+            message.languageDetection.navigatorLanguage = "en";
+          }
           let from = "en".concat(message.languageDetection.pageLanguage);
           let to = message.languageDetection.navigatorLanguage.substring(0,2).concat("en");
           if (from === "enen") from = to;
@@ -513,40 +517,44 @@ browser.pageAction.onClicked.addListener(tab => {
          * parameter as 'userrequest', in order to override the preferences.
          */
           let languageDetection = new LanguageDetection();
-          if (languageDetection.isBrowserSupported()) {
-            browser.experiments.translationbar.show(
-                tab.id,
-                "userrequest",
-                languageDetection.navigatorLanguage,
-                {
-                  displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
-                  outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
-                  qualityEstimationMessage: browser.i18n.getMessage("errorHighlightingMessage"),
-                  surveyMessage: browser.i18n.getMessage("surveyMessage"),
-                  translateAsBrowseOn: browser.i18n.getMessage("translateAsBrowseOn"),
-                  translateAsBrowseOff: browser.i18n.getMessage("translateAsBrowseOff"),
-                  thisPageIsIn: browser.i18n.getMessage("translationBarPageIsIn"),
-                  translateButton: browser.i18n.getMessage("translationBarTranslateButton"),
-                  optionsButton: browser.i18n.getMessage("translationBarOptionsButton"),
-                  neverThisSiteLabel: browser.i18n.getMessage("translationBarNeverThisSiteLabel"),
-                  neverThisSiteAccesskey: browser.i18n.getMessage("translationBarNeverThisSiteAccesskey"),
-                  neverForLanguageLabel: browser.i18n.getMessage("neverForLanguageLabel", ["%S"]),
-                  neverForLanguageAccesskey: browser.i18n.getMessage("neverForLanguageAccesskey"),
-                  optionsMenuLabel: browser.i18n.getMessage("optionsMenuLabel"),
-                  optionsMenuAccesskey: browser.i18n.getMessage("optionsMenuAccesskey"),
-                  closeNotificationTooltip: browser.i18n.getMessage("closeNotification")
-                },
-                true,
-                {
-                  outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
-                  qualityestimations: await browser.storage.local.get("qualityestimations-check")
-                },
-                translateAsBrowseMap.get(tab.id)
-                ? translateAsBrowseMap.get(tab.id)
-                : { translatingAsBrowse: false },
-                false
-            );
-          }
+
+          /*
+           * if the browser's language is not supported by the extension,
+           * we default it to english
+           */
+          if (!languageDetection.isBrowserSupported()) languageDetection.navigatorLanguage = "en";
+          browser.experiments.translationbar.show(
+              tab.id,
+              "userrequest",
+              languageDetection.navigatorLanguage,
+              {
+                displayStatisticsMessage: browser.i18n.getMessage("displayStatisticsMessage"),
+                outboundTranslationsMessage: browser.i18n.getMessage("outboundTranslationsMessage"),
+                qualityEstimationMessage: browser.i18n.getMessage("errorHighlightingMessage"),
+                surveyMessage: browser.i18n.getMessage("surveyMessage"),
+                translateAsBrowseOn: browser.i18n.getMessage("translateAsBrowseOn"),
+                translateAsBrowseOff: browser.i18n.getMessage("translateAsBrowseOff"),
+                thisPageIsIn: browser.i18n.getMessage("translationBarPageIsIn"),
+                translateButton: browser.i18n.getMessage("translationBarTranslateButton"),
+                optionsButton: browser.i18n.getMessage("translationBarOptionsButton"),
+                neverThisSiteLabel: browser.i18n.getMessage("translationBarNeverThisSiteLabel"),
+                neverThisSiteAccesskey: browser.i18n.getMessage("translationBarNeverThisSiteAccesskey"),
+                neverForLanguageLabel: browser.i18n.getMessage("neverForLanguageLabel", ["%S"]),
+                neverForLanguageAccesskey: browser.i18n.getMessage("neverForLanguageAccesskey"),
+                optionsMenuLabel: browser.i18n.getMessage("optionsMenuLabel"),
+                optionsMenuAccesskey: browser.i18n.getMessage("optionsMenuAccesskey"),
+                closeNotificationTooltip: browser.i18n.getMessage("closeNotification")
+              },
+              true,
+              {
+                outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
+                qualityestimations: await browser.storage.local.get("qualityestimations-check")
+              },
+              translateAsBrowseMap.get(tab.id)
+              ? translateAsBrowseMap.get(tab.id)
+              : { translatingAsBrowse: false },
+              false
+          );
     });
 });
 
