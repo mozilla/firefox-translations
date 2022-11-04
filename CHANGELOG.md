@@ -12,6 +12,7 @@ You can send suggestions or report issues to the team via any of the channels be
 
 ## [[v1.1.5]](https://github.com/mozilla/firefox-translations/tree/v1.1.5) - 2022-11-02
 ### Added
+- Popup page that allows the user to freely input text to be translated
 - Option to translate to a target language different than the browser's default
 - Option to return page to original state
 - The language pair currently in use is now being displayed in the translation bar
