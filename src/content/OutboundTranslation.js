@@ -460,7 +460,7 @@ export default class OutboundTranslation {
 	}
 
 	#usePreviewField() {
-		return this.#target?.isContentEditable;
+		return this.#target?.isContentEditable === 'true';
 	}
 
 	#renderPreviewField() {
@@ -541,7 +541,7 @@ export default class OutboundTranslation {
 	#setTargetValue(value) {
 		if ('value' in this.#target) {
 			setValueInput(this.#target, value);
-	  } else if (this.#target.isContentEditable) {
+	  } else if (this.#target.isContentEditable === 'true') {
 	  	setValueContentEditable(this.#target, value);
 		}
 		else
