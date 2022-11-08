@@ -38,6 +38,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
         <button class="notification-button" label="" anonid="translateAsBrowse" style="display:none;" oncommand="this.closest('notification').translateAsBrowse();"/>
         <button type="menu" class="notification-button" anonid="options">
           <menupopup class="translation-menupopup" onpopupshowing="this.closest('notification').optionsShowing();">
+            <checkbox anonid="neverOfferTranslation" oncommand="this.closest('notification').neverOfferTranslation();"/>
             <checkbox anonid="neverForSite" oncommand="this.closest('notification').neverForSite();"/>
             <menuitem anonid="neverForLanguage" oncommand="this.closest('notification').neverForLanguage();"/>
             <menuseparator/>
@@ -75,6 +76,9 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     this._getAnonElt("qualityestimations-check").setAttribute("label", translationNotificationManager.localizedLabels.qualityEstimationMessage);
     this._getAnonElt("displayStatistics").setAttribute("label", translationNotificationManager.localizedLabels.displayStatisticsMessage);
     this._getAnonElt("qualityestimations-check").checked = translationNotificationManager.infobarSettings.qualityestimations["qualityestimations-check"];
+    this._getAnonElt("neverOfferTranslation").setAttribute("label", translationNotificationManager.localizedLabels.neverOfferTranslation);
+    this._getAnonElt("neverOfferTranslation").checked = translationNotificationManager.infobarSettings.neverOfferTranslation["neverOfferTranslation-check"];
+
     this._getAnonElt("translateAsBrowse").setAttribute("label", translationNotificationManager.localizedLabels.translateAsBrowseOn);
     if (translationNotificationManager.otSupported) {
       this._getAnonElt("outboundtranslations-check").setAttribute("label", translationNotificationManager.localizedLabels.outboundTranslationsMessage);
@@ -371,6 +375,14 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     } else {
       perms.addFromPrincipal(principal, "translate", perms.ALLOW_ACTION);
     }
+  }
+
+  neverOfferTranslation() {
+    this.translationNotificationManager.setStorage(
+      "neverOfferTranslation-check",
+      this._getAnonElt("neverOfferTranslation").checked
+    );
+    if (this._getAnonElt("neverOfferTranslation").checked) this.closeCommand();
   }
 
   displayStatistics() {

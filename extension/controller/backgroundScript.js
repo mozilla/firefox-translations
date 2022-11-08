@@ -203,6 +203,10 @@ const messageListener = function(message, sender) {
             break;
         case "displayTranslationBar":
 
+          // first thing is to check if the user does no want to see the translationbar offered
+          const neverOfferTranslation = await browser.storage.local.get("neverOfferTranslation-check");
+          if (neverOfferTranslation["neverOfferTranslation-check"]) return;
+
           /*
            * request the experiments API do display the infobar
            */
@@ -238,12 +242,14 @@ const messageListener = function(message, sender) {
               neverForLanguageAccesskey: browser.i18n.getMessage("neverForLanguageAccesskey"),
               optionsMenuLabel: browser.i18n.getMessage("optionsMenuLabel"),
               optionsMenuAccesskey: browser.i18n.getMessage("optionsMenuAccesskey"),
-              closeNotificationTooltip: browser.i18n.getMessage("closeNotification")
+              closeNotificationTooltip: browser.i18n.getMessage("closeNotification"),
+              neverOfferTranslation: browser.i18n.getMessage("neverOfferTranslation")
             },
             false,
             {
               outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
-              qualityestimations: await browser.storage.local.get("qualityestimations-check")
+              qualityestimations: await browser.storage.local.get("qualityestimations-check"),
+              neverOfferTranslation
             },
             translateAsBrowseMap.get(sender.tab.id)
               ? translateAsBrowseMap.get(sender.tab.id)
@@ -543,12 +549,14 @@ browser.pageAction.onClicked.addListener(tab => {
                 neverForLanguageAccesskey: browser.i18n.getMessage("neverForLanguageAccesskey"),
                 optionsMenuLabel: browser.i18n.getMessage("optionsMenuLabel"),
                 optionsMenuAccesskey: browser.i18n.getMessage("optionsMenuAccesskey"),
-                closeNotificationTooltip: browser.i18n.getMessage("closeNotification")
+                closeNotificationTooltip: browser.i18n.getMessage("closeNotification"),
+                neverOfferTranslation: browser.i18n.getMessage("neverOfferTranslation")
               },
               true,
               {
                 outboundtranslations: await browser.storage.local.get("outboundtranslations-check"),
-                qualityestimations: await browser.storage.local.get("qualityestimations-check")
+                qualityestimations: await browser.storage.local.get("qualityestimations-check"),
+                neverOfferTranslation: await browser.storage.local.get("neverOfferTranslation-check")
               },
               translateAsBrowseMap.get(tab.id)
               ? translateAsBrowseMap.get(tab.id)
