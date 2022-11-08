@@ -383,7 +383,6 @@ window.MozTranslationNotification = class extends MozElements.Notification {
       this._getAnonElt("neverOfferTranslation").checked
     );
     if (this._getAnonElt("neverOfferTranslation").checked) this.closeCommand();
-
   }
 
   displayStatistics() {
