@@ -35,7 +35,14 @@ export default class SelectionTranslation {
 		}
 	}
 
-	start(selection) {
+	#getSelection(selection) {
+		if (selection.anchorNode.matches('input, textarea'))
+			return this.#getSelectionInFormElement(selection)
+		else
+			return this.#getSelectionInPage(selection);
+	}
+
+	#getSelectionInPage(selection) {
 		const selRange = selection.getRangeAt(0);
 
 		// Possible idea from 
@@ -43,6 +50,22 @@ export default class SelectionTranslation {
 
 		// Get bounding box of selection (in position:fixed terms!)
 		const box = selRange.getBoundingClientRect();
+
+		return {text, box};
+	}
+
+	#getSelectionInFormElement(selection) {
+		const field = selection.anchorNode;
+
+		const text = field.value.slice(field.selectionStart, field.selectionEnd);
+
+		const box = field.getBoundingClientRect();
+
+		return {text, box};
+	}
+
+	start(selection) {
+		const {text, box} = this.#getSelection(selection);
 		
 		// Unique id for this translation request so we know which one the popup
 		// is currently waiting for.
