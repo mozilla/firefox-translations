@@ -10,12 +10,13 @@ You can send suggestions or report issues to the team via any of the channels be
 
 [You can also rate and leave us a comment on Mozilla Addons.](https://addons.mozilla.org/en-US/firefox/addon/firefox-translations/)
 
-## [[v1.1.5]](https://github.com/mozilla/firefox-translations/tree/v1.1.5) - 2022-11-02
+## [[v1.2.0]](https://github.com/mozilla/firefox-translations/tree/v1.2.0) - 2022-11-08
 ### Added
 - Popup page that allows the user to freely input text to be translated
 - Option to translate to a target language different than the browser's default
 - Option to return page to original state
 - The language pair currently in use is now being displayed in the translation bar
+- Introduces option to prevent the translation bar from being displayed
 
 ### Changed
 - Fixed user interface and localization issues.
