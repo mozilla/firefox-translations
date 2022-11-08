@@ -9,7 +9,14 @@ function promisify(object, methods) {
 		get(target, prop, receiver) {
 			// Note: I tried using Reflect.get() here, but Chrome doesn't like that.
 			if (methods.includes(prop))
-				return (...args) => new Promise(accept => target[prop](...args, accept));
+				return (...args) => new Promise((accept, reject) => {
+					target[prop](...args, (retval) => {
+						if (chrome.runtime.lastError)
+							reject(chrome.runtime.lastError);
+						else
+							accept(retval);
+					})
+				});
 			else
 				return target[prop];
 		}
@@ -38,7 +45,7 @@ export default new class {
 			return new Proxy(chrome.storage, {
 				get(target, prop, receiver) {
 					if (['sync', 'local', 'managed'].includes(prop))
-						return promisify(chrome.storage[prop], ['get', 'set']);
+						return promisify(chrome.storage[prop], ['get', 'set', 'remove']);
 					else
 						return chrome.storage[prop]
 				}
@@ -67,5 +74,9 @@ export default new class {
 
 	get browserAction() {
 		return this.#runtime.browserAction;
+	}
+
+	get contextMenus() {
+		return this.#runtime.contextMenus;
 	}
 };

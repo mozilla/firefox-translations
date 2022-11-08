@@ -23,7 +23,7 @@ export const StateHelper = {
 		if (prop.substr(0, 1) === '!')
 			return !Reflect.get(target, prop.substr(1));
 
-		return Reflect.get(...arguments);
+		return Reflect.get(target, prop);
 	},
 	has(target, prop) {
 		if (prop.substr(0, 1) === '!')
@@ -35,10 +35,15 @@ export const StateHelper = {
 
 export function renderSelect(select, values) {
 	// Todo: we can be smarter about this!
+	const current = select.value;
+
 	while (select.length)
 		select.remove(0);
+	
 	for (let [value, label] of values)
 		select.add(new Option(label, value), null);
+
+	select.value = current;
 }
 
 export function queryXPathAll(root, query, callback) {
@@ -72,8 +77,12 @@ export class BoundElementRenderer {
 	render(state) {
 		const stateProxy = new Proxy(state, StateHelper);
 
+		const compare = ({attribute:a}, {attribute:b}) => a < b ? -1 : a > b ? 1 : 0;
+
 		this.elements.forEach(({el, bindings}) => {
-			bindings.forEach(({attribute, key}) => {
+			// Sorting bindings so we set `options` before `value`, because the other
+			// way around won't work.
+			bindings.sort(compare).forEach(({attribute, key}) => {
 				try {
 					switch (attribute) {
 						case 'options':
@@ -138,4 +147,52 @@ export async function* asCompleted(iterable) {
 		yield next;
 		promises.delete(next);
 	}
+}
+
+/**
+ * Test whether the element is visible on the page at all.
+ * @returns {Boolean}
+ */
+export function isElementVisible(element) {
+	if (element.nodeType === Node.TEXT_NODE)
+		element = element.parentElement;
+
+	// Based on jQuery (talk about battle-tested...)
+	// https://github.com/jquery/jquery/blob/main/src/css/hiddenVisibleSelectors.js
+	return element && !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+}
+
+/**
+ * Test whether an element intersects with the viewport.
+ * @param {Node}
+ * @param {{
+ * 	top?: Number,
+ *  bottom?: Number,
+ *  left?: Number,
+ *  right?: Number }} margin from edges of viewport
+ * @returns {Boolean} intersects or not
+ */
+export function isElementInViewport(element, margin) {
+	if (element.nodeType === Node.TEXT_NODE)
+		element = element.parentElement;
+
+	margin = {
+		top: 0,
+		left: 0,
+		bottom: 0,
+		right: 0,
+		...(margin || {})
+	};
+
+	const viewport = {
+		height: window.innerHeight || document.documentElement.clientHeight,
+		width: window.innerWidth || document.documentElement.clientWidth
+	};
+
+	const rect = element.getBoundingClientRect();
+
+	return rect.bottom >= margin.top &&
+		rect.top <= viewport.height - margin.bottom &&
+		rect.right >= margin.left &&
+		rect.left <= viewport.width - margin.right;
 }

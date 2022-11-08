@@ -1,0 +1,170 @@
+/* Host element acts as a spacer */
+:host {
+	display: block;
+	height: var(--outbound-translation-height);
+}
+
+:root {
+	color-scheme: light dark;
+}
+
+.pane,
+.focus-ring .label {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+.focus-ring {
+	z-index: 2147483646; /* One less than .pane */
+
+	position: absolute;
+	border-radius: 1px; /* Makes the box-shadow go `border-radius: 4px` */
+	box-shadow: #f00 0 0 0 4px;
+
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.focus-ring > .label {
+	position: absolute;
+	top: calc(-14px - 8px);
+	left: -4px;
+	padding: 4px;
+	background: red;
+	color: white;
+	border-radius: 4px 4px 0 0;
+	font-size: 14px;
+	line-height: 14px;
+
+	/* Prevent wrapping of the label */
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	max-width: 90%;
+
+	pointer-events: none;
+}
+
+.focus-ring > .preview-field {
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+
+	overflow: hidden;
+	overflow-y: auto;
+}
+
+.focus-ring > .preview-field[hidden] {
+	display: none;
+}
+
+.pane {
+	z-index: 2147483647;
+
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	width: auto;
+	height: var(--outbound-translation-height);
+	box-sizing: border-box;
+
+	background: canvas;
+	color: canvastext;
+
+	font-size: 14px;
+	margin: 0;
+	padding: 14px;
+	border: none;
+	border-top: 1px solid rgba(0, 0, 0, 0.25);	
+	
+	/* Shadow from https://getcssscan.com/css-box-shadow-examples */
+	box-shadow: rgba(0, 0, 0, 0.16) 0px 0 6px, rgba(0, 0, 0, 0.23) 0px 0 6px;
+}
+
+.pane button {
+	text-align: center;
+	border: 0;
+	border-radius: 2px;
+	line-height: 1.5em;
+}
+
+.pane button.primary {
+	background-color: #0060df;
+	color: #fff;
+}
+
+.pane button.primary:hover {
+	background-color: #003eaa;
+}
+
+.resize-bar {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: -3px;
+	height: 5px;
+	cursor: ns-resize;
+}
+
+.outbound-translation-widget {
+	display: grid;
+	grid: "input-label reference-label" min-content
+	      "input-field reference-field" 1fr
+	      "controls controls" min-content
+	      / 1fr 1fr;
+	grid-gap: 14px;
+
+	max-width: 1200px;
+	height: 100%;
+	margin: 0 auto;
+}
+
+.input-field-label {
+	grid-area: input-label;
+}
+
+.reference-field-label {
+	grid-area: reference-label;
+}
+
+.input-field {
+	grid-area: input-field;
+}
+
+.reference-field {
+	grid-area: reference-field;
+}
+
+.input-field-label,
+.reference-field-label {
+	margin: 0;
+	align-self: flex-end; /* keep labels closer to form fields */
+}
+
+.input-field,
+.reference-field {
+	flex: 1 0 auto;
+	resize: none;
+	border: 1px solid #ccc;
+	margin: 0;
+	padding: 7px;
+	font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+	white-space: pre-wrap;
+	overflow: auto;
+	border-radius: 3px;
+}
+
+.loading .reference-field:empty::after {
+	content: 'Translating…';
+	color: #ccc;
+}
+
+
+.close-button {
+	grid-area: controls;
+	padding: 7px 28px;
+	width: min-content;
+}

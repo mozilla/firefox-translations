@@ -89,11 +89,16 @@ export default class SelectionTranslation {
 		this.mediator.translate(text, {id, html: false});
 	}
 
-	 enqueueTranslationResponse(translated, {id}) {
+	 enqueueTranslationResponse({request: {user: {id}}, target, error}) {
 		if (id !== this.pendingId)
 			return;
 
 		this.panel.classList.remove('loading');
-		this.panelText.textContent = translated;
+
+		if (error) {
+			document.body.removeChild(this.panel);
+		} else {
+			this.panelText.textContent = target.text;
+		}
 	 }
 }
