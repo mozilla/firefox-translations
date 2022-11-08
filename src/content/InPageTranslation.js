@@ -664,7 +664,7 @@ export default class InPageTranslation {
 
         // Exclude editable elements for the same reason we don't translate the
         // contents of form input fields.
-        if (node.contentEditable === "true")
+        if (node.isContentEditable)
             return true;
 
         return false;
