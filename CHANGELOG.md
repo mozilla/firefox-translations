@@ -10,7 +10,7 @@ You can send suggestions or report issues to the team via any of the channels be
 
 [You can also rate and leave us a comment on Mozilla Addons.](https://addons.mozilla.org/en-US/firefox/addon/firefox-translations/)
 
-## [[v1.2]](https://github.com/mozilla/firefox-translations/tree/v1.2) - 2022-11-08
+## [[v1.2.0]](https://github.com/mozilla/firefox-translations/tree/v1.2.0) - 2022-11-08
 ### Added
 - Popup page that allows the user to freely input text to be translated
 - Option to translate to a target language different than the browser's default
