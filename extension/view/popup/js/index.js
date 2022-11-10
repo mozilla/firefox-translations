@@ -56,6 +56,10 @@ class Mediator {
                 message.payload[1].forEach(translationMessage => {
                     document.querySelector("#output").value = translationMessage.translatedParagraph;
                 });
+                if ($(".swap").disabled){
+                    $(".swap").disabled = false;
+                    $(".swap").style.cursor = "pointer";
+                }
                 break;
             default:
         }
@@ -88,7 +92,14 @@ const setLangs = (selector, langsToSet, value, exclude) => {
 const translateCall = () => {
     if (langFrom.value === "0" || langTo.value === "0") return;
     const text = `${document.querySelector("#input").value} `;
-    if (!text.trim().length) return;
+    if (!text.trim().length) {
+        $("#output").value = "";
+        if ($(".swap").disabled){
+            $(".swap").disabled = false;
+            $(".swap").style.cursor = "pointer";
+        }
+        return;
+    }
     const paragraphs = text.replace("\n", " ");
     $("#output").setAttribute("disabled", true);
     if (!mediator) {
@@ -149,13 +160,17 @@ const storeLangs = () => {
 
 $(".swap").addEventListener("click", () => {
     if (mediator){
+        $(".swap").disabled = true;
+        $(".swap").style.cursor = "wait";
         browser.runtime.onMessage.removeListener(mediator.bgListener);
         mediator.translation = null;
         mediator = null;
     }
     const prevLangFrom = langFrom.value
     langFrom.value = langTo.value;
+    const oldInput = $("#input").value;
     $("#input").value = $("#output").value;
+    $("#output").value = oldInput;
 
     if (prevLangFrom in supportedToCodes) {
         setLangs(langTo, supportedToCodes, prevLangFrom, langFrom.value);
