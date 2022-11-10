@@ -120,11 +120,13 @@ window.MozTranslationNotification = class extends MozElements.Notification {
     // fill the target language ddl
     const targetLanguage = this._getAnonElt("targetLanguage");
     for (let [code, name] of languagesSupported) {
-      if (this.translationNotificationManager.devLanguageSet.has(code)) {
-            name += " (Beta)";
+      if (this.translationNotificationManager.supportedToSet.has(code)) {
+        if (this.translationNotificationManager.devLanguageSet.has(code)) {
+          name += " (Beta)";
+        }
+        targetLanguage.appendItem(name, code);
+        this.localizedLanguagesByCode[code] = name;
       }
-      targetLanguage.appendItem(name, code);
-      this.localizedLanguagesByCode[code] = name;
     }
     targetLanguage.value = translationNotificationManager.navigatorLanguage;
 
@@ -185,6 +187,7 @@ window.MozTranslationNotification = class extends MozElements.Notification {
   translate() {
     const from = this._getSourceLang();
     const to = this._getTargetLang();
+    if (from === to) return;
     this._getAnonElt("lblSrcLng").style.display = "";
     this._getAnonElt("lblSrcLng").setAttribute(
       "value",
