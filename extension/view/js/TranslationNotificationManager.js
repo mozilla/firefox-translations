@@ -13,6 +13,7 @@ class TranslationNotificationManager {
         this._navigatorLanguage = navigatorLanguage;
         this.languageSet = new Set();
         this.devLanguageSet = new Set();
+        this.supportedToSet = new Set();
         this.storage = null;
         this.autoTranslate = {
             translatingAsBrowse: false
@@ -67,7 +68,7 @@ class TranslationNotificationManager {
             const firstLang = languagePair.substring(0, 2);
             const secondLang = languagePair.substring(2, 4);
             this.languageSet.add(firstLang);
-
+            this.supportedToSet.add(secondLang);
             if (isPivotModelDev ||
               ((secondLang === navLangCode || (requiresPivoting && secondLang === "en")) &&
                 this.modelRegistry[languagePair].model.modelType === "dev")) {
