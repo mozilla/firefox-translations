@@ -283,9 +283,9 @@ export default class OutboundTranslation {
 				}),
 				createElement('p', {className: 'reference-field-label'}, [
 					'Translating the translated text from ',
-					createElement('em', {'data-bind:text-content': 'userLanguageName'}),
-					' back into ',
 					createElement('em', {'data-bind:text-content': 'pageLanguageName'}),
+					' back into ',
+					createElement('em', {'data-bind:text-content': 'userLanguageName'}),
 					' to validate the translation:'
 				]),
 				this.#referenceField = createElement('div', {
