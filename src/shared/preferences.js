@@ -29,8 +29,8 @@ export default new class {
      * is made outside of this script (i.e. in popup.html or options.html)
      */
     listen(key, callback) {
-        compat.storage.local.onChanged.addListener(changes => {
-            if (key in changes)
+        compat.storage.onChanged.addListener((changes, area) => {
+            if (area === 'local' && key in changes)
                 callback(changes[key])
         });
     }
@@ -64,7 +64,10 @@ export default new class {
             listeners.forEach(listener => listener(result));
         });
 
-        compat.storage.local.onChanged.addListener(changes => {
+        compat.storage.onChanged.addListener((changes, area) => {
+            if (area !== 'local')
+                return;
+
             const diff = {};
 
             for (let key of defaults)
