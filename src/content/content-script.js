@@ -266,6 +266,10 @@ const outboundTranslation = new OutboundTranslation(new class {
             return response.target.text;
         }
     }
+
+    onUserLanguageChange(language) {
+        preferences.set('preferredLanguageForOutboundTranslation', language);
+    }
 }());
 
 // This one is mainly for the TRANSLATION_AVAILABLE event

@@ -309,7 +309,6 @@ export default class OutboundTranslation {
 				pageLanguageName: name(this.#pageLanguage),
 			};
 
-			console.trace('render called with ', renderState);
 			renderer.render(renderState)
 		});
 
@@ -336,9 +335,9 @@ export default class OutboundTranslation {
 		this.#onFocusTargetListener = this.#onFocusTarget.bind(this);
 
 		this.#userLanguageDropdown.addEventListener('input', e => {
-			this.setUserLanguage(e.target.value);
-			console.log("TODO: Store userLanguage in preferredLanguageForOutboundTranslation to", e.target.value);
-		})
+			if (!this.delegate.onUserLanguageChange || this.delegate.onUserLanguageChange(e.target.value) !== false)
+				this.setUserLanguage(e.target.value);
+		});
 
 		// Add resize behaviour to the invisible resize bar
 		resizeBar.addEventListener('mousedown', e => {
