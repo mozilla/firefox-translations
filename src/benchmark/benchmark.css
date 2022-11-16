@@ -1,5 +1,11 @@
+:root {
+	color-scheme: light dark;
+}
+
 html, body {
 	font: 14px/18px sans-serif;
+	background: Canvas;
+	color: CanvasText;
 }
 
 .activity-indicator {
