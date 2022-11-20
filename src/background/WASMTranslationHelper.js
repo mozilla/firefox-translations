@@ -45,6 +45,24 @@ class BergamotBacking extends TranslatorBacking {
         let {models} = await response.json();
         let serial = 0;
 
+        models = [
+            ...models,
+            {
+                "shortName": "en-uk-tiny",
+                "srcTags": {"en": "English"},
+                "trgTag": "uk",
+                "checksum": "dd9bbec6ee314e4ca0f991c34c23dac7f5dc6e505421f64001e9f517ea19bf2f",
+                "url": "https://mirror.ikhoefgeen.nl/enuk.student.tiny11.tar.gz",
+            },
+            {
+                "shortName": "uk-en-tiny",
+                "srcTags": {"uk": "Ukrainian"},
+                "trgTag": "en",
+                "checksum": "1c2887d1248124bb917bb08332d049e98bdb2cd8e26b53a09e8859a332ffee7f",
+                "url": "https://mirror.ikhoefgeen.nl/uken.student.tiny11.tar.gz",
+            },
+        ]
+
         // Add 'from' and 'to' keys for each model. Since theoretically a model
         // can have multiple froms keys in TranslateLocally, we do a little
         // product here.
@@ -157,12 +175,16 @@ class BergamotBacking extends TranslatorBacking {
             return found;
         };
 
-        const config = YAML.parse(find('config.intgemm8bitalpha.yml').readAsString());
+        // Find & read config file (with fallback for less preferable configurations)
+        const config = YAML.parse(find('config.intgemm8bitalpha.yml', 'config.intgemm8bit.yml', 'config.yml').readAsString());
 
+        console.assert(config.models?.length === 1, 'Translation model has single model file (no ensemble)');
         const model = find(config.models[0]).buffer;
 
+        console.assert(config.vocabs?.length === 2, 'Translation model has two vocabularies');
         const vocabs = config.vocabs.map(vocab => find(vocab).buffer);
 
+        console.assert(config.shortlist?.length >= 1, 'Translation model has one shortlist (and maybe some numbers)');
         const shortlist = find(config.shortlist[0]).buffer;
 
         performance.measure('loadTranslationModel', `loadTranslationModule.${JSON.stringify({from, to})}`);
