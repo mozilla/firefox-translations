@@ -14,13 +14,13 @@ TranslateLocally for the Browser is a fork of [Firefox Translations](https://git
 - Runs entirely offline (it downloads the necessary language model on demand, but it will never submit any text or metadata to any server.)
 - In-page translations, including support for web apps.
 - Translates selection
+- Translate as you type in form fields
 - [Can use TranslateLocally](#instructions-for-native-messaging) for even faster and more efficient translations. And you can import any translation model that is supported by [Marian](https://marian-nmt.github.io).
 
 ## Differences from _Firefox Translations_
 - Uses models from https://github.com/browsermt/students. Most of these are also available through Mozilla's extension.
 - UI is a button + popup instead of the translation bar because the translation bar is not available for unprivileged extensions.
-- Translation engine and cache is shared among all tabs and webpages
-- Removed form field translation (outbound translations) ([for now](https://github.com/jelmervdl/translatelocally-web-ext/issues/42))
+- Translation engine and memory is shared among all tabs and webpages
 - Removed optional translation quality indicators
 - UI is only in English ([for now](https://github.com/jelmervdl/translatelocally-web-ext/issues/43))
 
