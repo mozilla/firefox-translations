@@ -45,24 +45,6 @@ class BergamotBacking extends TranslatorBacking {
         let {models} = await response.json();
         let serial = 0;
 
-        models = [
-            ...models,
-            {
-                "shortName": "en-uk-tiny",
-                "srcTags": {"en": "English"},
-                "trgTag": "uk",
-                "checksum": "dd9bbec6ee314e4ca0f991c34c23dac7f5dc6e505421f64001e9f517ea19bf2f",
-                "url": "https://mirror.ikhoefgeen.nl/enuk.student.tiny11.tar.gz",
-            },
-            {
-                "shortName": "uk-en-tiny",
-                "srcTags": {"uk": "Ukrainian"},
-                "trgTag": "en",
-                "checksum": "1c2887d1248124bb917bb08332d049e98bdb2cd8e26b53a09e8859a332ffee7f",
-                "url": "https://mirror.ikhoefgeen.nl/uken.student.tiny11.tar.gz",
-            },
-        ]
-
         // Add 'from' and 'to' keys for each model. Since theoretically a model
         // can have multiple froms keys in TranslateLocally, we do a little
         // product here.
