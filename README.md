@@ -3,7 +3,7 @@ TranslateLocally for the Browser is a web-extension that enables client side in-
 
 TranslateLocally for the Browser is a fork of [Firefox Translations](https://github.com/mozilla/translatelocally-web-ext). It was initially developed in the [Bergamot project](https://browser.mt/) as a testing bed for the technology that went into Firefox Translations.
 
-![Screenshot of TranslateLocally for the Browser](./.github/screenshot.png)
+![Screenshot of TranslateLocally for the Browser](./.github/screenshot-translation-popup.png)
 
 # Installation in Firefox
 - Download the translatelocally.xpi file from [the latest release](https://addons.mozilla.org/en-GB/firefox/addon/translatelocally-for-firefox/).
