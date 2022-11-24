@@ -36,7 +36,7 @@ export default class SelectionTranslation {
 	}
 
 	#getSelection(selection) {
-		if (selection.anchorNode.matches('input, textarea'))
+		if (selection.anchorNode.nodeType === Node.ELEMENT_NODE && selection.anchorNode.matches('input, textarea'))
 			return this.#getSelectionInFormElement(selection)
 		else
 			return this.#getSelectionInPage(selection);
