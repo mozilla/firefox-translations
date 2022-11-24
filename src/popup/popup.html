@@ -7,6 +7,10 @@
 				color-scheme: light dark;
 			}
 
+			:invalid {
+				box-shadow: rgba(255, 0, 0, 0.5) 0 0 0 2px;
+			}
+
 			*[hidden] {
 				display: none !important;
 			}
@@ -57,8 +61,8 @@
 		<div class="states">
 			<div data-state="translation-available">
 				<p>Wanna translate this page?</p>
-				<select id="lang-from" data-bind:options="lang-from-options" data-bind:value="from"></select>
-				<select id="lang-to" data-bind:options="lang-to-options" data-bind:value="to"></select>
+				<select id="lang-from" data-bind:options="lang-from-options" data-bind:value="from" required></select>
+				<select id="lang-to" data-bind:options="lang-to-options" data-bind:value="to" required></select>
 				<button class="download-btn" class="primary" data-bind:hidden="!needs-download">Download language &amp; Translate page</button>
 				<button class="translate-btn" class="primary" data-bind:hidden="needs-download">Translate page</button>
 			</div>

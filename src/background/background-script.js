@@ -297,7 +297,7 @@ function updateActionButton(event) {
             compat.browserAction.enable(event.target.id);
             break;
         case State.TRANSLATION_NOT_AVAILABLE:
-            compat.browserAction.disable(event.target.id);            
+            compat.browserAction.disable(event.target.id);         
             break;
         case State.TRANSLATION_NOT_AVAILABLE:
         default:
@@ -740,6 +740,16 @@ async function main() {
     });
 
     chrome.contextMenus.onClicked.addListener((info, tab) => {
+        // First sanity check whether we know from and to languages
+        // (and it isn't the same by accident)
+        const {from, to} = getTab(tab.id).state;
+        if (from === undefined || to === undefined || from === to) {
+            compat.browserAction.openPopup();
+            return;
+        }
+
+        // Send the appropriate message down to the content script of the
+        // tab we just clicked inside of.
         switch (info.menuItemId) {
             case 'translate-selection':
                 getTab(tab.id).frames.get(info.frameId).postMessage({
