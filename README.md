@@ -9,7 +9,7 @@ Firefox Translations was developed with The Bergamot Project Consortium, coordin
 
 The current release version is available for installation on Mozilla Add-ons
 
-[![AMO](https://ffp4g1ylyit3jdyti1hqcvtb-wpengine.netdna-ssl.com/addons/files/2015/11/get-the-addon-small.png)](https://addons.mozilla.org/firefox/addon/firefox-translations/)
+[![AMO](https://user-images.githubusercontent.com/973388/205550053-b529d916-afcf-489b-9b25-dda151f88eec.png)](https://addons.mozilla.org/firefox/addon/firefox-translations/)
 
 ## Supported languages
 
@@ -38,6 +38,7 @@ The current release version is available for installation on Mozilla Add-ons
 
 ### Nightly builds
 
+#### Desktop
 You can test nightly builds of the extension in Firefox Nightly or Developer Edition in one of the [supported languages](#supported-languages) by following the steps below:
 - Type `about:config` in the navigation bar and set the following preferences:
 
@@ -48,6 +49,27 @@ You can test nightly builds of the extension in Firefox Nightly or Developer Edi
 
 - Then install the extension by clicking here  [![Firefox Translations - Install Nightly](https://img.shields.io/badge/Firefox_Translations-Install_Nightly-2ea44f)](https://github.com/mozilla/firefox-translations/releases/download/nightly/firefox_translations.xpi)
 - You may need to restart your browser and Firefox Translations will be ready to use. Just browse to a website in one of the [supported languages](#supported-languages) and the option to translate should be displayed.
+
+##### Demo
+
+https://user-images.githubusercontent.com/973388/205549475-8036df98-d5b5-4baa-af8f-350f7962f18e.mov
+
+#### Android
+
+This repository contains experimental Android support for the purpose of test and evaluation in the branch `android`. Only the in-page translation functionality is present and the user interface is more limited compared to the desktop version. You can test it by following the steps below: 
+
+1. Clone this repo, execute `npm install` and switch to the branch `android`
+2. [Install Firefox Nightly for Android in your phone](https://play.google.com/store/apps/details?id=org.mozilla.fenix&hl=en_US&gl=US)
+3. Connect your phone to your computer via USB
+4. [Follow these steps in order to setup your phone and browser to install the addon](https://extensionworkshop.com/documentation/develop/developing-extensions-for-firefox-for-android/#set-up-your-computer-and-android-emulator-or-device) 
+5. You might need to execute `adb shell pm grant org.mozilla.fenix android.permission.READ_EXTERNAL_STORAGE` in your terminal so the addon could be pushed to your phone
+6. Execute `adb devices` in your terminal, copy the device id, and replace the string `<device id from adb devices>` on package.json by it
+7. Execute `npm run android` in your terminal to install the addon in your phone and have the browser automatically started
+
+That should be enough to have the addon installed on Firefox in your Android. Folow the steps in the video below to learn how to use it.
+
+https://user-images.githubusercontent.com/973388/205548906-e6eaf82e-e4cd-4a78-8910-9823f1e82d71.mp4
+
 
 ## Development
 
