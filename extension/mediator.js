@@ -4,9 +4,10 @@
  */
 
 /* global LanguageDetection, OutboundTranslation, Translation , browser,
-InPageTranslation, browser, modelRegistryVersion, reportErrorsWrap, uuidv4 */
+InPageTranslation, browser, modelRegistryVersion, reportErrorsWrap, uuidv4, AndroidUI */
 
 /* eslint-disable max-lines */
+/* eslint-disable complexity */
 
 
 const THIS_ORIGIN = window.origin !== "null"
@@ -357,6 +358,8 @@ class Mediator {
             case "localizedLanguages":
                 this.localizedPageLanguage = message.localizedPageLanguage;
                 this.localizedNavigatorLanguage = message.localizedNavigatorLanguage;
+                this.androidUI = new AndroidUI();
+                if (this.isMainFrame) this.androidUI.show(this.tabId, this.localizedPageLanguage, this.localizedNavigatorLanguage);
                 break;
             case "onDetached":
 
@@ -370,6 +373,9 @@ class Mediator {
                     command: "detectPageLanguage",
                     languageDetection: this.languageDetection.extractPageContent(),
                 });
+                break;
+            case "updateProgress":
+                this.androidUI.updateProgress(message.progressMessage);
                 break;
             default:
           // ignore

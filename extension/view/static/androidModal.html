@@ -1,0 +1,163 @@
+<style>
+.modal {
+    all: initial;
+    display: none;
+    position: fixed;
+    z-index: 2147483647;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
+    animation-name: fadeIn;
+    animation-duration: 0.4s;
+}
+
+/* Modal Content */
+.modal-content {
+    all: initial;
+    position: fixed;
+    bottom: 0;
+    background-color: #fefefe;
+    width: 100%;
+    animation-name: slideIn;
+    animation-duration: 0.4s
+}
+
+/* The Close Button */
+.close {
+    all: initial;
+    color: white;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    padding-right: 10px;
+}
+
+.modal-header {
+    all: initial;
+    padding: 2px 0px 2px 0px;
+    background-color: #1C6BBD;
+    color: white;
+    text-align: center;
+    font-size: x-large;
+    display: block;
+    width: 100%;
+}
+
+.modal-footer {
+    all: initial;
+    padding: 2px;
+    background-color: #1C6BBD;
+    color: white;
+    text-align: center;
+    font-size: small;
+    display: block;
+    width: 100%;
+}
+
+@keyframes slideIn {
+    from {bottom: -300px; opacity: 0}
+    to {bottom: 0px; opacity: 1}
+}
+
+@keyframes fadeIn {
+    from {opacity: 0}
+    to {opacity: 1}
+}
+
+.modal-body {
+    all: initial;
+    display: grid;
+    width: 100%;
+    height: 20vmax;
+    grid-auto-rows: 25% 10% 25% 40%;
+    align-items: center;
+  }
+
+.grid-item {
+    text-align: center;
+}
+
+.grid-item.arrow {
+  color: #1C6BBD;
+}
+
+.fxtranslations-modal {
+  all: initial;
+}
+
+.control {
+  width: 50vw;
+  text-align: center;
+  height: 3vmax;
+}
+
+.control.button {
+  height: 5vmax;
+}
+
+.control.error {
+  border: 1px solid red;
+}
+</style>
+
+<div id="modalAndroid" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="close">&times;</span>
+      Firefox Translations
+    </div>
+    <div class="modal-body">
+      <div class="grid-item">
+        <select id ="srcLang" class="control">
+          <option value="es">Spanish</option>
+          <option value="et">Estonian</option>
+          <option value="en">English</option>
+          <option value="de">German</option>
+          <option value="cs">Czech</option>
+          <option value="bg">Bulgarian</option>
+          <option value="pt">Portuguese</option>
+          <option value="it">Italian</option>
+          <option value="fr">French</option>
+          <option value="pl">Polish</option>
+          <option value="ru">Russian</option>
+          <option value="fa">Persian (Farsi)</option>
+          <option value="is">Icelandic</option>
+          <option value="nn">Norwegian Nynorsk</option>
+          <option value="nb">Norwegian Bokmål</option>
+          <option value="uk">Ukrainian</option>
+          <option value="nl">Dutch</option>
+        </select>
+      </div>
+      <div class="grid-item arrow">&#8595;</div>
+      <div class="grid-item">
+        <select id ="dstLang" class="control">
+          <option value="es">Spanish</option>
+          <option value="et">Estonian</option>
+          <option value="en">English</option>
+          <option value="de">German</option>
+          <option value="cs">Czech</option>
+          <option value="bg">Bulgarian</option>
+          <option value="pt">Portuguese</option>
+          <option value="it">Italian</option>
+          <option value="fr">French</option>
+          <option value="pl">Polish</option>
+          <option value="ru">Russian</option>
+          <option value="fa">Persian (Farsi)</option>
+          <option value="is">Icelandic</option>
+          <option value="nn">Norwegian Nynorsk</option>
+          <option value="nb">Norwegian Bokmål</option>
+          <option value="uk">Ukrainian</option>
+          <option value="nl">Dutch</option>
+        </select>
+      </div>
+      <div class="grid-item">
+        <input type="button" value="Translate" id="translateBtn" class="control button"/>
+      </div>
+    </div>
+    <div class="modal-footer"></div>
+  </div>
+</div>

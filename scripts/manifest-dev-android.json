@@ -1,0 +1,123 @@
+{
+    "manifest_version": 2,
+    "name": "__MSG_extensionName__",
+    "description": "__MSG_extensionDescription__",
+    "version": "1.2.0",
+    "default_locale": "en_US",
+    "applications": {
+      "gecko": {
+        "id": "firefox-translations-addon@mozilla.org",
+        "strict_min_version": "90.0"
+      }
+    },
+    "browser_specific_settings": {
+      "gecko": {
+        "id": "firefox-translations-addon@mozilla.org",
+        "strict_min_version": "90.0"
+      }
+    },
+    "options_ui": {
+      "page": "view/static/dataConsent.html",
+      "browser_style": true
+    },
+    "permissions": [
+      "<all_urls>",
+      "tabs",
+      "webNavigation",
+      "storage",
+      "contextMenus"
+    ],
+    "background": {
+      "persistent": true,
+      "scripts": [
+        "model/static/DOMPurify/purify.min.js",
+        "view/js/AndroidUI.js",
+        "model/static/errorReporting/serializeError.js",
+        "model/modelRegistry.js",
+        "model/static/errorReporting/sentry.js",
+        "settings.js",
+        "controller/translation/bergamotTranslatorVersion.js",
+        "model/telemetry/schema.js",
+        "model/uuid.js",
+        "model/telemetry/PingSender.js",
+        "controller/languageDetection/LanguageDetection.js",
+        "controller/languageDetection/fasttext_wasm.js",
+        "controller/languageDetection/fasttext.js",
+        "model/telemetry/Metrics.js",
+        "model/telemetry/Telemetry.js",
+        "view/js/TranslationNotificationManager.js",
+        "controller/backgroundScript.js"
+      ]
+    },
+    "content_scripts": [
+      {
+        "matches": [
+          "<all_urls>"
+        ],
+        "js": [
+          "model/Queue.js",
+          "controller/translation/TranslationMessage.js",
+          "controller/translation/Translation.js"
+        ],
+        "all_frames": false,
+        "run_at": "document_idle"
+      },
+      {
+        "matches": [
+          "<all_urls>"
+        ],
+        "js": [
+          "model/static/DOMPurify/purify.min.js",
+          "model/static/errorReporting/serializeError.js",
+          "model/contentErrors.js",
+          "settings.js",
+          "model/modelRegistry.js",
+          "controller/languageDetection/LanguageDetection.js",
+          "view/js/OutboundTranslation.js",
+          "view/js/AndroidUI.js",
+          "view/js/InPageTranslation.js",
+          "model/uuid.js",
+          "mediator.js"
+        ],
+        "css": [
+          "view/static/outboundTranslation.css"
+        ],
+        "all_frames": true,
+        "run_at": "document_idle"
+      }
+
+    ],
+    "web_accessible_resources": [
+      "controller/translation/translationWorker.js"
+    ],
+    "incognito": "spanning",
+    "icons": {
+      "48": "/view/icons/translation-color.svg",
+      "96": "/view/icons/translation-color.svg"
+    },
+    "page_action": {
+      "show_matches": ["<all_urls>"],
+      "browser_style": true,
+      "default_icon": "view/icons/translation-bw.svg",
+      "default_title": "Firefox Translations"
+    },
+    "browser_action": {
+      "browser_style": true,
+      "default_icon": {
+        "16": "view/icons/translation-color.svg",
+        "32": "view/icons/translation-color.svg"
+      },
+      "default_title": "Firefox Translations",
+      "default_popup": "view/popup/index.html",
+      "theme_icons": [{
+        "light": "view/icons/translation-color.svg",
+        "dark": "view/icons/translation-color.svg",
+        "size": 16
+      }, {
+        "light": "view/icons/translation-color.svg",
+        "dark": "view/icons/translation-color.svg",
+        "size": 32
+      }]
+    },
+    "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';"
+  }
