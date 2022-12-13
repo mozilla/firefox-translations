@@ -476,7 +476,8 @@ const messageListener = function(message, sender) {
             command: "responseLocalizedLanguages",
             localizedLanguages: mapLangs,
             popupPreLoadText
-        });
+          });
+          popupPreLoadText = "";
           break;
         default:
           // ignore
@@ -857,7 +858,7 @@ const getItemFromWeb = async (tabId, itemURL, fileSize, fileChecksum) => {
 
 browser.contextMenus.create({
   id: "firefox-translations",
-  title: "Translate with Firefox Translations",
+  title: `${browser.i18n.getMessage("translateWith")} Firefox Translations`,
   contexts: ["selection"],
 });
 
