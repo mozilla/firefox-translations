@@ -858,7 +858,7 @@ const getItemFromWeb = async (tabId, itemURL, fileSize, fileChecksum) => {
 
 browser.contextMenus.create({
   id: "firefox-translations",
-  title: `${browser.i18n.getMessage("translateWith")} Firefox Translations`,
+  title: browser.i18n.getMessage("translateWith"),
   contexts: ["selection"],
 });
 
