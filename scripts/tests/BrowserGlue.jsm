@@ -9,7 +9,7 @@
     (async () => {
       let addon = await lazy.AddonManager.getAddonByID(oldID);
       if (addon) {
-        addon.uninstall().catch(Cu.reportError);
+        addon.uninstall().catch(console.error);
       }
     })();
 
