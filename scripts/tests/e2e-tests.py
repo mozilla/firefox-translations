@@ -12,8 +12,10 @@ root = os.getcwd()
 
 if sys.argv[1] == "esr102":
     print("Testing on esr102")
+    browserGlueFile = "gecko/browser/components/BrowserGlue.jsm"
 else:
     print("Testing on main")
+    browserGlueFile = "gecko/browser/components/BrowserGlue.sys.mjs"
 
 # Remove old gecko
 subprocess.call("rm -rf gecko".split(), cwd=root)
@@ -57,11 +59,11 @@ if sys.argv[1] == "esr102":
     dataBrowserGlue = dataBrowserGlue.replace("lazy.AddonManager", "AddonManager")
 f.close()
 
-fp = open("gecko/browser/components/BrowserGlue.jsm")
+fp = open(browserGlueFile)
 Lines = fp.readlines()
 fp.close()
 count = 0
-with open('gecko/browser/components/BrowserGlue.jsm', 'w') as fp:
+with open(browserGlueFile, 'w') as fp:
     for line in Lines:
         if len(Lines) > count + 1 and "async _setupSearchDetection() {" in Lines[count + 1]:
             fp.write(dataBrowserGlue + "\n")
