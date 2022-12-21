@@ -140,7 +140,7 @@ const translateCall = () => {
                 }
             });
 
-
+            document.querySelector("#input").value = message.popupPreLoadText;
             document.getElementById("status").innerText = browser.i18n.getMessage("translationBarTranslateButton");
         }
     }

@@ -25,11 +25,13 @@
     "tabs",
     "webNavigation",
     "storage",
-    "mozillaAddons"
+    "mozillaAddons",
+    "contextMenus"
   ],
   "background": {
     "persistent": true,
     "scripts": [
+      "model/static/DOMPurify/purify.min.js",
       "model/static/errorReporting/serializeError.js",
       "model/modelRegistry.js",
       "model/static/errorReporting/sentry.js",

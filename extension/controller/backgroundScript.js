@@ -2,7 +2,7 @@
 /* eslint-disable max-lines */
 /* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL,
 Telemetry, loadFastText, FastText, Sentry, settings, deserializeError,
-modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry */
+modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry, DOMPurify */
 
 /*
  * we need the background script in order to have full access to the
@@ -76,6 +76,7 @@ let isMochitest = false;
 const languageModelFileTypes = ["model", "lex", "vocab", "qualityModel", "srcvocab", "trgvocab"];
 const CACHE_NAME = "fxtranslations";
 const FT_SCORE_THRESHOLD = 0.75;
+let popupPreLoadText = null;
 
 const init = () => {
   Sentry.wrap(async () => {
@@ -473,8 +474,10 @@ const messageListener = function(message, sender) {
           }
           browser.runtime.sendMessage({
             command: "responseLocalizedLanguages",
-            localizedLanguages: mapLangs
-        });
+            localizedLanguages: mapLangs,
+            popupPreLoadText
+          });
+          popupPreLoadText = "";
           break;
         default:
           // ignore
@@ -852,3 +855,16 @@ const getItemFromWeb = async (tabId, itemURL, fileSize, fileChecksum) => {
   }
   return fetchResponse;
 };
+
+browser.contextMenus.create({
+  id: "firefox-translations",
+  title: browser.i18n.getMessage("translateWith", "Firefox Translations"),
+  contexts: ["selection"],
+});
+
+browser.contextMenus.onClicked.addListener(info => {
+  if (info.menuItemId === "firefox-translations") {
+    popupPreLoadText = DOMPurify.sanitize(info.selectionText, { USE_PROFILES: { html: true } });
+    browser.browserAction.openPopup();
+  }
+});
