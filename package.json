@@ -11,13 +11,12 @@
   },
   "devDependencies": {
     "copy-webpack-plugin": "^11.0.0",
-    "eslint": "^7.32.0",
     "html-loader": "^4.1.0",
     "loader-utils": "^3.2.0",
-    "web-ext": "^6.6.0",
+    "web-ext": "^7.4.0",
     "web-ext-plugin": "^2.1.1",
     "webpack": "^5.74.0",
-    "webpack-cli": "^4.10.0"
+    "webpack-cli": "^5.0.0"
   },
   "dependencies": {
     "@browsermt/bergamot-translator": "^0.4.9",
