@@ -31,6 +31,51 @@ function removeTextNodes(node) {
     });
 }
 
+/**
+ * Similar to createTreeWalker's functionality, but the filter function gets
+ * context when descending down a branch. This is used to dig down excluded
+ * branches of the DOM when looking for included branches inside those.
+ * 
+ * arguments:
+ *   node:    Element that is first considered.
+ *   filter:  Filter function that's called with (node, context) and should 
+ *            return {action:, context:} object. `action` is NodeFilter enum
+ *            value and context is the new context when FILTER_SKIP is issued.
+ *   context: Initial context value.
+ */
+function *walkTree(node, filter, context) {
+    let stack = [];
+
+    while (node || stack.length > 0) {
+        // !node -> no next sibling, move to next sibling of parent
+        if (!node) {
+            let prev = stack.pop();
+            node = prev.node.nextElementSibling
+            context = prev.context;
+            continue
+        }
+
+        let response = filter(node, context);
+
+        // "Skip" means look at children
+        switch (response.action) {
+            case NodeFilter.FILTER_SKIP:
+                stack.push({node, context});
+                context = response.context;
+                node = node.firstElementChild;
+                break;
+            case NodeFilter.FILTER_ACCEPT:
+                yield node;
+                // Intentional fall-through
+            case NodeFilter.FILTER_REJECT:
+                node = node.nextElementSibling;
+                break;
+            default:
+                throw Error('Filter returned invalid action')
+        }
+    }
+}
+
 // eslint-disable-next-line no-unused-vars
 export default class InPageTranslation {
 
@@ -460,46 +505,42 @@ export default class InPageTranslation {
         if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.TEXT_NODE)
             return;
 
+        // Check our context for the node. Are we inside a [translate=no] branch
+        // of the tree? If so, that changes which children and grandchildren we
+        // consider for translation.
+        let isExcludedTree = false;
+
         // If the parent itself is rejected, we don't translate any children.
         // However, if this is a specifically targeted node, we don't do this
         // check. Mainly so we can exclude <head>, but include <title>.
         if (!this.targetNodes.has(root)) {
+            // If this node is inside an excluded node, like <pre>, nope.
             for (let parent of ancestors(root)) {
                 if (this.isExcludedNode(parent))
-                    return;
+                    return; // Don't translate
+            }
+
+            // Check whether we're in an explicitly included or excluded
+            // branch. Since we're looking from the node towards the root, our
+            // first explicit *translate=yes* or *translate=no* is sufficient.
+            for (let parent of ancestors(root)) {
+                if (this.isIncludedTree(parent)) {
+                    isExcludedTree = false;
+                    break;
+                } else if (this.isExcludedTree(parent)) {
+                    isExcludedTree = true;
+                    break;
+                }
             }
         }
 
-        // TODO: Bit of added complicated logic to include `root` in the set
-        // of nodes that is being evaluated. Normally TreeWalker will only
-        // look at the descendants.
-        switch (this.validateNodeForQueue(root)) {
-            // If even the root is already rejected, no need to look further
-            case NodeFilter.FILTER_REJECT:
-                return;
-            
-            // If the root itself is accepted, we don't need to drill down
-            // either. But we do want to call dispatchTranslations().
-            case NodeFilter.FILTER_ACCEPT:
-                this.enqueueTranslation(root);
-                break;
-            
-            // If we skip the root (because it's a block element and we want to
-            // cut it into smaller chunks first) then start tree walking to
-            // those smaller chunks.
-            case NodeFilter.FILTER_SKIP: {
-                const nodeIterator = document.createTreeWalker(
-                    root,
-                    NodeFilter.SHOW_ELEMENT,
-                    this.validateNodeForQueue.bind(this)
-                );
+        const nodeIterator = walkTree(
+            root,
+            this.validateNodeForQueue.bind(this),
+            {isExcludedTree});
 
-                let currentNode;
-                while (currentNode = nodeIterator.nextNode()) {
-                    this.enqueueTranslation(currentNode);
-                }
-            } break;
-        }
+        for (let currentNode of nodeIterator)
+            this.enqueueTranslation(currentNode);
 
         this.dispatchTranslations();
     }
@@ -640,6 +681,19 @@ export default class InPageTranslation {
         if (this.excludedTags.has(node.nodeName.toLowerCase()))
             return true;
 
+        // Exclude editable elements for the same reason we don't translate the
+        // contents of form input fields.
+        if (node.isContentEditable)
+            return true;
+
+        return false;
+    }
+
+    /**
+     * Is node a subtree that we exclude, but might contain elements that we
+     * should include?
+     */
+    isExcludedTree(node) {
         // Exclude elements that have a lang attribute that mismatches the
         // language we're currently translating. Run it through
         // getCanonicalLocales() because pages get creative.
@@ -662,9 +716,31 @@ export default class InPageTranslation {
         if (node.classList.contains('notranslate'))
             return true;
 
-        // Exclude editable elements for the same reason we don't translate the
-        // contents of form input fields.
-        if (node.isContentEditable)
+        return false;
+    }
+
+    /**
+     * Is node a subtree that we should include, even though we're currently
+     * in a branch that we don't want to translate?
+     */
+    isIncludedTree(node) {
+        try {
+            if (node.lang && Intl.getCanonicalLocales(node.lang).some(lang => this.isSameLanguage(lang, this.language)))
+                return true;
+        } catch (err) {
+            // RangeError is expected if node.lang is not a known language
+            if (err.name !== "RangeError")
+                throw err;
+        }
+
+        // Exclude elements that have an translate=no attribute
+        // (See https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/translate)
+        if (node.translate === true || node.getAttribute('translate') === 'yes')
+            return true;
+
+        // Exclude elements with the notranslate class which is also honoured
+        // by Google Translate
+        if (node.classList.contains('translate'))
             return true;
 
         return false;
@@ -694,7 +770,7 @@ export default class InPageTranslation {
      *                    but subtrees beneath it could be!
      *   - FILTER_REJECT: skip this node and everything beneath it.
      */
-    validateNode(node) {
+    validateNode(node, context) {
         const mark = (value) => {
             if (node.nodeType === Node.ELEMENT_NODE)
                 node.setAttribute('x-bergamot-translated', value);
@@ -704,24 +780,44 @@ export default class InPageTranslation {
         // contents have been changed
         if (this.queuedNodes.has(node) || this.isParentQueued(node)) {
             // node.setAttribute('x-bergamot-translated', 'rejected is-parent-translating');
-            return NodeFilter.FILTER_REJECT;
+            return {action: NodeFilter.FILTER_REJECT};
         }
 
         // Exclude nodes that we don't want to translate
         if (this.isExcludedNode(node)) {
             mark('rejected is-excluded-node');
-            return NodeFilter.FILTER_REJECT;
+            return {action: NodeFilter.FILTER_REJECT};
+        }
+
+        // If this subtree is mark as dont-translate, skip it (but keep digging)
+        if (!context.isExcludedTree && this.isExcludedTree(node)) {
+            mark('skipped is-excluded-tree');
+            return {action: NodeFilter.FILTER_SKIP, context: {...context, isExcludedTree: true}};
+        }
+
+        // If we are inside a branch that's excluded by default, look for marks
+        // that say this subtree should be included again.
+        if (context.isExcludedTree) {
+            // If not found, just skip
+            if (!this.isIncludedTree(node)) {
+                mark('skipped ~is-included-tree');
+                return {action: NodeFilter.FILTER_SKIP, context};
+            } else {
+                // otherwise update context and continue as if we're in an
+                // include-by-default subtree.
+                 context = {...context, isExcludedTree: false};
+            }
         }
 
         // Skip over subtrees that don't have text
         if (!this.hasContent(node)) {
             mark('rejected empty-text-content');
-            return NodeFilter.FILTER_REJECT;
+            return {action: NodeFilter.FILTER_REJECT};
         }
             
         if (!this.hasInlineContent(node)) {
             mark('skipped does-not-have-text-of-its-own');
-            return NodeFilter.FILTER_SKIP; // otherwise dig deeper
+            return {action: NodeFilter.FILTER_SKIP, context}; // otherwise dig deeper
         } 
 
         // Dig down deeper if we would otherwise also submit an excluded node
@@ -729,10 +825,14 @@ export default class InPageTranslation {
         // child of `node` if we did that.
         if (this.containsExcludedNode(node) && !this.hasTextNodes(node)) {
             mark('skipped contains-excluded-node');
-            return NodeFilter.FILTER_SKIP; // otherwise dig deeper  
+            return {action: NodeFilter.FILTER_SKIP, context}; // otherwise dig deeper  
         }
         
-        return NodeFilter.FILTER_ACCEPT; // send whole node as a single block
+        // If we're in an exclude-by-default branch of the tree, SKIP.
+        if (context.isExcludedTree)
+            return {action: NodeFilter.FILTER_SKIP, context}
+
+        return {action: NodeFilter.FILTER_ACCEPT}; // send whole node as a single block
     }
 
     /**
@@ -740,14 +840,14 @@ export default class InPageTranslation {
      * subtree. Checks whether element is acceptable, and hasn't been
      * translated already.
      */
-    validateNodeForQueue(node) {
+    validateNodeForQueue(node, context) {
         // Skip nodes already seen (for the partial subtree change, or restart of the
         // whole InPageTranslation process.)
         if (this.processedNodes.has(node)) {
-            return NodeFilter.FILTER_REJECT;
+            return {action: NodeFilter.FILTER_REJECT};
         }
 
-        return this.validateNode(node);
+        return this.validateNode(node, context);
     }
 
     /**
