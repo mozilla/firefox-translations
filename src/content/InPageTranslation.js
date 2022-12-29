@@ -930,12 +930,17 @@ export default class InPageTranslation {
     }
 
     updateElements() {
+        const parser = new DOMParser();
+
         const updateElement = ({id, translated}, node) => {
             // console.groupCollapsed(computePath(node));
             node.setAttribute('x-bergamot-translated', '');
             
-            const scratch = document.createElement('template');
-            scratch.innerHTML = translated;
+            // Parse HTML string into dummy HTMLDocument we will then compare
+            // against the current real document. HTML from `translated` will
+            // never be added as-is to the live document. The translator cannot
+            // "dream up" new elements. It can at most duplicate existing ones.
+            const scratch = parser.parseFromString(translated, 'text/html');
 
             const originalHTML = node.innerHTML;
 
@@ -1054,7 +1059,7 @@ export default class InPageTranslation {
                     });
             };
 
-            merge(node, scratch.content);
+            merge(node, scratch.body);
         };
 
         const updateTextNode = ({id, translated}, node) => {
