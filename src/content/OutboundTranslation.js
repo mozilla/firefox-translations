@@ -114,7 +114,7 @@ export default class OutboundTranslation {
 	/**
 	 * @type {String[]}
 	 */
-	#userLanguageOptions;
+	#userLanguageOptions = [];
 
 	/**
 	 * DOM root of outbound translation pane.
