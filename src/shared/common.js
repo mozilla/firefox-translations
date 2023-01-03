@@ -43,7 +43,8 @@ export function renderSelect(select, values) {
 	for (let [value, label] of values)
 		select.add(new Option(label, value), null);
 
-	select.value = current;
+	if (current)
+		select.value = current;
 }
 
 export function queryXPathAll(root, query, callback) {
@@ -60,18 +61,43 @@ export class BoundElementRenderer {
 	constructor(root) {
 		// this.elements = queryXPathAll(root, './/*[@*[starts-with(name(), "data-bind:")]]');
 		this.elements = [];
-		
-		root.querySelectorAll('*').forEach(el => {
-			const bindings = [];
 
-			Object.entries(el.dataset).forEach(([key, value]) => {
-				let match = key.match(/^bind:(.+)$/);
-				if (match) bindings.push({attribute: match[1], key: value});
-			});
+		if (!(root instanceof Node))
+			console.trace('constructor without element');
 
-			if (bindings.length > 0)
-				this.elements.push({el, bindings});
-		});
+		let stack = [];
+		let el = root;
+		const next = root.nextElementSibling;
+
+		while (el ? el !== next : stack.length > 0) {
+			if (!el) {
+				el = stack.pop().nextElementSibling;
+				continue;
+			}
+
+			let bindings = [];
+			let nested = null;
+
+			if (el.dataset) {
+				Object.entries(el.dataset).forEach(([key, value]) => {
+					let match = key.match(/^bind:(.+)$/);
+					if (match) bindings.push({attribute: match[1], key: value});
+				});
+
+				if (el !== root && 'bind:hidden' in el.dataset)
+					nested = new BoundElementRenderer(el);
+
+				if (bindings.length || nested)
+					this.elements.push({el, bindings, nested})
+			}
+
+			if (el.firstElementChild && !nested) {
+				stack.push(el);
+				el = el.firstElementChild;
+			} else {
+				el = el.nextElementSibling;
+			}
+		}
 	}
 
 	render(state) {
@@ -79,7 +105,7 @@ export class BoundElementRenderer {
 
 		const compare = ({attribute:a}, {attribute:b}) => a < b ? -1 : a > b ? 1 : 0;
 
-		this.elements.forEach(({el, bindings}) => {
+		this.elements.forEach(({el, nested, bindings}) => {
 			// Sorting bindings so we set `options` before `value`, because the other
 			// way around won't work.
 			bindings.sort(compare).forEach(({attribute, key}) => {
@@ -106,6 +132,11 @@ export class BoundElementRenderer {
 					console.error('Error while setting',attribute, 'of', el, 'to the value of', key, ':', e, state[key]);
 				}
 			});
+
+			// If this is a el[hidden] type of element, it is rendered separately
+			// and only when relevant.
+			if (nested && !el.hidden)
+				nested.render(state);
 		});
 	}
 }
