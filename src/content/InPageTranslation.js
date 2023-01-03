@@ -45,8 +45,9 @@ function removeTextNodes(node) {
  */
 function *walkTree(node, filter, context) {
     let stack = [];
+    const next = node.nextElementSibling;
 
-    while (node || stack.length > 0) {
+    while (node ? node !== next : stack.length > 0) {
         // !node -> no next sibling, move to next sibling of parent
         if (!node) {
             let prev = stack.pop();
