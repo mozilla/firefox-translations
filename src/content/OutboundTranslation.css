@@ -2,9 +2,6 @@
 :host {
 	display: block;
 	height: var(--outbound-translation-height);
-}
-
-:root {
 	color-scheme: light dark;
 }
 
