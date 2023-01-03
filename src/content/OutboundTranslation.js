@@ -1,26 +1,6 @@
-import { BoundElementRenderer, isElementInViewport, debounce } from '../shared/common.js';
+import { createElement, BoundElementRenderer, isElementInViewport, debounce } from '../shared/common.js';
 import compat from '../shared/compat.js';
 import { SupersededError } from '@browsermt/bergamot-translator';
-
-function createElement(name, attributes, children) {
-	const el = document.createElement(name);
-
-	// Todo nested stuff?
-	for (let [key, value] of Object.entries(attributes))
-		if (key in el)
-			el[key] = value;
-		else
-			el.setAttribute(key, value);
-
-	for (let child of (children || [])) {
-		if (!(child instanceof Node))
-			child = document.createTextNode(child)
-
-		el.appendChild(child);
-	}
-
-	return el
-}
 
 function moveCursorToEnd(target) {
 	if ('value' in target) {

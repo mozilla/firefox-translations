@@ -43,6 +43,8 @@ export function renderSelect(select, values) {
 	for (let [value, label] of values)
 		select.add(new Option(label, value), null);
 
+	console.log('renderSelect', select.options, select.value, current);
+
 	if (current)
 		select.value = current;
 }
@@ -226,4 +228,24 @@ export function isElementInViewport(element, margin) {
 		rect.top <= viewport.height - margin.bottom &&
 		rect.right >= margin.left &&
 		rect.left <= viewport.width - margin.right;
+}
+
+export function createElement(name, attributes, children) {
+	const el = document.createElement(name);
+
+	// Todo nested stuff?
+	for (let [key, value] of Object.entries(attributes))
+		if (key in el)
+			el[key] = value;
+		else
+			el.setAttribute(key, value);
+
+	for (let child of (children || [])) {
+		if (!(child instanceof Node))
+			child = document.createTextNode(child)
+
+		el.appendChild(child);
+	}
+
+	return el
 }

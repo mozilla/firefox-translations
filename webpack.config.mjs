@@ -102,6 +102,9 @@ export default {
           from: 'src/content/OutboundTranslation.css'
         },
         {
+          from: 'src/content/SelectionTranslation.css'
+        },
+        {
           from: 'node_modules/@browsermt/bergamot-translator/worker/bergamot-translator-worker.js'
         },
         {
