@@ -157,12 +157,16 @@ class BergamotBacking extends TranslatorBacking {
             return found;
         };
 
-        const config = YAML.parse(find('config.intgemm8bitalpha.yml').readAsString());
+        // Find & read config file (with fallback for less preferable configurations)
+        const config = YAML.parse(find('config.intgemm8bitalpha.yml', 'config.intgemm8bit.yml', 'config.yml').readAsString());
 
+        console.assert(config.models?.length === 1, 'Translation model has single model file (no ensemble)');
         const model = find(config.models[0]).buffer;
 
+        console.assert(config.vocabs?.length === 2, 'Translation model has two vocabularies');
         const vocabs = config.vocabs.map(vocab => find(vocab).buffer);
 
+        console.assert(config.shortlist?.length >= 1, 'Translation model has one shortlist (and maybe some numbers)');
         const shortlist = find(config.shortlist[0]).buffer;
 
         performance.measure('loadTranslationModel', `loadTranslationModule.${JSON.stringify({from, to})}`);
