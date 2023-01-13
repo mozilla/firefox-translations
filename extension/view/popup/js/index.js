@@ -85,7 +85,7 @@ const setLangs = (selector, langsToSet, value, exclude) => {
         if (code !== exclude) {
             let name = langs.get(code);
             if (type === "dev") name += " (Beta)";
-            selector.innerHTML += DOMPurify.sanitize(`<option value="${code}">${name}</option>`, { USE_PROFILES: { html: true } });
+            selector.add(new Option(name, code));
         }
     }
     selector.value = value;
