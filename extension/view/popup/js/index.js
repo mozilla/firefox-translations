@@ -79,7 +79,8 @@ class Mediator {
 }
 
 const setLangs = (selector, langsToSet, value, exclude) => {
-    selector.innerHTML = DOMPurify.sanitize(`<option value="0">${browser.i18n.getMessage("languageDefaultOption")}</option>`, { USE_PROFILES: { html: true } });
+    selector.textContent = "";
+    selector.add(new Option(browser.i18n.getMessage("languageDefaultOption"), "0"));
     for (const [code, type] of Object.entries(langsToSet)) {
         if (code !== exclude) {
             let name = langs.get(code);
