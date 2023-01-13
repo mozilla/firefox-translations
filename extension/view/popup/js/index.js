@@ -79,12 +79,12 @@ class Mediator {
 }
 
 const setLangs = (selector, langsToSet, value, exclude) => {
-    selector.innerHTML = `<option value="0">${browser.i18n.getMessage("languageDefaultOption")}</option>`;
+    selector.innerHTML = DOMPurify.sanitize(`<option value="0">${browser.i18n.getMessage("languageDefaultOption")}</option>`, { USE_PROFILES: { html: true } });
     for (const [code, type] of Object.entries(langsToSet)) {
         if (code !== exclude) {
             let name = langs.get(code);
             if (type === "dev") name += " (Beta)";
-            selector.innerHTML += `<option value="${code}">${name}</option>`;
+            selector.innerHTML += DOMPurify.sanitize(`<option value="${code}">${name}</option>`, { USE_PROFILES: { html: true } });
         }
     }
     selector.value = value;
