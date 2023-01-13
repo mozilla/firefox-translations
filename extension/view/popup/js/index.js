@@ -79,12 +79,13 @@ class Mediator {
 }
 
 const setLangs = (selector, langsToSet, value, exclude) => {
-    selector.innerHTML = `<option value="0">${browser.i18n.getMessage("languageDefaultOption")}</option>`;
+    selector.textContent = "";
+    selector.add(new Option(browser.i18n.getMessage("languageDefaultOption"), "0"));
     for (const [code, type] of Object.entries(langsToSet)) {
         if (code !== exclude) {
             let name = langs.get(code);
             if (type === "dev") name += " (Beta)";
-            selector.innerHTML += `<option value="${code}">${name}</option>`;
+            selector.add(new Option(name, code));
         }
     }
     selector.value = value;
