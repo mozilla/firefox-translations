@@ -141,6 +141,11 @@ const translateCall = () => {
             });
 
             document.querySelector("#input").value = message.popupPreLoadText;
+            if (message.popupPreLoadText) {
+                setTimeout(() => {
+                    translateCall();
+                }, 100);
+            }
         }
     }
     browser.runtime.onMessage.addListener(listener);
@@ -151,6 +156,12 @@ const translateCall = () => {
 
 document.querySelector("#input").addEventListener("keyup", function () {
     translateCall();
+});
+
+document.querySelector("#input").addEventListener("paste", function () {
+    setTimeout(() => {
+        translateCall();
+    }, 100);
 });
 
 const storeLangs = () => {
