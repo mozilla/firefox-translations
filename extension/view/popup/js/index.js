@@ -176,6 +176,10 @@ const translateCall = () => {
     browser.runtime.sendMessage({
         command: "returnLocalizedLanguages"
     });
+    if (!mediator) {
+        mediator = new Mediator();
+        browser.runtime.onMessage.addListener(mediator.bgListener.bind(mediator));
+    }
 })();
 
 document.querySelector("#input").addEventListener("keyup", function () {
