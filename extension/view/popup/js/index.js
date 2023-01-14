@@ -73,6 +73,16 @@ class Mediator {
             case "updateProgress":
                 document.getElementById("status").innerText = message.localizedMessage;
                 break;
+            case "responseDetectPageLanguage":
+                if (langs.get(message.pageLanguage) && message.pageLanguage !== langFrom.value) {
+                    this.languageDetected = message.pageLanguage;
+                    document.getElementById("suggestion").style.display = "block";
+                    document.getElementById("translatefrom").innerText = browser.i18n.getMessage("translationBarTranslateButton");
+                    document.getElementById("translatelanguage").innerText = langs.get(message.pageLanguage);
+                } else if (message.pageLanguage === langFrom.value) {
+                    document.getElementById("suggestion").style.display = "none";
+                }
+                break;
             default:
         }
     }
@@ -91,10 +101,23 @@ const setLangs = (selector, langsToSet, value, exclude) => {
     selector.value = value;
 }
 const translateCall = () => {
-    if (langFrom.value === "0" || langTo.value === "0") return;
     const text = `${document.querySelector("#input").value} `;
+
+    if (text.trim().length) {
+        browser.runtime.sendMessage({
+            command: "detectPageLanguage",
+            languageDetection: {
+                supported: true,
+                wordsToDetect: text.substring(0, 4096),
+                htmlElementLanguage: ""
+            }
+        })
+    }
+
+    if (langFrom.value === "0" || langTo.value === "0") return;
     if (!text.trim().length) {
         $("#output").value = "";
+        document.getElementById("suggestion").style.display = "none";
         if ($(".swap").disabled){
             $(".swap").disabled = false;
             $(".swap").style.cursor = "pointer";
@@ -211,4 +234,10 @@ langTo.addEventListener("change", () => {
     }
     translateCall();
     storeLangs();
+});
+
+document.querySelector("#suggestion").addEventListener("click", function () {
+    langFrom.value = mediator.languageDetected;
+    langFrom.dispatchEvent(new Event("change"));
+    translateCall();
 });

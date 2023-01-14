@@ -111,3 +111,17 @@ button:hover {
 .logo {
   width: 1.25rem;
 }
+
+#suggestion {
+  display: none;
+  cursor: pointer;
+}
+
+#translatelanguage {
+  color: blue;
+  display: inline-block;
+}
+
+#translatefrom {
+  display: inline-block;
+}
