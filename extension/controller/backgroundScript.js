@@ -488,6 +488,13 @@ const messageListener = function(message, sender) {
           });
           popupPreLoadText = "";
           break;
+        case "persistPopupInput":
+          popupPreLoadText = message.text;
+          // erase ater one minute
+          setTimeout(() => {
+            popupPreLoadText = null
+          }, 60000);
+          break;
         default:
           // ignore
           break;
