@@ -74,10 +74,6 @@ label {
   align-self: center;
 }
 
-#versionBlock {
-  text-align: right;
-}
-
 textarea {
   padding: 1rem;
   font-family: sans-serif;
