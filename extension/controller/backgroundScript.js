@@ -76,6 +76,7 @@ let isMochitest = false;
 const languageModelFileTypes = ["model", "lex", "vocab", "qualityModel", "srcvocab", "trgvocab"];
 const CACHE_NAME = "fxtranslations";
 const FT_SCORE_THRESHOLD = 0.75;
+const FT_SCORE_THRESHOLD_FREE_FORM = 0.5;
 let popupPreLoadText = null;
 
 const init = () => {
@@ -144,6 +145,14 @@ const messageListener = function(message, sender) {
           const [score, ftLanguage] = modelFastText
             .predict(cleanedWords, 1, 0.0)
             .get(0);
+          if (!sender.tab && score > FT_SCORE_THRESHOLD_FREE_FORM) {
+            // this is coming from the popup. send and bail
+            browser.runtime.sendMessage({
+                command: "responseDetectPageLanguage",
+                pageLanguage: Intl.getCanonicalLocales(ftLanguage.replace("__label__", ""))[0]
+            });
+            break;
+          }
           let pageLanguage = "";
 
           if (score > FT_SCORE_THRESHOLD) {
