@@ -241,3 +241,10 @@ document.querySelector("#suggestion").addEventListener("click", function () {
     langFrom.dispatchEvent(new Event("change"));
     translateCall();
 });
+
+window.addEventListener("unload", function(){
+    browser.runtime.sendMessage({
+        command: "persistPopupInput",
+        text: document.querySelector("#input").value
+    });
+});
