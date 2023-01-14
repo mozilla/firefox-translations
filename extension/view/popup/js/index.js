@@ -101,6 +101,11 @@ const setLangs = (selector, langsToSet, value, exclude) => {
     selector.value = value;
 }
 const translateCall = () => {
+    if (!mediator) {
+        mediator = new Mediator();
+        browser.runtime.onMessage.addListener(mediator.bgListener.bind(mediator));
+    }
+
     const text = `${document.querySelector("#input").value} `;
 
     if (text.trim().length) {
@@ -126,10 +131,7 @@ const translateCall = () => {
     }
     const paragraphs = text.replace("\n", " ");
     $("#output").setAttribute("disabled", true);
-    if (!mediator) {
-        mediator = new Mediator();
-        browser.runtime.onMessage.addListener(mediator.bgListener.bind(mediator));
-    }
+
     mediator.translate({
         text: paragraphs,
         type: "inpage",

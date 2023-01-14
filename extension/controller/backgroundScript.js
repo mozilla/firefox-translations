@@ -78,6 +78,7 @@ const CACHE_NAME = "fxtranslations";
 const FT_SCORE_THRESHOLD = 0.75;
 const FT_SCORE_THRESHOLD_FREE_FORM = 0.5;
 let popupPreLoadText = null;
+let timeoutPopupPreLoadText = null;
 
 const init = () => {
   Sentry.wrap(async () => {
@@ -491,7 +492,8 @@ const messageListener = function(message, sender) {
         case "persistPopupInput":
           popupPreLoadText = message.text;
           // erase ater one minute
-          setTimeout(() => {
+          if (timeoutPopupPreLoadText) clearTimeout(timeoutPopupPreLoadText);
+          timeoutPopupPreLoadText = setTimeout(() => {
             popupPreLoadText = null
           }, 60000);
           break;
