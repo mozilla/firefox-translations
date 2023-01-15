@@ -114,9 +114,4 @@ button:hover {
 
 #translatelanguage {
   color: blue;
-  display: inline-block;
-}
-
-#translatefrom {
-  display: inline-block;
 }
