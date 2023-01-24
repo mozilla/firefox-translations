@@ -6,13 +6,16 @@ class AndroidUI {
     constructor() {
         this.onTranslationRequest = {};
         this.onTranslationRequest.addListener = this._onTranslationRequest;
+        this.mapLangs = this.populateMapLangs();
     }
 
     async show(tabId, srcLang, dstLang) {
-        let pageFragment = null;
-        this.srcLang = srcLang;
-        this.dstLang = dstLang;
 
+        for (let [key, value] of this.mapLangs) {
+            if (srcLang === value) this.srcLang = key;
+            if (dstLang === value) this.dstLang = key;
+        }
+        let pageFragment = null;
         const response = await fetch(browser
             .runtime.getURL("view/static/androidButton.html"), { mode: "no-cors" });
           if (response.ok) {
@@ -73,7 +76,7 @@ class AndroidUI {
     }
 
     getLocalizedLanguageName(lng){
-        return lng;
+        return this.mapLangs.get(lng);
     }
 
     isMochitest() {
@@ -106,5 +109,27 @@ class AndroidUI {
             tabId: this.tabId
         };
         browser.runtime.sendMessage(message);
+    }
+
+    populateMapLangs(){
+        const mapLangs = new Map();
+        mapLangs.set("es","Spanish");
+        mapLangs.set("et","Estonian");
+        mapLangs.set("en","English");
+        mapLangs.set("de","German");
+        mapLangs.set("cs","Czech");
+        mapLangs.set("bg","Bulgarian");
+        mapLangs.set("pt","Portuguese");
+        mapLangs.set("it","Italian");
+        mapLangs.set("fr","French");
+        mapLangs.set("pl","Polish");
+        mapLangs.set("ru","Russian");
+        mapLangs.set("fa","Persian (Farsi)");
+        mapLangs.set("is","Icelandic");
+        mapLangs.set("nn","Norwegian Nynorsk");
+        mapLangs.set("nb","Norwegian Bokmål");
+        mapLangs.set("uk","Ukrainian");
+        mapLangs.set("nl","Dutch");
+        return mapLangs;
     }
 }

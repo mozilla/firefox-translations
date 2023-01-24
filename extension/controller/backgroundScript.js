@@ -85,9 +85,7 @@ const init = () => {
   browser.storage.local.get({ telemetryCollectionConsent: true }).then(item => {
     pingSender.setUploadEnabled(item.telemetryCollectionConsent);
   });
-  if (PLATFORM !== "desktop") {
-   browser.browserAction.disable();
-  } else {
+  if (PLATFORM === "desktop") {
     Sentry.wrap(async () => {
       cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
       telemetryByTab.forEach(t => t.environment(cachedEnvInfo));
@@ -522,13 +520,11 @@ const messageListener = function(message, sender) {
     });
 }
 
-
 browser.runtime.getPlatformInfo().then(info => {
-  if (info.os === "android") {
-    PLATFORM = info.os;
+  if (info.os.toLowerCase() === "android") {
+    PLATFORM = "android";
     browser.experiments.translationbar = new AndroidUI();
   }
-  console.log("platform:", info.os);
   browser.runtime.onMessage.addListener(messageListener);
   browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
   init();
