@@ -10,6 +10,17 @@ You can send suggestions or report issues to the team via any of the channels be
 
 [You can also rate and leave us a comment on Mozilla Addons.](https://addons.mozilla.org/en-US/firefox/addon/firefox-translations/)
 
+## [[v1.3.0]](https://github.com/mozilla/firefox-translations/tree/v1.3.0) - 2023-01-23
+### Added
+- Android support
+- Persist input text for 60 seconds after translation popup is closed
+- Detect language from text input in the translation popup
+- Auto-translate when text is pasted into translation popup
+- Ability to translate selected text in the page
+- Add autofocus to input textarea in translation popup
+### Changed
+- User interface bugfixes improvements
+
 ## [[v1.2.0]](https://github.com/mozilla/firefox-translations/tree/v1.2.0) - 2022-11-08
 ### Added
 - Popup page that allows the user to freely input text to be translated
