@@ -1,0 +1,71 @@
+name: Bug report
+description: Create a report to help us improve
+labels:
+  - needs triage
+body:
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: To Reproduce
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+  - type: markdown
+    attributes:
+      value: |-
+        # Desktop (please complete the following information as possible)
+        System architecture and extension information can be found as follows:
+        Go to about:telemetry#environment-data in browser and share "architecture" field under "build" category and "cpu.extensions" field under "system" category
+  - type: input
+    attributes:
+      label: Firefox Browser version
+  - type: input
+    attributes:
+      label: Processor information
+  - type: input
+    attributes:
+      label: OS version
+  - type: dropdown
+    attributes:
+      label: System type
+      options:
+        - 32-bit
+        - 64-bit
+  - type: input
+    attributes:
+      label: Firefox Translation Extension version
+  - type: input
+    attributes:
+      label: Webpage on which issue was observed
+  - type: input
+    attributes:
+      label: Language of the webpage
+  - type: input
+    attributes:
+      label: Translating to (language)
+  - type: textarea
+    attributes:
+      label: Console logs from Web Developer Tools
