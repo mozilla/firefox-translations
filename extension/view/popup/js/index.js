@@ -142,6 +142,16 @@ const translateCall = () => {
 
 (function init() {
 
+    browser.runtime.getPlatformInfo().then(info => {
+        // we just need this class if we are on android since on desktop we want the default popup size
+        let matchMedia = window.matchMedia("screen and (max-width: 640px)");
+        if (matchMedia.matches && info.os.toLowerCase() === "android") {
+            document.getElementsByClassName("app")[0].style.grid = "'from from' auto 'status swap' auto 'to to' auto / 1fr";
+            document.getElementsByClassName("swap")[0].style.transform = "rotate(90deg)";
+            document.querySelector("#input").style.height = "50vmin";
+            document.querySelector("#output").style.height = "50vmin";
+        }
+    });
     const listener = message => {
         if (message.command === "responseLocalizedLanguages") {
             browser.runtime.onMessage.removeListener(listener);

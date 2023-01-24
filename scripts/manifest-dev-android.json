@@ -107,7 +107,7 @@
         "16": "view/icons/translation-color.svg",
         "32": "view/icons/translation-color.svg"
       },
-      "default_title": "Firefox Translations",
+      "default_title": "Text Translations",
       "default_popup": "view/popup/index.html",
       "theme_icons": [{
         "light": "view/icons/translation-color.svg",
