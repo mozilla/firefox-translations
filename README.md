@@ -68,7 +68,8 @@ You can test the addon on Android by following the steps below:
 
 That should be enough to have the addon installed on Firefox in your Android. Folow the steps in the video below to learn how to use it.
 
-https://user-images.githubusercontent.com/973388/205548906-e6eaf82e-e4cd-4a78-8910-9823f1e82d71.mp4
+
+https://user-images.githubusercontent.com/973388/214216783-5ab32051-0375-4de3-8547-5ccb335c9865.mp4
 
 
 ## Development
