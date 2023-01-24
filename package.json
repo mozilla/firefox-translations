@@ -9,7 +9,7 @@
     "build": "npm run build-html-changelog; cp scripts/manifest.json extension/manifest.json; cp extension/settings/prod.js extension/settings.js; npm run update-localization; web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
     "build-test": "cp extension/settings/test.js extension/settings.js; npm run update-localization; web-ext build -s extension --overwrite-dest  --no-config-discovery -n firefox_translations.xpi",
     "lint:extension": "web-ext lint -s extension",
-    "android": "cp scripts/manifest-dev-android.json extension/manifest.json; cp extension/settings/dev.js extension/settings.js; npm run update-localization; web-ext run --android-device=27021FDH200182 -t firefox-android --firefox-apk org.mozilla.fenix -s extension --verbose --no-config-discovery --pref=extensions.experiments.enabled=true",
+    "android": "cp scripts/manifest-dev-android.json extension/manifest.json; cp extension/settings/dev.js extension/settings.js; npm run update-localization; web-ext run --android-device=<insert device id here> -t firefox-android --firefox-apk org.mozilla.fenix -s extension --verbose --no-config-discovery --pref=extensions.experiments.enabled=true",
     "desktop": "cp scripts/manifest.json extension/manifest.json; cp extension/settings/dev.js extension/settings.js; npm run update-localization; web-ext run -s extension --verbose --firefox nightly  --no-config-discovery --pref=extensions.experiments.enabled=true",
     "package": "npm run build && mv web-ext-artifacts/*.zip addon.xpi",
     "setup-webext": "npm install -g web-ext",
