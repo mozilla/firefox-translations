@@ -2,7 +2,7 @@
 /* eslint-disable max-lines */
 /* global LanguageDetection, browser, PingSender, BERGAMOT_VERSION_FULL,
 Telemetry, loadFastText, FastText, Sentry, settings, deserializeError,
-modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry, DOMPurify */
+modelRegistryRootURL, modelRegistryRootURLTest, modelRegistry, AndroidUI, DOMPurify */
 
 /*
  * we need the background script in order to have full access to the
@@ -79,15 +79,20 @@ const FT_SCORE_THRESHOLD = 0.75;
 const FT_SCORE_THRESHOLD_FREE_FORM = 0.5;
 let popupPreLoadText = null;
 let timeoutPopupPreLoadText = null;
+let PLATFORM = "desktop";
 
 const init = () => {
-  Sentry.wrap(async () => {
-    cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
-    telemetryByTab.forEach(t => t.environment(cachedEnvInfo));
-  });
   browser.storage.local.get({ telemetryCollectionConsent: true }).then(item => {
     pingSender.setUploadEnabled(item.telemetryCollectionConsent);
   });
+  if (PLATFORM !== "desktop") {
+   browser.browserAction.disable();
+  } else {
+    Sentry.wrap(async () => {
+      cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
+      telemetryByTab.forEach(t => t.environment(cachedEnvInfo));
+    });
+  }
 }
 
 const getTelemetry = tabId => {
@@ -230,6 +235,22 @@ const messageListener = function(message, sender) {
           let to = message.languageDetection.navigatorLanguage.substring(0,2).concat("en");
           if (from === "enen") from = to;
           if (to === "enen") to = from;
+
+          if (PLATFORM === "android") {
+            // we then ask the api for the localized version of the language codes
+            browser.tabs.sendMessage(
+              sender.tab.id,
+              {
+                command: "localizedLanguages",
+                localizedPageLanguage: await browser.experiments.translationbar
+                  .getLocalizedLanguageName(message.languageDetection.pageLanguage),
+                localizedNavigatorLanguage: await browser.experiments.translationbar
+                  .getLocalizedLanguageName(message.languageDetection.navigatorLanguage)
+              }
+            );
+            break;
+          }
+
           const isOutboundTranslationSupported = message.languageDetection.languagePairsSupportedSet.has(from) &&
             message.languageDetection.languagePairsSupportedSet.has(to);
 
@@ -268,19 +289,6 @@ const messageListener = function(message, sender) {
             ,
             isOutboundTranslationSupported
           );
-
-          // we then ask the api for the localized version of the language codes
-          browser.tabs.sendMessage(
-            sender.tab.id,
-            {
-              command: "localizedLanguages",
-              localizedPageLanguage: await browser.experiments.translationbar
-                .getLocalizedLanguageName(message.languageDetection.pageLanguage),
-              localizedNavigatorLanguage: await browser.experiments.translationbar
-                .getLocalizedLanguageName(message.languageDetection.navigatorLanguage)
-            }
-          );
-
           break;
         case "translate":
           if (!await isFrameLoaded(sender.tab.id, sender.frameId)) return;
@@ -402,10 +410,20 @@ const messageListener = function(message, sender) {
           }
           break;
         case "updateProgress":
-          browser.experiments.translationbar.updateProgress(
-            message.tabId,
-            message.progressMessage
-          );
+          if (PLATFORM === "android") {
+            browser.tabs.sendMessage(
+              message.tabId,
+              {
+                command: "updateProgress",
+                progressMessage: message.progressMessage
+              }
+            );
+          } else {
+            browser.experiments.translationbar.updateProgress(
+              message.tabId,
+              message.progressMessage
+            );
+          }
           break;
         case "displayStatistics":
 
@@ -504,9 +522,39 @@ const messageListener = function(message, sender) {
     });
 }
 
-browser.runtime.onMessage.addListener(messageListener);
-browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
-init();
+
+browser.runtime.getPlatformInfo().then(info => {
+  if (info.os === "android") {
+    PLATFORM = info.os;
+    browser.experiments.translationbar = new AndroidUI();
+  }
+  console.log("platform:", info.os);
+  browser.runtime.onMessage.addListener(messageListener);
+  browser.experiments.translationbar.onTranslationRequest.addListener(messageListener);
+  init();
+  const retrieveOptionsFromStorage = browser.storage.local.get(["displayedConsent", "lastVersion", "showChangelog"]);
+  const isMochitestPromise = browser.experiments.translationbar.isMochitest();
+
+  Promise.allSettled([
+                      retrieveOptionsFromStorage,
+                      isMochitestPromise,
+                    ]).then(values => {
+    const { displayedConsent, lastVersion: lastVersionDisplayed, showChangelog } = values[0].value || {};
+    isMochitest = values[1].value;
+
+    if (!displayedConsent && !isMochitest) {
+      browser.tabs.create({ url: browser.runtime.getURL("view/static/dataConsent.html") });
+      browser.storage.local.set({ displayedConsent: true });
+      browser.storage.local.set({ lastVersion: extensionVersion });
+    } else if (showChangelog && displayedConsent && extensionVersion !== lastVersionDisplayed) {
+      browser.tabs.create({
+        active: true,
+        url: browser.extension.getURL("view/static/CHANGELOG.html"),
+      });
+      browser.storage.local.set({ lastVersion: extensionVersion });
+    }
+  });
+});
 
 // loads fasttext (language detection) wasm module and model
 modelFastTextReadyPromise =
@@ -550,6 +598,20 @@ browser.pageAction.onClicked.addListener(tab => {
            * we default it to english
            */
           if (!languageDetection.isBrowserSupported()) languageDetection.navigatorLanguage = "en";
+
+          if (PLATFORM === "android") {
+            browser.tabs.sendMessage(
+              tab.id,
+              {
+                command: "localizedLanguages",
+                localizedPageLanguage: await browser.experiments.translationbar
+                  .getLocalizedLanguageName(languageDetection.pageLanguage),
+                localizedNavigatorLanguage: await browser.experiments.translationbar
+                  .getLocalizedLanguageName(languageDetection.navigatorLanguage,)
+              }
+            );
+          }
+
           browser.experiments.translationbar.show(
               tab.id,
               "userrequest",
@@ -605,29 +667,6 @@ browser.tabs.onDetached.addListener(tabId => {
 browser.webNavigation.onCommitted.addListener(details => {
   // only send pings if the top frame navigates.
   if (details.frameId === 0) submitPing(details.tabId);
-});
-
-const retrieveOptionsFromStorage = browser.storage.local.get(["displayedConsent", "lastVersion", "showChangelog"]);
-const isMochitestPromise = browser.experiments.translationbar.isMochitest();
-
-Promise.allSettled([
-                    retrieveOptionsFromStorage,
-                    isMochitestPromise,
-                  ]).then(values => {
-  const { displayedConsent, lastVersion: lastVersionDisplayed, showChangelog } = values[0].value || {};
-  isMochitest = values[1].value;
-
-  if (!displayedConsent && !isMochitest) {
-    browser.tabs.create({ url: browser.runtime.getURL("view/static/dataConsent.html") });
-    browser.storage.local.set({ displayedConsent: true });
-    browser.storage.local.set({ lastVersion: extensionVersion });
-  } else if (showChangelog && displayedConsent && extensionVersion !== lastVersionDisplayed) {
-    browser.tabs.create({
-      active: true,
-      url: browser.extension.getURL("view/static/CHANGELOG.html"),
-    });
-    browser.storage.local.set({ lastVersion: extensionVersion });
-  }
 });
 
 // return language models (as blobs) for language pairs
@@ -759,11 +798,20 @@ const sendUpdateProgress = (tabId, payload) => {
     // eslint-disable-next-line no-case-declarations
     let localizedMessage = getLocalizedMessage(payload);
     if (tabId >0) {
-      // request is coming from the tab
-      browser.experiments.translationbar.updateProgress(
-        tabId,
-        localizedMessage
-      );
+      if (PLATFORM === "android") {
+        browser.tabs.sendMessage(
+          tabId,
+          {
+            command: "updateProgress",
+            progressMessage: localizedMessage
+          }
+        );
+      } else {
+        browser.experiments.translationbar.updateProgress(
+          tabId,
+          localizedMessage
+        );
+      }
     } else {
       // request is coming from the translation popup
       browser.runtime.sendMessage({
