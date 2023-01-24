@@ -92,7 +92,6 @@ button {
   border: 1px solid #88c;
   border-radius: 4px;
   background: #eef;
-  padding: 0;
   padding: 0.25rem 0.5rem;
 }
 button:hover {
