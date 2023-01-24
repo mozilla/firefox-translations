@@ -58,7 +58,7 @@ https://user-images.githubusercontent.com/973388/205549475-8036df98-d5b5-4baa-af
 
 You can test the addon on Android by following the steps below: 
 
-1. Clone this repo, execute `npm install` and switch to the branch `android`
+1. Clone this repo and execute `npm install`
 2. [Install Firefox Nightly for Android in your phone](https://play.google.com/store/apps/details?id=org.mozilla.fenix&hl=en_US&gl=US)
 3. Connect your phone to your computer via USB
 4. [Follow these steps in order to setup your phone and browser to install the addon](https://extensionworkshop.com/documentation/develop/developing-extensions-for-firefox-for-android/#set-up-your-computer-and-android-emulator-or-device) 
