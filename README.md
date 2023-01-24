@@ -56,7 +56,7 @@ https://user-images.githubusercontent.com/973388/205549475-8036df98-d5b5-4baa-af
 
 #### Android
 
-This repository contains experimental Android support for the purpose of test and evaluation in the branch `android`. Only the in-page translation functionality is present and the user interface is more limited compared to the desktop version. You can test it by following the steps below: 
+You can test the addon on Android by following the steps below: 
 
 1. Clone this repo, execute `npm install` and switch to the branch `android`
 2. [Install Firefox Nightly for Android in your phone](https://play.google.com/store/apps/details?id=org.mozilla.fenix&hl=en_US&gl=US)
