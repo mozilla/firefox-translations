@@ -10,6 +10,13 @@ You can send suggestions or report issues to the team via any of the channels be
 
 [You can also rate and leave us a comment on Mozilla Addons.](https://addons.mozilla.org/en-US/firefox/addon/firefox-translations/)
 
+## [[v1.3.1]](https://github.com/mozilla/firefox-translations/tree/v1.3.1) - 2023-01-24
+### Added
+- Support for the translation popup on Android
+
+### Changed
+- User interface improvements
+
 ## [[v1.3.0]](https://github.com/mozilla/firefox-translations/tree/v1.3.0) - 2023-01-23
 ### Added
 - Android support
@@ -19,7 +26,7 @@ You can send suggestions or report issues to the team via any of the channels be
 - Ability to translate selected text in the page
 - Add autofocus to input textarea in translation popup
 ### Changed
-- User interface bugfixes improvements
+- User interface bugfixes and improvements
 
 ## [[v1.2.0]](https://github.com/mozilla/firefox-translations/tree/v1.2.0) - 2022-11-08
 ### Added
