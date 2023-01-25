@@ -52,7 +52,7 @@ You can test nightly builds of the extension in Firefox Nightly or Developer Edi
 
 ##### Demo
 
-https://user-images.githubusercontent.com/973388/214455724-d629cd2e-b7fb-4bd8-920d-3dac13c14c8a.mp4
+https://user-images.githubusercontent.com/973388/205549475-8036df98-d5b5-4baa-af8f-350f7962f18e.mov
 
 #### Android
 
@@ -68,9 +68,7 @@ You can test the addon on Android by following the steps below:
 
 That should be enough to have the addon installed on Firefox in your Android. Folow the steps in the video below to learn how to use it.
 
-
-https://user-images.githubusercontent.com/973388/214216783-5ab32051-0375-4de3-8547-5ccb335c9865.mp4
-
+https://user-images.githubusercontent.com/973388/214455724-d629cd2e-b7fb-4bd8-920d-3dac13c14c8a.mp4
 
 ## Development
 
