@@ -6,7 +6,7 @@ html,
 body {
   height: 100%;
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-family: Optima, Helvetica, Arial;
 }
 
@@ -63,7 +63,7 @@ label {
 }
 
 textarea {
-  padding: 1rem;
+  padding: .5rem;
   font-size: 1rem;
   resize: none;
   border-radius: 2px;
