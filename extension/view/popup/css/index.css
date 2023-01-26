@@ -110,4 +110,8 @@ button {
   #output {
     background-color: #00000010;
   }
+  
+  #translatefrom, #status {
+    color: #eef;
+  }
 }
