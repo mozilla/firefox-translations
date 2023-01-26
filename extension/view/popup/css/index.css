@@ -2,6 +2,10 @@
   box-sizing: border-box;
 }
 
+:root {
+  color-scheme: light dark;
+}
+
 html,
 body {
   height: 100%;
@@ -33,7 +37,6 @@ label {
 
 .lang-select {
   padding: 0.25rem 0.5rem;
-  background: #f4f4f4;
   font-size: 0.9rem;
   border: 1px solid #ccc;
   border-radius: 0.25rem;
@@ -74,16 +77,7 @@ button {
   cursor: pointer;
   border: 1px solid #88c;
   border-radius: 4px;
-  background: #eef;
   padding: 0.25rem 0.5rem;
-}
-
-button:hover {
-  background: #cce;
-}
-
-#output {
-  background-color: #f4f4f4;
 }
 
 #suggestion {
@@ -93,4 +87,28 @@ button:hover {
 
 #translatelanguage {
   color: blue;
+}
+
+@media (prefers-color-scheme: light) {
+  button {
+    background: #eef;
+  }
+
+  button:hover {
+    background: #cce;
+  }
+
+  .lang-select {
+    background: #f4f4f4;
+  }
+
+  #output {
+    background-color: #f4f4f4;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  #output {
+    background-color: #00000010;
+  }
 }
