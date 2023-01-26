@@ -56,7 +56,6 @@ label {
   align-self: center;
   grid-area: swap;
   font-size: 1.1rem;
-  cursor: pointer;
 }
 
 #status {
