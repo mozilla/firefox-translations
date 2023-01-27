@@ -64,7 +64,7 @@ You can test the addon on Android by following the steps below:
 4. [Follow these steps in order to setup your phone and browser to install the addon](https://extensionworkshop.com/documentation/develop/developing-extensions-for-firefox-for-android/#set-up-your-computer-and-android-emulator-or-device) 
 5. You might need to execute `adb shell pm grant org.mozilla.fenix android.permission.READ_EXTERNAL_STORAGE` in your terminal so the addon could be pushed to your phone
 6. Execute `adb devices` in your terminal, copy the device id, and replace the string `<device id from adb devices>` on package.json by it
-7. Execute `npm run android` in your terminal to install the addon in your phone and have the browser automatically started
+7. Execute `npm run android -- --android-device=<ANDROID_DEVICE_ID>` in your terminal to install the addon in your phone and have the browser automatically started (or `npm run android-win -- --android-device=<ANDROID_DEVICE_ID>` if developing on a Windows system) 
 
 That should be enough to have the addon installed on Firefox in your Android. Folow the steps in the video below to learn how to use it.
 
