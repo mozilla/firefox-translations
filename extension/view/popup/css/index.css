@@ -80,7 +80,7 @@ button {
 }
 
 #translatelanguage {
-  color: blue;
+  color: LinkText;
 }
 
 @media (prefers-color-scheme: light) {
