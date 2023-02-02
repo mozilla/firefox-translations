@@ -358,8 +358,10 @@ class Mediator {
             case "localizedLanguages":
                 this.localizedPageLanguage = message.localizedPageLanguage;
                 this.localizedNavigatorLanguage = message.localizedNavigatorLanguage;
-                this.androidUI = new AndroidUI();
-                if (this.isMainFrame) this.androidUI.show(this.tabId, this.localizedPageLanguage, this.localizedNavigatorLanguage);
+                if (message.platform === "android") {
+                    this.androidUI = new AndroidUI();
+                    if (this.isMainFrame) this.androidUI.show(this.tabId, this.localizedPageLanguage, this.localizedNavigatorLanguage);
+                }
                 break;
             case "onDetached":
 

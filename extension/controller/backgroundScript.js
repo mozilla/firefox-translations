@@ -79,13 +79,13 @@ const FT_SCORE_THRESHOLD = 0.75;
 const FT_SCORE_THRESHOLD_FREE_FORM = 0.5;
 let popupPreLoadText = null;
 let timeoutPopupPreLoadText = null;
-let PLATFORM = "desktop";
+let platform = "desktop";
 
 const init = () => {
   browser.storage.local.get({ telemetryCollectionConsent: true }).then(item => {
     pingSender.setUploadEnabled(item.telemetryCollectionConsent);
   });
-  if (PLATFORM === "desktop") {
+  if (platform === "desktop") {
     Sentry.wrap(async () => {
       cachedEnvInfo = await browser.experiments.telemetryEnvironment.getFxTelemetryMetrics();
       telemetryByTab.forEach(t => t.environment(cachedEnvInfo));
@@ -234,20 +234,21 @@ const messageListener = function(message, sender) {
           if (from === "enen") from = to;
           if (to === "enen") to = from;
 
-          if (PLATFORM === "android") {
-            // we then ask the api for the localized version of the language codes
-            browser.tabs.sendMessage(
-              sender.tab.id,
-              {
-                command: "localizedLanguages",
-                localizedPageLanguage: await browser.experiments.translationbar
-                  .getLocalizedLanguageName(message.languageDetection.pageLanguage),
-                localizedNavigatorLanguage: await browser.experiments.translationbar
-                  .getLocalizedLanguageName(message.languageDetection.navigatorLanguage)
-              }
-            );
-            break;
-          }
+          // we then ask the api for the localized version of the language codes
+          browser.tabs.sendMessage(
+            sender.tab.id,
+            {
+              command: "localizedLanguages",
+              localizedPageLanguage: await browser.experiments.translationbar
+                .getLocalizedLanguageName(message.languageDetection.pageLanguage),
+              localizedNavigatorLanguage: await browser.experiments.translationbar
+                .getLocalizedLanguageName(message.languageDetection.navigatorLanguage),
+              platform
+            }
+          );
+
+          // we don't have the experiments API (neither OT) on android and the UI is rendered by the page using shadowroot, so we break here
+          if (platform === "android") break;
 
           const isOutboundTranslationSupported = message.languageDetection.languagePairsSupportedSet.has(from) &&
             message.languageDetection.languagePairsSupportedSet.has(to);
@@ -408,7 +409,7 @@ const messageListener = function(message, sender) {
           }
           break;
         case "updateProgress":
-          if (PLATFORM === "android") {
+          if (platform === "android") {
             browser.tabs.sendMessage(
               message.tabId,
               {
@@ -522,7 +523,7 @@ const messageListener = function(message, sender) {
 
 browser.runtime.getPlatformInfo().then(info => {
   if (info.os.toLowerCase() === "android") {
-    PLATFORM = "android";
+    platform = "android";
     browser.experiments.translationbar = new AndroidUI();
   }
   browser.runtime.onMessage.addListener(messageListener);
@@ -595,7 +596,7 @@ browser.pageAction.onClicked.addListener(tab => {
            */
           if (!languageDetection.isBrowserSupported()) languageDetection.navigatorLanguage = "en";
 
-          if (PLATFORM === "android") {
+          if (platform === "android") {
             browser.tabs.sendMessage(
               tab.id,
               {
@@ -794,7 +795,7 @@ const sendUpdateProgress = (tabId, payload) => {
     // eslint-disable-next-line no-case-declarations
     let localizedMessage = getLocalizedMessage(payload);
     if (tabId >0) {
-      if (PLATFORM === "android") {
+      if (platform === "android") {
         browser.tabs.sendMessage(
           tabId,
           {
