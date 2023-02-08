@@ -41,7 +41,7 @@ class BergamotBacking extends TranslatorBacking {
      *  }>>}
      */
     async loadModelRegistery() {
-        const response = await fetch('https://translatelocally.com/models.json');
+        const response = await fetch('https://translatelocally.com/models.json', {cache: 'default'});
         let {models} = await response.json();
         let serial = 0;
 
