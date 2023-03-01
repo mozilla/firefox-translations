@@ -604,9 +604,11 @@ browser.pageAction.onClicked.addListener(tab => {
                 localizedPageLanguage: await browser.experiments.translationbar
                   .getLocalizedLanguageName(languageDetection.pageLanguage),
                 localizedNavigatorLanguage: await browser.experiments.translationbar
-                  .getLocalizedLanguageName(languageDetection.navigatorLanguage,)
+                  .getLocalizedLanguageName(languageDetection.navigatorLanguage,),
+                platform
               }
             );
+            return;
           }
 
           browser.experiments.translationbar.show(
