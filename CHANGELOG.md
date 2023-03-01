@@ -10,6 +10,10 @@ You can send suggestions or report issues to the team via any of the channels be
 
 [You can also rate and leave us a comment on Mozilla Addons.](https://addons.mozilla.org/en-US/firefox/addon/firefox-translations/)
 
+## [[v1.3.3]](https://github.com/mozilla/firefox-translations/tree/v1.3.3) - 2023-02-28
+### Changed
+- Fix UI's summoning via browser action on Android
+
 ## [[v1.3.2]](https://github.com/mozilla/firefox-translations/tree/v1.3.2) - 2023-01-26
 ### Changed
 - Added support for dark mode in the translation popup
