@@ -7,9 +7,22 @@ Firefox Translations was developed with The Bergamot Project Consortium, coordin
 
 ## Release version
 
+### Desktop
+
 The current release version is available for installation on Mozilla Add-ons
 
 [![AMO](https://user-images.githubusercontent.com/973388/205550053-b529d916-afcf-489b-9b25-dda151f88eec.png)](https://addons.mozilla.org/firefox/addon/firefox-translations/)
+
+### Android
+
+Follow the steps below to install the extension on Firefox Nightly or Beta for Android:
+
+- Apply the steps described on this [article](https://blog.mozilla.org/addons/2020/09/29/expanded-extension-support-in-firefox-for-android-nightly/), skipping the section `Create a collection on AMO` (we already provide a collection here) and starting from the section `Enable general extension support setting in Nightly` 
+- On step 5, input `17436609` in the `Collection owner` field, and `fxt` in the `Collection name` field 
+- Your browser should restart. 
+- After restarting, click on the three dot menu and select `Add-ons`
+- The Add-ons page should be displayed and Firefox Translations appear at the top of the list. Just click on the `+` icon to have it installed
+- With that you should have the addon added to your browser. [Please refer to this video on how to use the extension.](#demo-1)
 
 ## Supported languages
 
@@ -68,7 +81,9 @@ You can test the addon on Android by following the steps below:
 
 That should be enough to have the addon installed on Firefox in your Android. Folow the steps in the video below to learn how to use it.
 
-https://user-images.githubusercontent.com/973388/214455724-d629cd2e-b7fb-4bd8-920d-3dac13c14c8a.mp4
+##### Demo
+
+https://user-images.githubusercontent.com/973388/222513958-89a51f7c-985a-45ee-94f6-c78a31e20a2e.mp4
 
 ## Development
 
