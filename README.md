@@ -23,6 +23,7 @@ Follow the steps below to install the extension on Firefox Nightly or Beta for A
 - After restarting, click on the three dot menu and select `Add-ons`
 - The Add-ons page should be displayed and Firefox Translations appear at the top of the list. Just click on the `+` icon to have it installed
 - With that you should have the addon added to your browser. [Please refer to this video on how to use the extension.](#demo-1)
+- You can then remove the `Custom Addon-on collection`, just by clicking at it and clearing the fields, so you could have the stock addons listed again. 
 
 ## Supported languages
 
