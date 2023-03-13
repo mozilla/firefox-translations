@@ -22,7 +22,7 @@
     "update-bergamot-version": "bash scripts/update-begamot-version.sh"
   },
   "devDependencies": {
-    "eslint": "^8.34.0",
+    "eslint": "^8.36.0",
     "web-ext": "^7.5.0",
     "markdown": "^0.5.0"
   },
