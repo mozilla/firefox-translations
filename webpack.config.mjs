@@ -52,6 +52,14 @@ const module = {
   ]
 };
 
+const distPath = new URL("./extension", import.meta.url).pathname;
+
+// Set to `false` if you want to use a consistent profile
+const firefoxOptions = true ? {} : {
+  firefoxProfile: 'translatelocally-web-ext',
+  keepProfileChanges: true
+};
+
 export default {
   module,
   mode: 'development',
@@ -63,7 +71,7 @@ export default {
     'popup': './src/popup/popup.js'
   },
   output: {
-    path: new URL("./extension", import.meta.url).pathname,
+    path: distPath,
     publicPath: '',
     chunkFormat: 'array-push',
     assetModuleFilename: '[name][ext]',
@@ -123,8 +131,9 @@ export default {
       'typeof self': JSON.stringify('object')
     }),
     new WebExtPlugin({
-      sourceDir: '../../extension',
+      sourceDir: distPath,
       firefox: 'nightly',
+      ...firefoxOptions
     })
   ],
   experiments: {
