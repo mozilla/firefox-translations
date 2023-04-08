@@ -26,9 +26,8 @@ class BergamotBacking extends TranslatorBacking {
     }
 
     /**
-     * Loads the model registry. Uses the registry shipped with this extension,
-     * but formatted a bit easier to use, and future-proofed to be swapped out
-     * with a TranslateLocally type registry.
+     * Fetches the model registry, and translates it from TranslateLocally
+     * format to the one used by the bergamot-translator npm library.
      * @returns {Promise<List<{
      *  from: String,
      *  to: String,
@@ -40,8 +39,8 @@ class BergamotBacking extends TranslatorBacking {
      *    checksum: String
      *  }>>}
      */
-    async loadModelRegistery() {
-        const response = await fetch('https://translatelocally.com/models.json');
+    async fetchModelRegistry() {
+        const response = await fetch('https://translatelocally.com/models.json', {cache: 'default'});
         let {models} = await response.json();
         let serial = 0;
 
@@ -91,6 +90,47 @@ class BergamotBacking extends TranslatorBacking {
         });
 
         return Array.from(entries);
+    }
+
+    /**
+     * Hook into TranslatorBacking that returns a fake promise that will reload
+     * if the previous fetch failed, but hide the error. This is to work around
+     * a scenario where Firefox is started without internet connection and
+     * loading the model registry fails. We'll want to re-attempt to fetch the
+     * registry later, as opposed to cause the extension to fail to load.
+     * See also https://github.com/jelmervdl/translatelocally-web-ext/issues/61
+     * @returns {Promise<List<{
+     *  from: String,
+     *  to: String,
+     *  model: {
+     *    id: Number,
+     *    local: Boolean,
+     *    shortName: String,
+     *    url: String,
+     *    checksum: String
+     *  }>>}
+     */
+    loadModelRegistery() {
+        let lastFetch = null;
+        
+        const tryFetch = () => {
+            lastFetch = new Promise(async (accept, reject) => {
+                try {
+                    accept(await this.fetchModelRegistry());
+                } catch (e) {
+                    accept([]); // for now to not cause a scene
+                    lastFetch = null; // but retry next time we're asked
+                }
+            });
+        };
+
+        return new class {
+            then(...args) {
+                if (!lastFetch)
+                    tryFetch();
+                lastFetch.then(...args)
+            }
+        }
     }
 
     /**
