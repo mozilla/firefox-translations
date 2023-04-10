@@ -539,13 +539,17 @@ export default class InPageTranslation {
             }
         }
 
-        const nodeIterator = walkTree(
-            root,
-            this.validateNodeForQueue.bind(this),
-            {isExcludedTree});
+        if (root.nodeType === Node.TEXT_NODE) {
+            this.enqueueTranslation(root);
+        } else {
+            const nodeIterator = walkTree(
+                root,
+                this.validateNodeForQueue.bind(this),
+                {isExcludedTree});
 
-        for (let currentNode of nodeIterator)
-            this.enqueueTranslation(currentNode);
+            for (let currentNode of nodeIterator)
+                this.enqueueTranslation(currentNode);
+        }
 
         this.dispatchTranslations();
     }
