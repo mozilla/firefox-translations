@@ -706,8 +706,19 @@ async function main() {
         // Todo: treat reload and link different? Reload -> disable translation?
     });
 
-    compat.tabs.onCreated.addListener(({id: tabId, active}) => {
-        getTab(tabId).update(() => ({active}));
+    // When a new tab is created start, track its active state
+    compat.tabs.onCreated.addListener(({id: tabId, active, openerTabId}) => {
+        let inheritedState = {};
+
+        // If the tab was opened from another tab that was already translating,
+        // this tab will inherit that state and also automatically continue
+        // translating.
+        if (openerTabId) {
+            const {state, url, from, to, models} = getTab(openerTabId).state;
+            inheritedState = {state, url, from, to, models};
+        }
+
+        getTab(tabId).update(() => ({...inheritedState, active}));
     });
 
     // Remove the tab state if a tab is removed
