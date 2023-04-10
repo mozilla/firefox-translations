@@ -16,6 +16,34 @@ const globalState = preferences.view({
 	'developer': false
 })
 
+let lastRenderedState = null;
+
+let renderTimeout = new class {
+	constructor() {
+		this.timeout = null;
+	}
+
+	/**
+	 * calls callback delayed. If there's already a delayed callback scheduled,
+	 * the callback will be set to the new one, but the timeout will just continue
+	 * and not reset from the beginning of `delay`.
+	 */
+	delayed(callback, delay) {
+		if (this.timeout === null)
+			this.timeout = setTimeout(this.immediate.bind(this), delay);
+		this.callback = callback;
+	}
+
+	/**
+	 * Call callback now, and clear any previously scheduled callback.
+	 */
+	immediate(callback) {
+		clearTimeout(this.timeout);
+		this.timeout = null;
+		(callback || this.callback)();
+	}
+};
+
 function render() {
 	// If the model (or one of the models in case of pivoting) needs 
 	// downloading. This info is not always entirely up-to-date since `local`
@@ -46,12 +74,37 @@ function render() {
 		'canExportPages': tabState.recordedPagesCount > 0,
 	};
 
-	// Toggle "hidden" state of all <div data-state=""> elements
-	document.querySelectorAll('*[data-state]').forEach(el => {
-		el.hidden = tabState.state ? el.dataset.state != tabState.state : el.dataset.state != '';
-	});
+	// Little hack because we don't have a translation-completed state in the
+	// background script, but we do want to render a different popup when there's
+	// no more translations pending.
+	// https://github.com/jelmervdl/translatelocally-web-ext/issues/54
+	if (renderState.state === 'translation-in-progress' && renderState.pendingTranslationRequests === 0)
+		renderState.state = 'translation-completed';
 
-	renderBoundElements(document.body, renderState);
+	// Callback to do the actual render
+	const render = () => {
+		// Remember the currently rendered state (for delay calculation below)
+		lastRenderedState = renderState.state;
+
+		// Toggle "hidden" state of all <div data-state=""> elements. Ideally we
+		// could have used the `data-bind:hidden` attribute for this but 
+		// BoundElementRenderer doesn't support conditionals at the moment.
+		document.querySelectorAll('*[data-state]').forEach(el => {
+			el.hidden = renderState.state ? el.dataset.state != renderState.state : el.dataset.state != '';
+		});
+
+		renderBoundElements(document.body, renderState);
+	}
+
+	// If we switched state, we delay the render a bit because we might be
+	// flipping between two states e.g. a very brief translating-in-progress
+	// because a new element popped up, and mostly translation-completed for the
+	// rest of the time. We don't want that single brief element to make the
+	// interface flicker between the two states all the time.
+	if (tabState.state !== lastRenderedState && lastRenderedState !== null)
+		renderTimeout.delayed(render, 250);
+	else
+		renderTimeout.immediate(render);
 }
 
 // re-render if the 'developer' preference changes (but also when the real

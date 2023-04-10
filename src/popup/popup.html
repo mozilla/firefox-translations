@@ -71,11 +71,13 @@
 				<progress data-bind:value="modelDownloadRead" data-bind:max="modelDownloadSize"></progress>
 			</div>
 			<div data-state="translation-in-progress">
-				<p data-bind:hidden="!pendingTranslationRequests">Translating page from <span data-bind:text-content="lang-from"></span> to <span data-bind:text-content="lang-to"></span>…</p>
-				<p data-bind:hidden="pendingTranslationRequests">Translated page from <span data-bind:text-content="lang-from"></span> to <span data-bind:text-content="lang-to"></span>.</p>
-				<progress data-bind:hidden="!pendingTranslationRequests" data-bind:value="completedTranslationRequests" data-bind:max="totalTranslationRequests"></progress>	
-				<button class="abort-translate-btn" data-bind:hidden="completedTranslationRequests">Stop translating</button>
-				<button class="abort-translate-btn" data-bind:hidden="!completedTranslationRequests">Show original</button>
+				<p>Translating page from <span data-bind:text-content="lang-from"></span> to <span data-bind:text-content="lang-to"></span>…</p>
+				<progress data-bind:value="completedTranslationRequests" data-bind:max="totalTranslationRequests"></progress>	
+				<button class="abort-translate-btn">Stop translating</button>
+			</div>
+			<div data-state="translation-completed">
+				<p>Translated page from <span data-bind:text-content="lang-from"></span> to <span data-bind:text-content="lang-to"></span>.</p>
+				<button class="abort-translate-btn">Show original</button>
 			</div>
 			<div data-state="translation-error">
 				<p>Error during translation:</p>
