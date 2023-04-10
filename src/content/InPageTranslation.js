@@ -237,6 +237,10 @@ export default class InPageTranslation {
                                 let index = children.indexOf(child);
                                 if (index === -1) return; // probably a text node or quality estimation <font/> element added by us
                                 children.splice(index, 1);
+
+                                // Restore the original content of the child, which will remove any
+                                // original content we're tracking in this subtree from our maps.
+                                this.restoreElement(child);
                             });
 
                             if (mutation.addedNodes) {
