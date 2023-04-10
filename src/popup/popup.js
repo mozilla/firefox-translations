@@ -1,8 +1,8 @@
 import compat from '../shared/compat.js';
 import {
-	renderBoundElements,
 	addEventListeners,
 	addBoundElementListeners,
+  BoundElementRenderer,
 } from '../shared/common.js';
 import preferences from '../shared/preferences.js';
 
@@ -16,7 +16,7 @@ const globalState = preferences.view({
 	'developer': false
 })
 
-let lastRenderedState = null;
+let lastRenderedState = undefined;
 
 let renderTimeout = new class {
 	constructor() {
@@ -43,6 +43,8 @@ let renderTimeout = new class {
 		(callback || this.callback)();
 	}
 };
+
+const boundRenderer = new BoundElementRenderer(document.body);
 
 function render() {
 	// If the model (or one of the models in case of pivoting) needs 
@@ -85,8 +87,7 @@ function render() {
 	const render = () => {
 		// Remember the currently rendered state (for delay calculation below)
 		lastRenderedState = renderState.state;
-
-		renderBoundElements(document.body, renderState);
+		boundRenderer.render(renderState);
 	}
 
 	// If we switched state, we delay the render a bit because we might be
@@ -94,7 +95,7 @@ function render() {
 	// because a new element popped up, and mostly translation-completed for the
 	// rest of the time. We don't want that single brief element to make the
 	// interface flicker between the two states all the time.
-	if (tabState.state !== lastRenderedState && lastRenderedState !== null)
+	if (tabState.state !== lastRenderedState && lastRenderedState !== undefined)
 		renderTimeout.delayed(render, 250);
 	else
 		renderTimeout.immediate(render);
