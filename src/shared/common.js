@@ -1,3 +1,5 @@
+import jsep from "jsep";
+
 export function addEventListeners(root, handlers) {
 	const handlersPerEventType = {};
 
@@ -18,21 +20,6 @@ export function addEventListeners(root, handlers) {
 	});
 }
 
-export const StateHelper = {
-	get(target, prop, receiver) {
-		if (prop.substr(0, 1) === '!')
-			return !Reflect.get(target, prop.substr(1));
-
-		return Reflect.get(target, prop);
-	},
-	has(target, prop) {
-		if (prop.substr(0, 1) === '!')
-			return Reflect.has(target, prop.substr(1));
-
-		return Reflect.has(target, prop);
-	}
-};
-
 export function renderSelect(select, values) {
 	// Todo: we can be smarter about this!
 	const current = select.value;
@@ -43,7 +30,7 @@ export function renderSelect(select, values) {
 	for (let [value, label] of values)
 		select.add(new Option(label, value), null);
 
-	console.log('renderSelect', select.options, select.value, current);
+	// console.log('renderSelect', select.options, select.value, current);
 
 	if (current)
 		select.value = current;
@@ -57,6 +44,49 @@ export function queryXPathAll(root, query, callback) {
 		output.push(element);
 	};
 	return output;
+}
+
+const binaryOperators = {
+	'===': (left, right) => (state) => left(state) === right(state),
+	'!==': (left, right) => (state) => left(state) !== right(state),
+	 '==': (left, right) => (state) => left(state)  == right(state),
+	 '!=': (left, right) => (state) => left(state)  != right(state),
+	 '<=': (left, right) => (state) => left(state)  <= right(state),
+	 '>=': (left, right) => (state) => left(state)  >= right(state),
+	  '<': (left, right) => (state) => left(state)   < right(state),
+	  '>': (left, right) => (state) => left(state)   > right(state),
+}
+
+const unaryOperators = {
+	'!': (arg) => (state) => !arg(state)
+};
+
+function compileAST(expression) {
+	switch (expression.type) {
+		case 'BinaryExpression':
+			if (!(expression.operator in binaryOperators))
+				throw new Error(`Unknown operator: ${expression.operator}`);
+			return binaryOperators[expression.operator](compileAST(expression.left), compileAST(expression.right));
+		case 'UnaryExpression':
+			return unaryOperators[expression.operator](compileAST(expression.argument));
+		case 'MemberExpression':
+			const object = compileAST(expression.object);
+			const property = compileAST(expression.property);
+			return (state) => object(state)[property(state)];
+		case 'Identifier':
+			return (state) => state[expression.name];
+		case 'Literal':
+			return () => expression.value;
+		default:
+			throw new Error(`Unknown expression type: ${expression.type}`);
+	}
+}
+
+function compileExpression(expression) {
+	// I wish I could just use `new Function()` but that's frowned upon in web extensions
+	const fun = compileAST(jsep(expression));
+	fun.expression = expression;
+	return fun;
 }
 
 export class BoundElementRenderer {
@@ -83,7 +113,7 @@ export class BoundElementRenderer {
 			if (el.dataset) {
 				Object.entries(el.dataset).forEach(([key, value]) => {
 					let match = key.match(/^bind:(.+)$/);
-					if (match) bindings.push({attribute: match[1], key: value});
+					if (match) bindings.push({attribute: match[1], key: compileExpression(value)});
 				});
 
 				if (el !== root && 'bind:hidden' in el.dataset)
@@ -103,35 +133,33 @@ export class BoundElementRenderer {
 	}
 
 	render(state) {
-		const stateProxy = new Proxy(state, StateHelper);
-
 		const compare = ({attribute:a}, {attribute:b}) => a < b ? -1 : a > b ? 1 : 0;
 
 		this.elements.forEach(({el, nested, bindings}) => {
 			// Sorting bindings so we set `options` before `value`, because the other
 			// way around won't work.
 			bindings.sort(compare).forEach(({attribute, key}) => {
+				let value = undefined;
 				try {
+					value = key(state);
 					switch (attribute) {
 						case 'options':
-							renderSelect(el, stateProxy[key]);
+							renderSelect(el, value);
 							break;
 						default:
 							// Special case for <progress value=undefined> to get an indeterminate progress bar
-							if (attribute === 'value' && el instanceof HTMLProgressElement && typeof stateProxy[key] !== 'number') {
+							if (attribute === 'value' && el instanceof HTMLProgressElement && typeof value !== 'number') {
 								el.removeAttribute('value');
 							} else {
-								if (!key.startsWith('!') && !(key in stateProxy))
-									console.warn('render state has no key', key);
-								else if (typeof stateProxy[key] === 'undefined')
+								if (typeof value === 'undefined')
 									el.removeAttribute(attribute);
 								else
-									el[attribute] = stateProxy[key];
+									el[attribute] = value;
 							}
 							break;
 					}
 				} catch (e) {
-					console.error('Error while setting',attribute, 'of', el, 'to the value of', key, ':', e, state[key]);
+					console.error('Error while setting',attribute, 'of', el, 'to the value of', key.expression, ':', e, value);
 				}
 			});
 

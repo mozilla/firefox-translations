@@ -65,11 +65,11 @@ function render() {
 	const renderState = {
 		...globalState,
 		...tabState,
-		'lang-from': name(tabState.from),
-		'lang-to': name(tabState.to),
-		'lang-from-options': new Map(tabState.models?.map(({from}) => [from, name(from)])),
-		'lang-to-options': new Map(tabState.models?.filter(model => tabState.from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
-		'needs-download': needsDownload,
+		'langFromName': name(tabState.from),
+		'langToName': name(tabState.to),
+		'langFromOptions': new Map(tabState.models?.map(({from}) => [from, name(from)])),
+		'langToOptions': new Map(tabState.models?.filter(model => tabState.from === model.from).map(({to, pivot}) => [to, name(to) + (pivot ? ` (via ${name(pivot)})` : '')])),
+		'needsDownload': needsDownload,
 		'completedTranslationRequests': tabState.totalTranslationRequests - tabState.pendingTranslationRequests || undefined,
 		'canExportPages': tabState.recordedPagesCount > 0,
 	};
@@ -85,13 +85,6 @@ function render() {
 	const render = () => {
 		// Remember the currently rendered state (for delay calculation below)
 		lastRenderedState = renderState.state;
-
-		// Toggle "hidden" state of all <div data-state=""> elements. Ideally we
-		// could have used the `data-bind:hidden` attribute for this but 
-		// BoundElementRenderer doesn't support conditionals at the moment.
-		document.querySelectorAll('*[data-state]').forEach(el => {
-			el.hidden = renderState.state ? el.dataset.state != renderState.state : el.dataset.state != '';
-		});
 
 		renderBoundElements(document.body, renderState);
 	}

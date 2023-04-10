@@ -23,7 +23,7 @@
 				color: CanvasText;
 			}
 
-			div[data-state] {
+			.states > * {
 				display: flex;
 				flex-direction: column;
 			}
@@ -58,44 +58,45 @@
 		</style>
 	</head>
 	<body>
+		<!-- Warning: the `data-bind:hidden="state != ..."` is confusing because of the double negative -->
 		<div class="states">
-			<div data-state="translation-available">
+			<div data-bind:hidden="state != 'translation-available'">
 				<p>Wanna translate this page?</p>
-				<select id="lang-from" data-bind:options="lang-from-options" data-bind:value="from" required></select>
-				<select id="lang-to" data-bind:options="lang-to-options" data-bind:value="to" required></select>
-				<button class="download-btn" class="primary" data-bind:hidden="!needs-download">Download language &amp; Translate page</button>
-				<button class="translate-btn" class="primary" data-bind:hidden="needs-download">Translate page</button>
+				<select id="lang-from" data-bind:options="langFromOptions" data-bind:value="from" required></select>
+				<select id="lang-to" data-bind:options="langToOptions" data-bind:value="to" required></select>
+				<button class="download-btn" class="primary" data-bind:hidden="!needsDownload">Download language &amp; Translate page</button>
+				<button class="translate-btn" class="primary" data-bind:hidden="needsDownload">Translate page</button>
 			</div>
-			<div data-state="downloading-models">
+			<div data-bind:hidden="state != 'downloading-models'">
 				<p>Downloading language model…</p>
 				<progress data-bind:value="modelDownloadRead" data-bind:max="modelDownloadSize"></progress>
 			</div>
-			<div data-state="translation-in-progress">
-				<p>Translating page from <span data-bind:text-content="lang-from"></span> to <span data-bind:text-content="lang-to"></span>…</p>
+			<div data-bind:hidden="state != 'translation-in-progress'">
+				<p>Translating page from <span data-bind:text-content="langFromName"></span> to <span data-bind:text-content="langToName"></span>…</p>
 				<progress data-bind:value="completedTranslationRequests" data-bind:max="totalTranslationRequests"></progress>	
 				<button class="abort-translate-btn">Stop translating</button>
 			</div>
-			<div data-state="translation-completed">
-				<p>Translated page from <span data-bind:text-content="lang-from"></span> to <span data-bind:text-content="lang-to"></span>.</p>
+			<div data-bind:hidden="state != 'translation-completed'">
+				<p>Translated page from <span data-bind:text-content="langFromName"></span> to <span data-bind:text-content="langToName"></span>.</p>
 				<button class="abort-translate-btn">Show original</button>
 			</div>
-			<div data-state="translation-error">
+			<div data-bind:hidden="state != 'translation-error'">
 				<p>Error during translation:</p>
 				<p><code data-bind:text-content="error"></code></p>
 				<button class="abort-translate-btn">Stop translating</button>
 			</div>
-			<div data-state="page-error">
+			<div data-bind:hidden="state != 'page-error'">
 				<p>Error:</p>
 				<p><code data-bind:text-content="error"></code></p>
 			</div>
-			<div data-state="page-loading">
+			<div data-bind:hidden="state != 'page-loading'">
 				<!-- tab noticed by webRequest, but its content-script didn't connect -->
 				<p>Translations not available for this page.</p>
 			</div>
-			<div data-state="page-loaded">
+			<div data-bind:hidden="state != 'page-loaded'">
 				<p>Downloading list of available language models…</p>
 			</div>
-			<div data-state="">
+			<div data-bind:hidden="state != ''">
 				<!-- tab that has gone unnoticed by webRequest? -->
 				<p>Translations not available for this page.</p>
 			</div>
