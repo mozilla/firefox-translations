@@ -378,7 +378,7 @@ let provider = new class {
             if (!(preferred in providers)) {
                 console.info(`Provider ${preferred} not in list of supported translation providers. Falling back to 'wasm'`);
                 preferred = 'wasm';
-                preferences.set('provider', preferred);
+                preferences.set('provider', preferred, {silent: true});
             }
             
             let options = await preferences.get('options', {
