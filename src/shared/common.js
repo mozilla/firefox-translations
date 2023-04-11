@@ -1,4 +1,7 @@
-import jsep from "jsep";
+import jsep from 'jsep';
+import jsepTemplateLiteral from '@jsep-plugin/template';
+jsep.plugins.register(jsepTemplateLiteral);
+
 
 export function addEventListeners(root, handlers) {
 	const handlersPerEventType = {};
@@ -111,7 +114,7 @@ function compileAST(expression, flags={}) {
 					return value[key].bind(value);
 				return value[key];
 			};
-		case 'CallExpression':
+		case 'CallExpression': {
 			const callee = compileAST(expression.callee, {bind:true});
 			const args = expression.arguments.map(arg => compileAST(arg));
 			return (state) => {
@@ -120,6 +123,7 @@ function compileAST(expression, flags={}) {
 					throw new Error(`${stringifyAST(expression.callee)} is not a function`);
 				return fun.apply(undefined, args.map(arg => arg(state)));
 			};
+		}
 		case 'ArrayExpression':
 			const elements = expression.elements.map(element => compileAST(element));
 			return (state) => elements.map(element => element(state));
@@ -131,6 +135,10 @@ function compileAST(expression, flags={}) {
 			};
 		case 'Literal':
 			return () => expression.value;
+		case 'TemplateLiteral': {
+			const args = expression.expressions.map(arg => compileAST(arg));
+			return (state) => args.reduce((acc, arg, n) => acc + String(arg(state)) + expression.quasis[n+1].value.cooked, expression.quasis[0].value.cooked);
+		}
 		default:
 			throw new Error(`Unknown expression type: ${expression.type}`);
 	}

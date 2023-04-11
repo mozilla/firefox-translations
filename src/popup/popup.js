@@ -77,7 +77,7 @@ function render() {
 		'needsDownload': needsDownload,
 		'completedTranslationRequests': tabState.totalTranslationRequests - tabState.pendingTranslationRequests || undefined,
 		'canExportPages': tabState.recordedPagesCount > 0,
-		'host': tabState.url && new URL(tabState.url).host,
+		'domain': tabState.url && new URL(tabState.url).host,
 	};
 
 	// Little hack because we don't have a translation-completed state in the

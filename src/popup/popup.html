@@ -55,6 +55,12 @@
 			input[type=checkbox]:first-child {
 				margin-left: 0;
 			}
+
+			label {
+				white-space: nowrap;
+				text-overflow: ellipsis;
+				overflow: hidden;
+			}
 		</style>
 	</head>
 	<body>
@@ -101,9 +107,9 @@
 				<p>Translations not available for this page.</p>
 			</div>
 		</div>
-		<label data-bind:hidden="!(['translation-in-progress', 'translation-completed', 'translation-aborted']).includes(state) || !host">
-			<input type="checkbox" data-bind:checked="alwaysTranslateDomains.includes(host)" id="always-translate-domain-toggle">
-			Always translate <span data-bind:text-content="host"></span>
+		<label data-bind:hidden="!(['translation-in-progress', 'translation-completed', 'translation-aborted']).includes(state) || !domain" data-bind:title="`Automatically start translating pages on ${domain}`">
+			<input type="checkbox" data-bind:checked="alwaysTranslateDomains.includes(domain)" id="always-translate-domain-toggle">
+			Always translate <span data-bind:text-content="domain"></span>
 		</label>
 		<label data-bind:hidden="!developer" title="Renders coloured borders around sections identified by the in-page translation code">
 			<input type="checkbox" data-bind:checked="debug">
