@@ -15,7 +15,8 @@ const tabState = {
 
 // Plugin state (a synchronised view of what's currently in storage)
 const globalState = preferences.view({
-	'developer': false
+	'developer': false,
+	'alwaysTranslateDomains': [],
 })
 
 let lastRenderedState = undefined;
@@ -76,6 +77,7 @@ function render() {
 		'needsDownload': needsDownload,
 		'completedTranslationRequests': tabState.totalTranslationRequests - tabState.pendingTranslationRequests || undefined,
 		'canExportPages': tabState.recordedPagesCount > 0,
+		'host': tabState.url && new URL(tabState.url).host,
 	};
 
 	// Little hack because we don't have a translation-completed state in the
@@ -181,6 +183,12 @@ compat.tabs.query({active: true, currentWindow: true}).then(tabs => {
 			backgroundScript.postMessage({
 				command: 'ExportRecordedPages'
 			});
+		},
+		'change #always-translate-domain-toggle': e => {
+			const domain = new URL(tabState.url).host;
+			preferences.set('alwaysTranslateDomains', e.target.checked
+				? globalState.alwaysTranslateDomains.concat([domain])
+				: globalState.alwaysTranslateDomains.filter(element => element !== domain));
 		}
 	});
 });

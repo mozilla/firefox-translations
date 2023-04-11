@@ -507,6 +507,16 @@ function connectContentScript(contentScript) {
         abort();
     });
 
+    // Automatically start translating preferred domains.
+    tab.addEventListener('update', async ({target, data: {state}}) => {
+        if (state === State.TRANSLATION_AVAILABLE) {
+            const domains = await preferences.get('alwaysTranslateDomains', []);
+            if (target.state.from && target.state.to && target.state.url
+                && domains.includes(new URL(target.state.url).host))
+                tab.translate();
+        }
+    });
+
     // Respond to certain messages from the content script. Mainly individual
     // translation requests, and detect language requests which then change the
     // state of the tab to reflect whether translations are available or not.
