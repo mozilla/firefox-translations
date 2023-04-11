@@ -229,13 +229,19 @@ export function renderBoundElements(root, state) {
 	return new BoundElementRenderer(root).render(state);
 }
 
+function isIdentifier(expr) {
+	return /^[a-z_][a-z0-9_]*$/i.test(expr)
+}
+
 export function addBoundElementListeners(root, callback) {
 	addEventListeners(root, {
 		'change *[data-bind\\:value]': e => {
-			callback(e.target.dataset['bind:value'], e.target.value, e);
+			if (isIdentifier(e.target.dataset['bind:value']))
+				callback(e.target.dataset['bind:value'], e.target.value, e);
 		},
 		'change input[type=checkbox][data-bind\\:checked]': e => {
-			callback(e.target.dataset['bind:checked'], e.target.checked, e);
+			if (isIdentifier(e.target.dataset['bind:checked']))
+				callback(e.target.dataset['bind:checked'], e.target.checked, e);
 		}
 	});
 }
