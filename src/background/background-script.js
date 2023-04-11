@@ -748,6 +748,12 @@ async function main() {
         }
     });
 
+    // On start-up init all (important) tabs we missed onCreated for
+    compat.tabs.query({active:true}).then(allTabs => {
+        for (const tab of allTabs)
+            getTab(tab.id).reset(tab.url);
+    })
+
     // Add "translate selection" menu item to selections
     compat.contextMenus.create({
         id: 'translate-selection',
