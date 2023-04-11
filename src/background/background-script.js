@@ -159,6 +159,7 @@ const State = {
     DOWNLOADING_MODELS: 'downloading-models',
     TRANSLATION_IN_PROGRESS: 'translation-in-progress',
     TRANSLATION_FINISHED: 'translation-finished',
+    TRANSLATION_ABORTED: 'translation-aborted',
     TRANSLATION_ERROR: 'translation-error'
 };
 
@@ -167,7 +168,8 @@ const State = {
 const activeTranslationStates = [
     State.DOWNLOADING_MODELS, 
     State.TRANSLATION_IN_PROGRESS,
-    State.TRANSLATION_FINISHED
+    State.TRANSLATION_FINISHED,
+    State.TRANSLATION_ABORTED,
 ];
 
 class Tab extends EventTarget {
@@ -216,7 +218,7 @@ class Tab extends EventTarget {
      */
     abort() {
         this.update(state => ({
-            state: State.TRANSLATION_AVAILABLE
+            state: State.TRANSLATION_ABORTED
         }));
 
         this.frames.forEach(frame => {
@@ -294,12 +296,12 @@ function updateActionButton(event) {
     switch (event.target.state.state) {
         case State.TRANSLATION_AVAILABLE:
         case State.TRANSLATION_IN_PROGRESS:
+        case State.TRANSLATION_ABORTED:
             compat.browserAction.enable(event.target.id);
             break;
         case State.TRANSLATION_NOT_AVAILABLE:
             compat.browserAction.disable(event.target.id);         
             break;
-        case State.TRANSLATION_NOT_AVAILABLE:
         default:
             break;
     }

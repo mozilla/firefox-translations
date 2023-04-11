@@ -60,7 +60,7 @@
 	<body>
 		<!-- Warning: the `data-bind:hidden="state != ..."` is confusing because of the double negative -->
 		<div class="states">
-			<div data-bind:hidden="state != 'translation-available'">
+			<div data-bind:hidden="state != 'translation-available' && state != 'translation-aborted'">
 				<p>Wanna translate this page?</p>
 				<select id="lang-from" data-bind:options="langFromOptions" data-bind:value="from" required></select>
 				<select id="lang-to" data-bind:options="langToOptions" data-bind:value="to" required></select>

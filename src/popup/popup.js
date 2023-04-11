@@ -9,7 +9,9 @@ import preferences from '../shared/preferences.js';
 const regionNamesInEnglish = new Intl.DisplayNames([...navigator.languages, 'en'], {type: 'language'});
 
 // Tab state
-const tabState = {};
+const tabState = {
+	state: undefined
+};
 
 // Plugin state (a synchronised view of what's currently in storage)
 const globalState = preferences.view({
