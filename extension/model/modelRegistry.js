@@ -1,11 +1,34 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable max-lines */
 
-const modelRegistryVersion = "0.3.3";
+const modelRegistryVersion = "0.3.4";
 let modelRegistryRootURL = `https://storage.googleapis.com/bergamot-models-sandbox/${modelRegistryVersion}`;
 const modelRegistryRootURLTest = "https://example.com/browser/browser/extensions/translations/test/browser";
 
 const modelRegistry = {
+  "caen": {
+    "model": {
+      "name": "model.caen.intgemm.alphas.bin",
+      "size": 17140899,
+      "estimatedCompressedSize": 12825781,
+      "expectedSha256Hash": "3a315266490d87f72adf9e5387ee567b2fb76a30018e51586b882b1d87bf5aed",
+      "modelType": "dev"
+    },
+    "lex": {
+      "name": "lex.50.50.caen.s2t.bin",
+      "size": 5244644,
+      "estimatedCompressedSize": 2735538,
+      "expectedSha256Hash": "a648be17d6f008feee687b455d00dbfaedba2ead8bee32658783c4325a8d3ece",
+      "modelType": "dev"
+    },
+    "vocab": {
+      "name": "vocab.caen.spm",
+      "size": 811443,
+      "estimatedCompressedSize": 413033,
+      "expectedSha256Hash": "10a1f25e5640f596b547190082f87ba4994f8714693904c82a35d965b9cc7470",
+      "modelType": "dev"
+    }
+  },
   "bgen": {
     "model": {
       "name": "model.bgen.intgemm.alphas.bin",
