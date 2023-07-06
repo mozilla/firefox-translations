@@ -145,7 +145,6 @@
     "96": "/view/icons/translation-color.svg"
   },
   "page_action": {
-    "show_matches": ["<all_urls>"],
     "browser_style": true,
     "default_icon": "view/icons/translation-bw.svg",
     "default_title": "Firefox Translations"

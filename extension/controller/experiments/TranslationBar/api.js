@@ -90,6 +90,9 @@ const translationNotificationManagers = new Map();
       return {
         experiments: {
           translationbar: {
+            isBuiltInEnabled: function isBuiltInEnabled() {
+              return Services.prefs.getBoolPref("browser.translations.enable", false);
+            },
             show: function show(tabId, detectedLanguage, navigatorLanguage, localizedLabels, pageActionRequest, infobarSettings, autoTranslate, otSupported) {
               try {
 
