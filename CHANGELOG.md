@@ -10,6 +10,10 @@ You can send suggestions or report issues to the team via any of the channels be
 
 [You can also rate and leave us a comment on Mozilla Addons.](https://addons.mozilla.org/en-US/firefox/addon/firefox-translations/)
 
+## [[v1.3.4]](https://github.com/mozilla/firefox-translations/tree/v1.3.4) - 2023-07-07
+### Changed
+- Stop showing address bar icon and notification bar when the built-in version is enabled
+
 ## [[v1.3.3]](https://github.com/mozilla/firefox-translations/tree/v1.3.3) - 2023-02-28
 ### Changed
 - Fix UI's summoning via browser action on Android
