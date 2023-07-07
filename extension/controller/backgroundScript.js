@@ -67,6 +67,7 @@ let pingSender = new PingSender();
 let modelFastText = null;
 let modelFastTextReadyPromise = null;
 
+let isBuiltInEnabled = null;
 let telemetryByTab = new Map();
 let pingByTab = new Set();
 let translationRequestsByTab = new Map();
@@ -181,6 +182,7 @@ const messageListener = function(message, sender) {
           break;
         }
         case "monitorTabLoad":
+          if (isBuiltInEnabled || (isBuiltInEnabled === null && await browser.experiments.translationbar.isBuiltInEnabled())) return;
           if (!await isFrameLoaded(sender.tab.id, sender.frameId)) return;
             browser.tabs.sendMessage(
                     sender.tab.id,
@@ -531,10 +533,12 @@ browser.runtime.getPlatformInfo().then(info => {
   init();
   const retrieveOptionsFromStorage = browser.storage.local.get(["displayedConsent", "lastVersion", "showChangelog"]);
   const isMochitestPromise = browser.experiments.translationbar.isMochitest();
+  const isBuiltInEnabledPromise = browser.experiments.translationbar.isBuiltInEnabled();
 
   Promise.allSettled([
                       retrieveOptionsFromStorage,
                       isMochitestPromise,
+                      isBuiltInEnabledPromise,
                     ]).then(values => {
     const { displayedConsent, lastVersion: lastVersionDisplayed, showChangelog } = values[0].value || {};
     isMochitest = values[1].value;
@@ -549,6 +553,17 @@ browser.runtime.getPlatformInfo().then(info => {
         url: browser.extension.getURL("view/static/CHANGELOG.html"),
       });
       browser.storage.local.set({ lastVersion: extensionVersion });
+    }
+
+    isBuiltInEnabled = values[2].value;
+    if (!isBuiltInEnabled) {
+      browser.tabs.onCreated.addListener(tab => browser.pageAction.show(tab.id));
+
+      browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+        if (changeInfo.status === "complete" && !tab.pageActionShown) {
+          browser.pageAction.show(tabId);
+        }
+      });
     }
   });
 });

@@ -3,6 +3,13 @@
       "namespace": "experiments.translationbar",
       "functions": [
         {
+          "name": "isBuiltInEnabled",
+          "type": "function",
+          "description": "Returns true if the built-in version is enabled.",
+          "async": true,
+          "parameters": []
+        },
+        {
           "name": "show",
           "type": "function",
           "description": "Displays the translation bar.",

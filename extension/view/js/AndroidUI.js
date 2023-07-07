@@ -79,6 +79,10 @@ class AndroidUI {
         return this.mapLangs.get(lng);
     }
 
+    isBuiltInEnabled() {
+        return false;
+    }
+
     isMochitest() {
         return false;
     }
