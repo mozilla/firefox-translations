@@ -9,8 +9,46 @@ const baseURL = getRootDirectory(gTestPath).replace(
   "https://example.com"
 );
 
+add_task(async function testTranslationBarNotDisplayed() {
+  info("Test the Translation functionality when the built-in version is enabled");
+
+  if (!Services.prefs.getBoolPref("browser.translations.enable", false)) {
+    ok(true, "Built-in version is disabled, skipping test.");
+    return;
+  }
+
+  info("Waiting 10s until the engines are loaded");
+  // let's wait until the engines are loaded
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  info("Opening the test page");
+
+  // open the test page.
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    `${baseURL }browser_translation_test.html`
+  );
+
+  // wait for the translation bar to be displayed.
+  let neverShown = false;
+  await TestUtils.waitForCondition(() => gBrowser
+      .getNotificationBox()
+      .getNotificationWithValue("fxtranslation-notification"))
+      .catch(() => {
+        neverShown = true;
+      });
+  ok(neverShown, "Translation notification bar was not displayed.");
+
+  BrowserTestUtils.removeTab(tab);
+});
+
 add_task(async function testTranslationBarDisplayed() {
-  info("Test the Translation functionality");
+  info("Test the Translation functionality when the built-in version is disabled");
+
+  if (Services.prefs.getBoolPref("browser.translations.enable", false)) {
+    ok(true, "Built-in version is enabled, skipping test.");
+    return;
+  }
 
   info("Waiting 10s until the engines are loaded");
   // let's wait until the engines are loaded

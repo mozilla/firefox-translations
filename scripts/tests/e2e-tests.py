@@ -91,6 +91,7 @@ try:
     subprocess.check_output("./mach build", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
     print("Running test with faster gemm")
     subprocess.check_output("./mach test --setpref=fxtranslations.running.mochitest=true browser/extensions/translations/test/browser/browser_translation_test.js", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
+    subprocess.check_output("./mach test --setpref=fxtranslations.running.mochitest=true --setpref=browser.translations.enable=false browser/extensions/translations/test/browser/browser_translation_test.js", stderr=subprocess.STDOUT, shell=True, universal_newlines=True, cwd="gecko")
     print("Test with faster gemm Succeeded")
 except CalledProcessError as cpe:
     print(cpe.output)
