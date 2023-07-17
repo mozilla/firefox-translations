@@ -16,7 +16,7 @@ const state = {
 
 // Loading indicator for html element translation
 preferences.bind('progressIndicator', progressIndicator => {
-    document.body.setAttribute('x-bergamot-indicator', state.progressIndicator);
+    document.body.setAttribute('x-bergamot-indicator', progressIndicator);
 }, {default: ''})
 
 function on(command, callback) {

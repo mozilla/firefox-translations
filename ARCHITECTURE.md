@@ -81,6 +81,7 @@ Fields: {
 
 Actions:
 - background-script tells page action icon to show
+- background-script checks if page's domain is in the always-translate list. If so, and a target language is selected, switch to TRANSLATION_IN_PROGRESS.
 
 Next state:
 - page-action popup can be opened to select language and trigger translation, which will switch to TRANSLATION_IN_PROGRESS
@@ -100,6 +101,16 @@ Action:
 Next state:
 - background-script will switch to TRANSLATION_IN_PROGRESS (but with updated fields) while it is handling translation requests
 - background-script can switch to TRANSLATION_ERROR when an an (irrecoverable) error occurs during translation
+
+## TRANSLATION_ABORTED
+Triggered when a page that was being translated, stopped being translated. It is a state similar to TRANSLATION_AVAILABLE, with the exception that we should not translate the page automatically if it is on a always-translate domain.
+
+Action:
+- _see TRANSLATION_AVAILABLE_
+- … with the exception of not triggering translation on always-translate domains
+
+Next state:
+- _see TRANSLATION_AVAILABLE_
 
 ## Not used: TRANSLATION_ERROR
 

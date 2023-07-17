@@ -1,6 +1,11 @@
 import compat from './compat.js';
 
 export default new class {
+    #listeners;
+
+    constructor() {
+        this.#listeners = new Set();
+    }
     /**
      * Get preference from storage, or return `fallback` if there was no
      * preference.
@@ -12,9 +17,17 @@ export default new class {
 
     /**
      * Changes preferences. Will notify other pages about the change.
+     * @param {String} key
+     * @param {Object} value
+     * @param {{silent:Boolean}?} options
      */
-    async set(key, value) {
-        return await compat.storage.local.set({[key]: value});
+    async set(key, value, options) {
+        console.log('[preferences] set', key, 'to', value);
+        await compat.storage.local.set({[key]: value});
+        
+        // Notify local listeners with the same sort event that onChanged gets
+        if (!options?.silent)
+            this.#listeners.forEach(callback => callback({[key]: {newValue: value}}, 'local'));
     }
 
     /**
@@ -25,22 +38,33 @@ export default new class {
     }
 
     /**
-     * Listen to preference changes. I think this only triggers if the change
-     * is made outside of this script (i.e. in popup.html or options.html)
+     * Listen to preference changes.
+     * @return {() => null} callback to stop listening
      */
     listen(key, callback) {
-        compat.storage.onChanged.addListener((changes, area) => {
+        const listener = (changes, area) => {
             if (area === 'local' && key in changes)
-                callback(changes[key])
-        });
+                callback(changes[key].newValue)
+        };
+
+        compat.storage.onChanged.addListener(listener);
+        this.#listeners.add(listener);
+
+        return () => {
+            compat.storage.onChanged.removeListener(listener);
+            this.#listeners.delete(listener);
+        };
     }
 
     /**
      * get() + listen() in an easy package.
+     * @param {String} key
+     * @param {(Object) => null} callback called with value and when value changes
+     * @return {() => null} callback to stop listening
      */
-    async bind(key, callback, options) {
-        const value = this.get(key, options?.default);
-        this.listen(key, callback);
+    bind(key, callback, options) {
+        this.get(key, options?.default).then(value => callback(value));
+        return this.listen(key, callback);
     }
 
     /**
@@ -54,6 +78,10 @@ export default new class {
         const view = Object.create({
             addListener(callback) {
                 listeners.add(callback);
+            },
+            delete: () => {
+                compat.storage.onChanged.removeListeners(listener);
+                this.#listeners.delete(listener);
             }
         });
 
@@ -64,13 +92,13 @@ export default new class {
             listeners.forEach(listener => listener(result));
         });
 
-        compat.storage.onChanged.addListener((changes, area) => {
+        function listener(changes, area) {
             if (area !== 'local')
                 return;
 
             const diff = {};
 
-            for (let key of defaults)
+            for (let key of Object.keys(defaults))
                 if (key in changes && changes[key].newValue !== view[key])
                     diff[key] = changes[key].newValue;
 
@@ -79,7 +107,13 @@ export default new class {
 
             Object.assign(view, diff);
             listeners.forEach(listener => listener(diff));
-        })
+        }
+
+        // Listen to changes from outside this context
+        compat.storage.onChanged.addListener(listener);
+
+        // Listen to changes in the current context
+        this.#listeners.add(listener);
 
         return new Proxy(view, {
             get(...args) {

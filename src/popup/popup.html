@@ -55,12 +55,18 @@
 			input[type=checkbox]:first-child {
 				margin-left: 0;
 			}
+
+			label {
+				white-space: nowrap;
+				text-overflow: ellipsis;
+				overflow: hidden;
+			}
 		</style>
 	</head>
 	<body>
 		<!-- Warning: the `data-bind:hidden="state != ..."` is confusing because of the double negative -->
 		<div class="states">
-			<div data-bind:hidden="state != 'translation-available'">
+			<div data-bind:hidden="state != 'translation-available' && state != 'translation-aborted'">
 				<p>Wanna translate this page?</p>
 				<select id="lang-from" data-bind:options="langFromOptions" data-bind:value="from" required></select>
 				<select id="lang-to" data-bind:options="langToOptions" data-bind:value="to" required></select>
@@ -101,6 +107,10 @@
 				<p>Translations not available for this page.</p>
 			</div>
 		</div>
+		<label data-bind:hidden="!(['translation-in-progress', 'translation-completed', 'translation-aborted']).includes(state) || !domain" data-bind:title="`Automatically start translating pages on ${domain}`">
+			<input type="checkbox" data-bind:checked="alwaysTranslateDomains.includes(domain)" id="always-translate-domain-toggle">
+			Always translate <span data-bind:text-content="domain"></span>
+		</label>
 		<label data-bind:hidden="!developer" title="Renders coloured borders around sections identified by the in-page translation code">
 			<input type="checkbox" data-bind:checked="debug">
 			Draw translation sections

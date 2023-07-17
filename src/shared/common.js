@@ -1,4 +1,7 @@
-import jsep from "jsep";
+import jsep from 'jsep';
+import jsepTemplateLiteral from '@jsep-plugin/template';
+jsep.plugins.register(jsepTemplateLiteral);
+
 
 export function addEventListeners(root, handlers) {
 	const handlersPerEventType = {};
@@ -46,6 +49,27 @@ export function queryXPathAll(root, query, callback) {
 	return output;
 }
 
+function stringifyAST(expression) {
+	switch (expression.type) {
+		case 'BinaryExpression':
+			return `${stringifyAST(expression.left)} ${expression.operator} ${stringifyAST(expression.right)}`;
+		case 'UnaryExpression':
+			return `${expression.operator}(${stringifyAST(expression.argument)})`;
+		case 'MemberExpression':
+			return stringifyAST(expression.object) + (expression.computed ? `[${stringifyAST(expression.property)}]` : `.${stringifyAST(expression.property)}`);
+		case 'CallExpression':
+			return `${stringifyAST(expression.callee)}(${expression.arguments.map(arg => stringifyAST(arg)).join(', ')})`;
+		case 'ArrayExpression':
+			return `[${expression.elements.map(element => stringifyAST(element)).join(', ')}]`;
+		case 'Identifier':
+			return `${expression.name}`
+		case 'Literal':
+			return expression.raw;
+		default:
+			throw new Error(`Unknown expression type: ${expression.type}`);
+	}
+}
+
 const binaryOperators = {
 	'===': (left, right) => (state) => left(state) === right(state),
 	'!==': (left, right) => (state) => left(state) !== right(state),
@@ -55,28 +79,66 @@ const binaryOperators = {
 	 '>=': (left, right) => (state) => left(state)  >= right(state),
 	  '<': (left, right) => (state) => left(state)   < right(state),
 	  '>': (left, right) => (state) => left(state)   > right(state),
+	 '&&': (left, right) => (state) => left(state)  && right(state),
+	 '||': (left, right) => (state) => left(state)  || right(state),
 }
 
 const unaryOperators = {
 	'!': (arg) => (state) => !arg(state)
 };
 
-function compileAST(expression) {
+function compileAST(expression, flags={}) {
 	switch (expression.type) {
 		case 'BinaryExpression':
 			if (!(expression.operator in binaryOperators))
-				throw new Error(`Unknown operator: ${expression.operator}`);
+				throw new Error(`Unknown binary operator: ${expression.operator}`);
 			return binaryOperators[expression.operator](compileAST(expression.left), compileAST(expression.right));
 		case 'UnaryExpression':
+			if (!(expression.operator in unaryOperators))
+				throw new Error(`Unknown unary operator: ${expression.operator}`);
 			return unaryOperators[expression.operator](compileAST(expression.argument));
 		case 'MemberExpression':
 			const object = compileAST(expression.object);
-			const property = compileAST(expression.property);
-			return (state) => object(state)[property(state)];
+			const property = expression.computed
+				? compileAST(expression.property)
+				: () => expression.property.name;
+			return (state) => {
+				const value = object(state), key = property(state);
+				if (value === undefined)
+					throw new Error(`${stringifyAST(expression.object)} in ${stringifyAST(expression)} is undefined`);
+				if (key === undefined)
+					throw new Error(`${stringifyAST(expression.property)} in ${stringifyAST(expression)} is undefined`);
+				if (!(key in value))
+					throw new Error(`No "${key}" in ${stringifyAST(expression.object)}`);
+				if (flags.bind)
+					return value[key].bind(value);
+				return value[key];
+			};
+		case 'CallExpression': {
+			const callee = compileAST(expression.callee, {bind:true});
+			const args = expression.arguments.map(arg => compileAST(arg));
+			return (state) => {
+				const fun = callee(state);
+				if (typeof fun !== 'function')
+					throw new Error(`${stringifyAST(expression.callee)} is not a function`);
+				return fun.apply(undefined, args.map(arg => arg(state)));
+			};
+		}
+		case 'ArrayExpression':
+			const elements = expression.elements.map(element => compileAST(element));
+			return (state) => elements.map(element => element(state));
 		case 'Identifier':
-			return (state) => state[expression.name];
+			return (state) => {
+				if (!(expression.name in state))
+					throw new Error(`No "${expression.name}" in scope`);
+				return state[expression.name];
+			};
 		case 'Literal':
 			return () => expression.value;
+		case 'TemplateLiteral': {
+			const args = expression.expressions.map(arg => compileAST(arg));
+			return (state) => args.reduce((acc, arg, n) => acc + String(arg(state)) + expression.quasis[n+1].value.cooked, expression.quasis[0].value.cooked);
+		}
 		default:
 			throw new Error(`Unknown expression type: ${expression.type}`);
 	}
@@ -175,13 +237,19 @@ export function renderBoundElements(root, state) {
 	return new BoundElementRenderer(root).render(state);
 }
 
+function isIdentifier(expr) {
+	return /^[a-z_][a-z0-9_]*$/i.test(expr)
+}
+
 export function addBoundElementListeners(root, callback) {
 	addEventListeners(root, {
 		'change *[data-bind\\:value]': e => {
-			callback(e.target.dataset['bind:value'], e.target.value, e);
+			if (isIdentifier(e.target.dataset['bind:value']))
+				callback(e.target.dataset['bind:value'], e.target.value, e);
 		},
 		'change input[type=checkbox][data-bind\\:checked]': e => {
-			callback(e.target.dataset['bind:checked'], e.target.checked, e);
+			if (isIdentifier(e.target.dataset['bind:checked']))
+				callback(e.target.dataset['bind:checked'], e.target.checked, e);
 		}
 	});
 }
