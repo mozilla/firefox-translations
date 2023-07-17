@@ -702,105 +702,101 @@ function connectPopup(popup) {
     });
 }
 
-async function main() {
-    // Receive incoming connection requests from content-script and popup
-    compat.runtime.onConnect.addListener((port) => {
-        if (port.name == 'content-script')
-            connectContentScript(port);
-        else if (port.name.startsWith('popup-'))
-            connectPopup(port);
-    });
+// Receive incoming connection requests from content-script and popup
+compat.runtime.onConnect.addListener((port) => {
+    if (port.name == 'content-script')
+        connectContentScript(port);
+    else if (port.name.startsWith('popup-'))
+        connectPopup(port);
+});
 
-    // Initialize or update the state of a tab when navigating
-    compat.tabs.onUpdated.addListener((tabId, diff) => {
-        if (diff.url)
-            getTab(tabId).reset(diff.url);
-        // Todo: treat reload and link different? Reload -> disable translation?
-    });
+// Initialize or update the state of a tab when navigating
+compat.tabs.onUpdated.addListener((tabId, diff) => {
+    if (diff.url)
+        getTab(tabId).reset(diff.url);
+    // Todo: treat reload and link different? Reload -> disable translation?
+});
 
-    // When a new tab is created start, track its active state
-    compat.tabs.onCreated.addListener(({id: tabId, active, openerTabId}) => {
-        let inheritedState = {};
+// When a new tab is created start, track its active state
+compat.tabs.onCreated.addListener(({id: tabId, active, openerTabId}) => {
+    let inheritedState = {};
 
-        // If the tab was opened from another tab that was already translating,
-        // this tab will inherit that state and also automatically continue
-        // translating.
-        if (openerTabId) {
-            const {state, url, from, to, models} = getTab(openerTabId).state;
-            inheritedState = {state, url, from, to, models};
-        }
+    // If the tab was opened from another tab that was already translating,
+    // this tab will inherit that state and also automatically continue
+    // translating.
+    if (openerTabId) {
+        const {state, url, from, to, models} = getTab(openerTabId).state;
+        inheritedState = {state, url, from, to, models};
+    }
 
-        getTab(tabId).update(() => ({...inheritedState, active}));
-    });
+    getTab(tabId).update(() => ({...inheritedState, active}));
+});
 
-    // Remove the tab state if a tab is removed
-    compat.tabs.onRemoved.addListener(({tabId}) => {
-        tabs.delete(tabId);
-    });
+// Remove the tab state if a tab is removed
+compat.tabs.onRemoved.addListener(({tabId}) => {
+    tabs.delete(tabId);
+});
 
-    // Let each tab know whether its the active one. We use this state change
-    // event to keep the menu items in sync.
-    compat.tabs.onActivated.addListener(({tabId}) => {
-        for (let [id, tab] of tabs) {
-            // If the tab's active state doesn't match the activated tab, fix that.
-            if (tab.active != (tab.id === tabId))
-                tab.update(() => ({active: Boolean(tab.id === tabId)}));
-        }
-    });
+// Let each tab know whether its the active one. We use this state change
+// event to keep the menu items in sync.
+compat.tabs.onActivated.addListener(({tabId}) => {
+    for (let [id, tab] of tabs) {
+        // If the tab's active state doesn't match the activated tab, fix that.
+        if (tab.active != (tab.id === tabId))
+            tab.update(() => ({active: Boolean(tab.id === tabId)}));
+    }
+});
 
-    // On start-up init all (important) tabs we missed onCreated for
-    compat.tabs.query({active:true}).then(allTabs => {
-        for (const tab of allTabs)
-            getTab(tab.id).reset(tab.url);
-    })
+// On start-up init all (important) tabs we missed onCreated for
+compat.tabs.query({active:true}).then(allTabs => {
+    for (const tab of allTabs)
+        getTab(tab.id).reset(tab.url);
+})
 
-    // Add "translate selection" menu item to selections
-    compat.contextMenus.create({
-        id: 'translate-selection',
-        title: 'Translate Selection',
-        contexts: ['selection']
-    });
+// Add "translate selection" menu item to selections
+compat.contextMenus.create({
+    id: 'translate-selection',
+    title: 'Translate Selection',
+    contexts: ['selection']
+});
 
-    // Add "type to translate" menu item to textareas
-    compat.contextMenus.create({
-        id: 'show-outbound-translation',
-        title: 'Type to translate…',
-        contexts: ['editable']
-    });
+// Add "type to translate" menu item to textareas
+compat.contextMenus.create({
+    id: 'show-outbound-translation',
+    title: 'Type to translate…',
+    contexts: ['editable']
+});
 
-    chrome.contextMenus.onClicked.addListener((info, tab) => {
-        // First sanity check whether we know from and to languages
-        // (and it isn't the same by accident)
-        const {from, to} = getTab(tab.id).state;
-        if (from === undefined || to === undefined || from === to) {
-            compat.browserAction.openPopup();
-            return;
-        }
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+    // First sanity check whether we know from and to languages
+    // (and it isn't the same by accident)
+    const {from, to} = getTab(tab.id).state;
+    if (from === undefined || to === undefined || from === to) {
+        compat.browserAction.openPopup();
+        return;
+    }
 
-        // Send the appropriate message down to the content script of the
-        // tab we just clicked inside of.
-        switch (info.menuItemId) {
-            case 'translate-selection':
-                getTab(tab.id).frames.get(info.frameId).postMessage({
-                    command: 'TranslateSelection'
-                });
-                break;
-            case 'show-outbound-translation':
-                getTab(tab.id).frames.get(info.frameId).postMessage({
-                    command: 'ShowOutboundTranslation'
-                });
-                break;
-        }
-    })
+    // Send the appropriate message down to the content script of the
+    // tab we just clicked inside of.
+    switch (info.menuItemId) {
+        case 'translate-selection':
+            getTab(tab.id).frames.get(info.frameId).postMessage({
+                command: 'TranslateSelection'
+            });
+            break;
+        case 'show-outbound-translation':
+            getTab(tab.id).frames.get(info.frameId).postMessage({
+                command: 'ShowOutboundTranslation'
+            });
+            break;
+    }
+})
 
-    // Makes debugging easier
-    Object.assign(self, {
-        tabs,
-        providers,
-        provider,
-        preferences,
-        test
-    })
-}
-
-main();
+// Makes debugging easier
+Object.assign(self, {
+    tabs,
+    providers,
+    provider,
+    preferences,
+    test
+})
