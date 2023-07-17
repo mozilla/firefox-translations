@@ -6,8 +6,6 @@ import OutboundTranslation from './OutboundTranslation.js';
 import { LatencyOptimisedTranslator } from '@browsermt/bergamot-translator';
 import preferences from '../shared/preferences.js';
 
-let backgroundScript;
-
 const listeners = new Map();
 
 const state = {
@@ -37,7 +35,7 @@ on('Update', diff => {
             // Not sure why we have the page-loading event here, like, as soon
             // as frame 0 connects we know we're in page-loaded territory.
             case 'page-loading':
-                backgroundScript.postMessage({
+                postBackgroundScriptMessage({
                     command: 'UpdateRequest',
                     data: {state: 'page-loaded'}
                 });
@@ -65,7 +63,7 @@ on('Update', async diff => {
 
         // Once we have the snippet, send it to background script for analysis
         // and possibly further action (like showing the popup)
-        backgroundScript.postMessage({
+        postBackgroundScriptMessage({
             command: "DetectLanguage",
             data: {
                 url: document.location.href,
@@ -93,7 +91,7 @@ let selectionTranslationId = null;
 
 function translate(text, user) {
     console.assert(state.from !== undefined && state.to !== undefined, "state.from or state.to is not set");
-    backgroundScript.postMessage({
+    postBackgroundScriptMessage({
         command: "TranslateRequest",
         data: {
             // translation request
@@ -211,7 +209,7 @@ class BackgroundScriptWorkerProxy {
             };
 
             this.#pending.set(request.user.id, {request, accept, reject});
-            backgroundScript.postMessage({
+            postBackgroundScriptMessage({
                 command: "TranslateRequest",
                 data: request
             });
@@ -309,6 +307,15 @@ on('TranslateResponse', data => {
 
 // Timeout of retrying connectToBackgroundScript()
 let retryTimeout = 100;
+
+let backgroundScript;
+
+function postBackgroundScriptMessage(message) {
+    if (!backgroundScript)
+        connectToBackgroundScript();
+
+    return backgroundScript.postMessage(message);
+}
 
 function connectToBackgroundScript() {
     // If we're already connected (e.g. when this function was called directly
