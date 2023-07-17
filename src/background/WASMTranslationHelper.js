@@ -19,6 +19,11 @@ const CACHE_NAME = "translatelocally";
 
 const MAX_DOWNLOAD_TIME = 60000; // TODO move this
 
+function basename(path) {
+    const pos = path.lastIndexOf('/');
+    return pos !== -1 ? path.substr(pos + 1) : path;
+}
+
 class BergamotBacking extends TranslatorBacking {
     #hasTranslationModel({from, to}) {
         const key = JSON.stringify({from, to});
@@ -191,7 +196,7 @@ class BergamotBacking extends TranslatorBacking {
         const files = await untar(archive.buffer);
 
         const find = (filename) => {
-            const found = files.find(file => file.name.match(/(?:^|\/)([^\/]+)$/)[1] === filename)
+            const found = files.find(file => basename(file.name) === filename)
             if (found === undefined)
                 throw new Error(`Could not find '${filename}' in model archive`);
             return found;
