@@ -297,10 +297,10 @@ function updateActionButton(event) {
         case State.TRANSLATION_AVAILABLE:
         case State.TRANSLATION_IN_PROGRESS:
         case State.TRANSLATION_ABORTED:
-            compat.browserAction.enable(event.target.id);
+            compat.action.enable(event.target.id);
             break;
         case State.TRANSLATION_NOT_AVAILABLE:
-            compat.browserAction.disable(event.target.id);         
+            compat.action.disable(event.target.id);         
             break;
         default:
             break;
@@ -753,18 +753,20 @@ compat.tabs.query({active:true}).then(allTabs => {
         getTab(tab.id).reset(tab.url);
 })
 
-// Add "translate selection" menu item to selections
-compat.contextMenus.create({
-    id: 'translate-selection',
-    title: 'Translate Selection',
-    contexts: ['selection']
-});
+compat.runtime.onInstalled.addListener(() => {
+    // Add "translate selection" menu item to selections
+    compat.contextMenus.create({
+        id: 'translate-selection',
+        title: 'Translate Selection',
+        contexts: ['selection']
+    });
 
-// Add "type to translate" menu item to textareas
-compat.contextMenus.create({
-    id: 'show-outbound-translation',
-    title: 'Type to translate…',
-    contexts: ['editable']
+    // Add "type to translate" menu item to textareas
+    compat.contextMenus.create({
+        id: 'show-outbound-translation',
+        title: 'Type to translate…',
+        contexts: ['editable']
+    });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -772,7 +774,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     // (and it isn't the same by accident)
     const {from, to} = getTab(tab.id).state;
     if (from === undefined || to === undefined || from === to) {
-        compat.browserAction.openPopup();
+        compat.action.openPopup();
         return;
     }
 

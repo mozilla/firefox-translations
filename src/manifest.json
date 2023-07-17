@@ -1,29 +1,33 @@
 {
-	"manifest_version": 2,
+	"manifest_version": 3,
 	"name": "TranslateLocally for Firefox",
 	"version": "0.0.1",
-	"version_name": "development",
 	"browser_specific_settings":
 	{
 		"gecko":
 		{
-			"strict_min_version": "90.0",
+			"strict_min_version": "101.0",
 			"id": "{2fa36771-561b-452c-b6c3-7486f42c25ae}"
 		}
 	},
 	"permissions":
 	[
-		"<all_urls>",
 		"contextMenus",
 		"tabs",
 		"storage",
 		"nativeMessaging"
 	],
+	"host_permissions": [
+		"https://translatelocally.com/models.json",
+		"https://data.statmt.org/bergamot/models/*"
+	],
 	"background":
 	{
 		"scripts": ["background-script.js"]
 	},
-	"content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+	"content_security_policy": {
+		"extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+	},	
 	"content_scripts":
 	[
 		{
@@ -38,9 +42,8 @@
 		}
 	],
 	"incognito": "spanning",
-	"browser_action":
+	"action":
 	{
-		"browser_style": true,
 		"default_icon":
 		{
 			"16": "/assets/icons/translateLocally_logo.16.png",
@@ -51,9 +54,7 @@
 		"default_popup": "popup.html"
 	},
 	"options_ui": {
-		"page": "options.html",
-		"browser_style": true,
-		"chrome_style": true
+		"page": "options.html"
 	},
 	"icons":
 	{
@@ -61,9 +62,14 @@
 		"96": "/assets/icons/translateLocally_logo.96.png"
 	},
 	"web_accessible_resources": [
-		"assets/fonts/FlowBlock-Regular.woff2",
-		"assets/fonts/FlowCircular-Regular.woff2",
-		"assets/fonts/FlowRounded-Regular.woff2"
+		{
+			"matches": ["*://*/*"],
+			"resources": [
+				"assets/fonts/FlowBlock-Regular.woff2",
+				"assets/fonts/FlowCircular-Regular.woff2",
+				"assets/fonts/FlowRounded-Regular.woff2"
+			]
+		}
 	],
 	"description": "TranslateLocally for Firefox is a webextension that enables client side in-page translations for web browsers. It is a stand-alone extension, but can integrate with TranslateLocally for custom models and even better performance.",
 	"homepage_url": "https://github.com/jelmervdl/translatelocally-webext"

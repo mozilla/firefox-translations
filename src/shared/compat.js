@@ -72,8 +72,8 @@ export default new class {
 			return this.#runtime.i18n;
 	}
 
-	get browserAction() {
-		return this.#runtime.browserAction;
+	get action() {
+		return this.#runtime.action;
 	}
 
 	get contextMenus() {
