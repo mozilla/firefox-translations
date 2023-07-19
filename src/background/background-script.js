@@ -1,105 +1,8 @@
 import compat from '../shared/compat.js';
 import { product } from '../shared/func.js';
-import TLTranslationHelper from './TLTranslationHelper.js';
-//import WASMTranslationHelper from './WASMTranslationHelper.js';
 import Recorder from './Recorder.js';
 import preferences from '../shared/preferences.js';
 
-
-export default class WASMOffscreenTranslationHelper {
-    #initialized;
-
-    constructor(options) {
-        this.#initialized = (async () => {
-            const offscreenURL = chrome.runtime.getURL('offscreen.html');
-
-            // Check if offscreen page is already available
-            const matchedClients = await clients.matchAll();
-            if (!matchedClients.some(client => client.url === offscreenURL)) {
-                await chrome.offscreen.createDocument({
-                    url: offscreenURL,
-                    reasons: [chrome.offscreen.Reason.WORKERS],
-                    justification: 'Translation engine'
-                });
-            }
-
-            // Re-initialise regardless (TODO: really?)
-            const {error} = await chrome.runtime.sendMessage({
-                target: 'offscreen',
-                command: 'Initialize',
-                data: {
-                    args: [options]
-                }
-            });
-
-            if (error !== undefined)
-                throw error;
-            
-            return true;
-        })();
-    }
-
-    async #call(name, args) {
-        await this.#initialized;
-
-        const {result, error} = await chrome.runtime.sendMessage({
-            target: 'offscreen',
-            command: 'Call',
-            data: {name, args}
-        });
-
-        console.log('#call', name, 'received', result, error);
-
-        if (error !== undefined)
-            throw error;
-
-        return result;
-    }
-
-    #get(property) {
-        return new Promise(async (accept, reject) => {
-            console.log('#get pre #initialized');
-            await this.#initialized;
-            console.log('#get past #initialized');
-
-            const out = await chrome.runtime.sendMessage({
-                target: 'offscreen',
-                command: 'Get',
-                data: {property}
-            });
-
-            console.log('#get', property, 'received', out);
-
-            const {result, error} = out;
-
-            if (error !== undefined)
-                reject(error)
-            else
-                accept(result);
-        });
-    }
-
-    get registry() {
-        return this.#get('registry');
-    }
-
-    downloadModel(id) {
-        return this.#call('downloadModel', [id]); // normally returns PromiseWithProgress
-    }
-
-    translate(request) {
-        return this.#call('translate', [request]);
-    }
-
-    remove(filter) {
-        // Haha not implemented yet
-    }
-
-    delete() {
-        chrome.offscreen.closeDocument();
-        this.#initialized = null;
-    }
-}
 
 function isSameDomain(url1, url2) {
     return url1 && url2 && new URL(url1).host === new URL(url2).host;
@@ -426,10 +329,22 @@ function updateMenuItems({data, target: {state}}) {
 }
 
 // Supported translation providers
-const providers = {
-    'translatelocally': TLTranslationHelper,
-    'wasm': WASMOffscreenTranslationHelper
-};
+/**
+ * @type{[name:String]:Promise<Type<TranslationHelper>>}
+ */
+const providers = {};
+
+// WASM (shipped) wither in this thread or in an offscreen page
+if (globalThis?.Worker) {
+    providers['wasm'] = async () => (await import('./WASMTranslationHelper.js')).default;
+} else if (chrome?.offscreen) {
+    providers['wasm'] = async () => (await import('./WASMOffscreenTranslationHelper.js')).default;
+}
+
+// Locally installed
+if (compat.runtime.connectNative) {
+    providers['translatelocally'] = async () => (await import('./TLTranslationHelper.js')).default;
+}
 
 // State per tab
 const tabs = new Map();
@@ -484,7 +399,9 @@ let provider = new class {
                 useNativeIntGemm: true // faster is better (unless it is buggy: https://github.com/browsermt/marian-dev/issues/81)
             });
 
-            const provider = new providers[preferred](options);
+            const implementation = await providers[preferred]();
+
+            const provider = new implementation(options);
 
             provider.onerror = err => {
                 console.error('Translation provider error:', err);
