@@ -1,4 +1,3 @@
-import compat from '../shared/compat.js';
 import { PromiseWithProgress } from '../shared/promise.js';
 import { first, flatten, deduplicate } from '../shared/func.js';
 import * as YAML from '../shared/yaml.js';
