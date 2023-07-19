@@ -1,10 +1,105 @@
 import compat from '../shared/compat.js';
 import { product } from '../shared/func.js';
 import TLTranslationHelper from './TLTranslationHelper.js';
-import WASMTranslationHelper from './WASMTranslationHelper.js';
+//import WASMTranslationHelper from './WASMTranslationHelper.js';
 import Recorder from './Recorder.js';
 import preferences from '../shared/preferences.js';
 
+
+export default class WASMOffscreenTranslationHelper {
+    #initialized;
+
+    constructor(options) {
+        this.#initialized = (async () => {
+            const offscreenURL = chrome.runtime.getURL('offscreen.html');
+
+            // Check if offscreen page is already available
+            const matchedClients = await clients.matchAll();
+            if (!matchedClients.some(client => client.url === offscreenURL)) {
+                await chrome.offscreen.createDocument({
+                    url: offscreenURL,
+                    reasons: [chrome.offscreen.Reason.WORKERS],
+                    justification: 'Translation engine'
+                });
+            }
+
+            // Re-initialise regardless (TODO: really?)
+            const {error} = await chrome.runtime.sendMessage({
+                target: 'offscreen',
+                command: 'Initialize',
+                data: {
+                    args: [options]
+                }
+            });
+
+            if (error !== undefined)
+                throw error;
+            
+            return true;
+        })();
+    }
+
+    async #call(name, args) {
+        await this.#initialized;
+
+        const {result, error} = await chrome.runtime.sendMessage({
+            target: 'offscreen',
+            command: 'Call',
+            data: {name, args}
+        });
+
+        console.log('#call', name, 'received', result, error);
+
+        if (error !== undefined)
+            throw error;
+
+        return result;
+    }
+
+    #get(property) {
+        return new Promise(async (accept, reject) => {
+            console.log('#get pre #initialized');
+            await this.#initialized;
+            console.log('#get past #initialized');
+
+            const out = await chrome.runtime.sendMessage({
+                target: 'offscreen',
+                command: 'Get',
+                data: {property}
+            });
+
+            console.log('#get', property, 'received', out);
+
+            const {result, error} = out;
+
+            if (error !== undefined)
+                reject(error)
+            else
+                accept(result);
+        });
+    }
+
+    get registry() {
+        return this.#get('registry');
+    }
+
+    downloadModel(id) {
+        return this.#call('downloadModel', [id]); // normally returns PromiseWithProgress
+    }
+
+    translate(request) {
+        return this.#call('translate', [request]);
+    }
+
+    remove(filter) {
+        // Haha not implemented yet
+    }
+
+    delete() {
+        chrome.offscreen.closeDocument();
+        this.#initialized = null;
+    }
+}
 
 function isSameDomain(url1, url2) {
     return url1 && url2 && new URL(url1).host === new URL(url2).host;
@@ -333,7 +428,7 @@ function updateMenuItems({data, target: {state}}) {
 // Supported translation providers
 const providers = {
     'translatelocally': TLTranslationHelper,
-    'wasm': WASMTranslationHelper
+    'wasm': WASMOffscreenTranslationHelper
 };
 
 // State per tab
@@ -647,15 +742,18 @@ function connectPopup(popup) {
                 // For each download promise, add a progress listener that updates the tab state
                 // with how far all our downloads have progressed so far.
                 downloads.forEach((_, promise) => {
-                    promise.addProgressListener(({read, size}) => {
-                        // Update download we got a notification about
-                        downloads.set(promise, {read, size});
-                        // Update tab state about all downloads combined (i.e. model, optionally pivot)
-                        tab.update(state => ({
-                            modelDownloadRead: Array.from(downloads.values()).reduce((sum, {read}) => sum + read, 0),
-                            modelDownloadSize: Array.from(downloads.values()).reduce((sum, {size}) => sum + size, 0)
-                        }));
-                    });
+                    // (not supported by the Chrome offscreen proxy implementation right now)
+                    if (promise.addProgressListener) {
+                        promise.addProgressListener(({read, size}) => {
+                            // Update download we got a notification about
+                            downloads.set(promise, {read, size});
+                            // Update tab state about all downloads combined (i.e. model, optionally pivot)
+                            tab.update(state => ({
+                                modelDownloadRead: Array.from(downloads.values()).reduce((sum, {read}) => sum + read, 0),
+                                modelDownloadSize: Array.from(downloads.values()).reduce((sum, {size}) => sum + size, 0)
+                            }));
+                        });
+                    }
 
                     promise.then(() => {
                         // Trigger update of state.models because the `local`

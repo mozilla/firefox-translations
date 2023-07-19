@@ -17,13 +17,21 @@
 		"storage",
 		"nativeMessaging"
 	],
+	"permissions<chromium>":
+	[
+		"offscreen"
+	],
 	"host_permissions": [
 		"https://translatelocally.com/models.json",
 		"https://data.statmt.org/bergamot/models/*"
 	],
-	"background":
+	"background<firefox-desktop>":
 	{
 		"scripts": ["background-script.js"]
+	},
+	"background<chromium>":
+	{
+		"service_worker": "background-script.js"
 	},
 	"content_security_policy": {
 		"extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
