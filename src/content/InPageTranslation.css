@@ -5,28 +5,28 @@ html[x-bergamot-debug] [x-bergamot-translated=""] { border: 2px solid blue; }
 html[x-bergamot-debug] [x-bergamot-translated=""] [x-bergamot-translated~="is-excluded-node"] { border: 4px dashed red; }
 
 @font-face {
-  font-family: "Flow Block";
-  src: url("../../assets/fonts/FlowBlock-Regular.woff2");
+  font-family: "x-bergamot Flow Block";
+  src: url("chrome-extension://__MSG_@@extension_id__/assets/fonts/FlowBlock-Regular.woff2");
 }
 
 @font-face {
-  font-family: "Flow Circular";
-  src: url("../../assets/fonts/FlowCircular-Regular.woff2");
+  font-family: "x-bergamot Flow Circular";
+  src: url("chrome-extension://__MSG_@@extension_id__/assets/fonts/FlowCircular-Regular.woff2");
 }
 
 @font-face {
-  font-family: "Flow Rounded";
-  src: url("../../assets/fonts/FlowRounded-Regular.woff2");
+  font-family: "x-bergamot Flow Rounded";
+  src: url("chrome-extension://__MSG_@@extension_id__/assets/fonts/FlowRounded-Regular.woff2");
 }
 
 [x-bergamot-indicator="flow-block"] [x-bergamot-translated]:not([x-bergamot-translated~="skipped"], [x-bergamot-translated~="rejected"], [x-bergamot-translated=""]) {
-	font-family: "Flow Block" !important;
+	font-family: "x-bergamot Flow Block" !important;
 }
 
 [x-bergamot-indicator="flow-circular"] [x-bergamot-translated]:not([x-bergamot-translated~="skipped"], [x-bergamot-translated~="rejected"], [x-bergamot-translated=""]) {
-	font-family: "Flow Circular" !important;
+	font-family: "x-bergamot Flow Circular" !important;
 }
 
 [x-bergamot-indicator="flow-rounded"] [x-bergamot-translated]:not([x-bergamot-translated~="skipped"], [x-bergamot-translated~="rejected"], [x-bergamot-translated=""]) {
-	font-family: "Flow Rounded" !important;
+	font-family: "x-bergamot Flow Rounded" !important;
 }
