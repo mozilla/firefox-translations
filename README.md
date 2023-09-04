@@ -1,7 +1,10 @@
 [![Build](https://github.com/mozilla/firefox-translations/actions/workflows/build_main.yml/badge.svg)](https://github.com/mozilla/firefox-translations/actions/workflows/build_main.yml) [![CodeQL](https://github.com/mozilla/firefox-translations/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/mozilla/firefox-translations/actions/workflows/codeql-analysis.yml) [![End-to-End Tests](https://github.com/mozilla/firefox-translations/actions/workflows/e2etest.yml/badge.svg?branch=main)](https://github.com/mozilla/firefox-translations/actions/workflows/e2etest.yml)  [![Firefox Translations - Install Nightly](https://img.shields.io/badge/Firefox_Translations-Install_Nightly-2ea44f)](https://github.com/mozilla/firefox-translations/releases/download/nightly/firefox_translations.xpi)  [![CODE OF CONDUCT](https://img.shields.io/badge/Contributing-Code%20of%20Conduct-blue)](https://github.com/mozilla/firefox-translations/blob/master/CODE_OF_CONDUCT.md)  [![LICENSE](https://img.shields.io/badge/LICENSE-MPL-blue)](https://github.com/mozilla/firefox-translations/blob/master/LICENSE) [![Mozilla Add-on](https://img.shields.io/amo/v/firefox-translations.svg)](https://addons.mozilla.org/en-US/firefox/addon/firefox-translations/)
 
+# This WebExtension is NOT maintained anymore. The development of Firefox Translation moved into Firefox itself and will be available for anyone from Firefox 108.
+Please open new issues in https://bugzilla.mozilla.org/enter_bug.cgi?product=Firefox&component=Translation
+
 # Firefox Translations
-Firefox Translations is a WebExtension that enables client side in-page translations for web browsers.
+Firefox Translations was a WebExtension that enabled client side in-page translations for web browsers.
 
 Firefox Translations was developed with The Bergamot Project Consortium, coordinated by the University of Edinburgh with partners Charles University in Prague, the University of Sheffield, University of Tartu, and Mozilla. This project has received funding from the European Union’s Horizon 2020 research and innovation programme under grant agreement No 825303. 🇪🇺
 
